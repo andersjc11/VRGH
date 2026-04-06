@@ -19,9 +19,9 @@ export default function HomePage({
           <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-brand-500/25 blur-3xl" />
           <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-fuchsia-500/15 blur-3xl" />
         </div>
-        <div className="mx-auto max-w-6xl px-4 py-14">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-            <div className="space-y-6">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="flex flex-wrap justify-center gap-2">
               {ref ? (
                 <p className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-zinc-200">
                   Indicação ativa: {ref}
@@ -30,58 +30,36 @@ export default function HomePage({
               <p className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-zinc-200">
                 Locação profissional para festas, eventos e ações promocionais
               </p>
-              <h1 className="font-[var(--font-gamer)] text-4xl tracking-tight md:text-5xl">
-                <span className="bg-gradient-to-r from-brand-200 via-fuchsia-200 to-cyan-200 bg-clip-text text-transparent">
-                  Estrutura gamer completa
-                </span>{" "}
-                com orçamento automático e reserva online
-              </h1>
-              <p className="text-zinc-300">
-                Selecione os equipamentos, informe data, duração e local do
-                evento. O sistema calcula deslocamento, descontos e apresenta as
-                opções de pagamento.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg">
-                  <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
-                </Button>
-                <Button asChild intent="secondary" size="lg">
-                  <Link href="/equipamentos">Ver equipamentos</Link>
-                </Button>
-              </div>
             </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Card>
-                <p className="text-sm text-zinc-400">Destaque</p>
-                <p className="mt-2 font-[var(--font-gamer)] text-lg">
-                  Consoles + TVs 4K
-                </p>
-                <p className="mt-1 text-sm text-zinc-300">
-                  Setup pronto para jogar em poucos minutos.
-                </p>
-              </Card>
-              <Card>
-                <p className="text-sm text-zinc-400">Destaque</p>
-                <p className="mt-2 font-[var(--font-gamer)] text-lg">PCs Gamer</p>
-                <p className="mt-1 text-sm text-zinc-300">
-                  Periféricos e monitores inclusos no combo.
-                </p>
-              </Card>
-              <Card>
-                <p className="text-sm text-zinc-400">Serviço</p>
-                <p className="mt-2 font-[var(--font-gamer)] text-lg">Equipe no local</p>
-                <p className="mt-1 text-sm text-zinc-300">
-                  Montagem, suporte e desmontagem.
-                </p>
-              </Card>
-              <Card>
-                <p className="text-sm text-zinc-400">Condições</p>
-                <p className="mt-2 font-[var(--font-gamer)] text-lg">Pix com desconto</p>
-                <p className="mt-1 text-sm text-zinc-300">
-                  E opção de sinal + restante na semana do evento.
-                </p>
-              </Card>
+            <h1 className="mt-6 font-[var(--font-gamer)] text-5xl leading-tight tracking-tight md:text-6xl">
+              <span className="bg-gradient-to-r from-brand-200 via-fuchsia-200 to-cyan-200 bg-clip-text text-transparent">
+                Estrutura gamer completa
+              </span>
+            </h1>
+            <p className="mt-3 font-[var(--font-gamer)] text-xl text-zinc-100 md:text-2xl">
+              Orçamento automático e reserva online
+            </p>
+            <p className="mt-5 text-base text-zinc-200 md:text-lg">
+              Selecione os equipamentos, informe data, duração e local do evento.
+              O sistema calcula deslocamento, descontos e apresenta as opções de
+              pagamento.
+            </p>
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+              <Button
+                asChild
+                size="lg"
+                className="shadow-lg shadow-brand-500/25 ring-1 ring-brand-400/30"
+              >
+                <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
+              </Button>
+              <Button
+                asChild
+                intent="secondary"
+                size="lg"
+                className="ring-1 ring-white/10"
+              >
+                <Link href="/equipamentos">Ver equipamentos</Link>
+              </Button>
             </div>
           </div>
         </div>
