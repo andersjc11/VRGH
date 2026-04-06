@@ -32,6 +32,9 @@ export function CadastroForm({ refCode }: { refCode?: string }) {
         </label>
         <Input id="password" name="password" type="password" required autoComplete="new-password" />
       </div>
+      {state.message ? (
+        <p className="text-sm text-emerald-200">{state.message}</p>
+      ) : null}
       {state.error ? (
         <p className="text-sm text-red-300">{state.error}</p>
       ) : null}
