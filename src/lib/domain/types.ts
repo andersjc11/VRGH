@@ -18,6 +18,7 @@ export type Equipment = {
   description: string | null
   category: string | null
   image_url: string | null
+  video_url?: string | null
   active: boolean
 }
 
@@ -51,4 +52,3 @@ export type QuoteBreakdown = {
   discount_cents: number
   total_cents: number
 }
-
