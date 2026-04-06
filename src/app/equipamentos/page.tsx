@@ -41,7 +41,11 @@ function toVideoEmbedUrl(raw: string) {
   }
 }
 
-export default async function EquipamentosPage() {
+export default async function EquipamentosPage({
+  searchParams
+}: {
+  searchParams?: { debug?: string }
+}) {
   const supabase = createSupabaseServerClient()
   const equipmentsResWithVideo = await supabase
     .from("equipments")
@@ -62,6 +66,7 @@ export default async function EquipamentosPage() {
       : equipmentsResWithVideo
 
   const equipments = (equipmentsRes.data ?? []) as EquipmentRow[]
+  const debug = Boolean(searchParams?.debug)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -71,6 +76,24 @@ export default async function EquipamentosPage() {
           Selecione itens para montar seu orçamento automático.
         </p>
       </div>
+
+      {debug ? (
+        <Card className="mt-6">
+          <p className="text-sm text-zinc-400">Debug</p>
+          <pre className="mt-3 overflow-auto text-xs text-zinc-200">
+            {JSON.stringify(
+              equipments.map((e) => ({
+                id: e.id,
+                name: e.name,
+                image_url: e.image_url,
+                video_url: "video_url" in e ? e.video_url : undefined
+              })),
+              null,
+              2
+            )}
+          </pre>
+        </Card>
+      ) : null}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {equipments.length === 0 ? (
