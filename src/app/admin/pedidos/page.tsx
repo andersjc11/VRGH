@@ -35,7 +35,7 @@ export default async function AdminPedidosPage() {
   const reservationsRes = await supabase
     .from("reservations")
     .select(
-      "id,status,created_at,total_cents,payment_plan,event_name,quote_id,quotes(event_date,start_time,duration_hours)"
+      "id,status,created_at,total_cents,payment_plan,event_name,quote_id,user_id,profiles(full_name,phone,whatsapp),quotes(event_date,start_time,duration_hours)"
     )
     .order("created_at", { ascending: false })
     .limit(50)
@@ -63,6 +63,12 @@ export default async function AdminPedidosPage() {
                 <p className="font-semibold">{r.event_name ?? "Evento"}</p>
                 <p className="text-sm text-zinc-400">
                   Status: {r.status} • Pagamento: {r.payment_plan}
+                </p>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Contratante: {r.profiles?.full_name ?? r.user_id ?? "—"}
+                  {(r.profiles?.whatsapp || r.profiles?.phone)
+                    ? ` • ${r.profiles?.whatsapp ?? r.profiles?.phone}`
+                    : ""}
                 </p>
                 <p className="mt-1 text-sm text-zinc-300">
                   Data: {formatDatePtBR(r.quotes?.event_date)} • Início:{" "}

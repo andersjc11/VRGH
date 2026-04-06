@@ -38,7 +38,7 @@ export default async function AdminPedidoDetalhePage({
   const res = await supabase
     .from("reservations")
     .select(
-      "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_line2,city,state,postal_code,notes,payment_terms,user_id,quote_id,quotes(event_date,start_time,duration_hours,distance_km,subtotal_cents,displacement_cents,discount_cents,total_cents)"
+      "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_line2,city,state,postal_code,notes,payment_terms,user_id,profiles(full_name,cpf,phone,whatsapp,address_line1,neighborhood,city,postal_code),quote_id,quotes(event_date,start_time,duration_hours,distance_km,subtotal_cents,displacement_cents,discount_cents,total_cents)"
     )
     .eq("id", params.id)
     .maybeSingle()
@@ -55,8 +55,23 @@ export default async function AdminPedidoDetalhePage({
 
       <div className="mt-8 grid gap-4">
         <Card>
-          <p className="text-sm text-zinc-400">Cliente</p>
-          <p className="mt-2 text-sm text-zinc-300">{pedido.user_id}</p>
+          <p className="text-sm text-zinc-400">Contratante</p>
+          <p className="mt-2 font-semibold">
+            {pedido.profiles?.full_name ?? pedido.user_id ?? "—"}
+          </p>
+          <p className="mt-1 text-sm text-zinc-300">
+            CPF: {pedido.profiles?.cpf ?? "—"}
+          </p>
+          <p className="mt-1 text-sm text-zinc-300">
+            Contato: {pedido.profiles?.whatsapp ?? pedido.profiles?.phone ?? "—"}
+          </p>
+          <p className="mt-3 text-sm text-zinc-300">
+            {pedido.profiles?.address_line1 ?? "—"}
+            {pedido.profiles?.neighborhood ? ` • ${pedido.profiles.neighborhood}` : ""}
+          </p>
+          <p className="mt-1 text-sm text-zinc-300">
+            {pedido.profiles?.city ?? "—"} • {pedido.profiles?.postal_code ?? "—"}
+          </p>
         </Card>
         <Card>
           <p className="text-sm text-zinc-400">Evento</p>
