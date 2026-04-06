@@ -484,7 +484,11 @@ export default async function AdminEquipamentosPage({
               </Button>
             </div>
 
-            <form action={createEquipment} className="mt-4 grid gap-4 sm:grid-cols-2">
+            <form
+              action={createEquipment}
+              encType="multipart/form-data"
+              className="mt-4 grid gap-4 sm:grid-cols-2"
+            >
               <div className="space-y-2 sm:col-span-2">
                 <label className="text-sm text-zinc-200" htmlFor="new_name">
                   Nome
@@ -613,7 +617,11 @@ export default async function AdminEquipamentosPage({
                     </div>
 
                     {isEditing ? (
-                      <form action={updateEquipment} className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <form
+                        action={updateEquipment}
+                        encType="multipart/form-data"
+                        className="mt-4 grid gap-4 sm:grid-cols-2"
+                      >
                         <input type="hidden" name="id" value={e.id} />
                         <div className="space-y-2 sm:col-span-2">
                           <label className="text-sm text-zinc-200" htmlFor={`name_${e.id}`}>
