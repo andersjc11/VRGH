@@ -10,6 +10,20 @@ export default async function AdminEquipamentosPage({
 }: {
   searchParams?: { ok?: string; error?: string }
 }) {
+  function safeDecodeURIComponent(value: string | undefined) {
+    if (!value) return ""
+    try {
+      return decodeURIComponent(value)
+    } catch {
+      return value
+    }
+  }
+
+  function isNextRedirectError(err: unknown) {
+    const digest = (err as any)?.digest
+    return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")
+  }
+
   async function requireAdmin() {
     const supabase = createSupabaseServerClient()
     const { data } = await supabase.auth.getUser()
@@ -43,94 +57,122 @@ export default async function AdminEquipamentosPage({
 
   async function createEquipment(formData: FormData) {
     "use server"
-    const { supabase } = await requireAdmin()
+    try {
+      const { supabase } = await requireAdmin()
 
-    const name = getString(formData, "name")
-    const category = getString(formData, "category") || null
-    const description = getString(formData, "description") || null
-    const imageUrl = getString(formData, "image_url") || null
-    const videoUrl = getString(formData, "video_url") || null
-    const active = getString(formData, "active") === "on"
-    const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
-    const minHoursRaw = Number(getString(formData, "min_hours") || "1")
-    const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
+      const name = getString(formData, "name")
+      const category = getString(formData, "category") || null
+      const description = getString(formData, "description") || null
+      const imageUrl = getString(formData, "image_url") || null
+      const videoUrl = getString(formData, "video_url") || null
+      const active = getString(formData, "active") === "on"
+      const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
+      const minHoursRaw = Number(getString(formData, "min_hours") || "1")
+      const minHours = Number.isFinite(minHoursRaw)
+        ? Math.max(1, Math.trunc(minHoursRaw))
+        : 1
 
-    if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
-    if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
+      if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
+      if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
 
-    const insertRes = await supabase
-      .from("equipments")
-      .insert({
-        name,
-        category,
-        description,
-        image_url: imageUrl,
-        video_url: videoUrl,
-        active
-      })
-      .select("id")
-      .single()
+      const insertRes = await supabase
+        .from("equipments")
+        .insert({
+          name,
+          category,
+          description,
+          image_url: imageUrl,
+          video_url: videoUrl,
+          active
+        })
+        .select("id")
+        .single()
 
-    if (insertRes.error) {
-      redirect("/admin/equipamentos?error=Falha%20ao%20criar%20esta%C3%A7%C3%A3o")
+      if (insertRes.error) {
+        redirect("/admin/equipamentos?error=Falha%20ao%20criar%20esta%C3%A7%C3%A3o")
+      }
+
+      const equipmentId = insertRes.data.id as string
+      const priceRes = await supabase
+        .from("equipment_prices")
+        .upsert(
+          {
+            equipment_id: equipmentId,
+            price_per_hour_cents: priceCents,
+            min_hours: minHours
+          },
+          { onConflict: "equipment_id" }
+        )
+
+      if (priceRes.error) {
+        redirect("/admin/equipamentos?error=Falha%20ao%20salvar%20pre%C3%A7o")
+      }
+
+      redirect("/admin/equipamentos?ok=created")
+    } catch (err) {
+      if (isNextRedirectError(err)) throw err
+      redirect(`/admin/equipamentos?error=${encodeURIComponent("Falha inesperada ao salvar.")}`)
     }
-
-    const equipmentId = insertRes.data.id as string
-    const priceRes = await supabase.from("equipment_prices").upsert({
-      equipment_id: equipmentId,
-      price_per_hour_cents: priceCents,
-      min_hours: minHours
-    })
-
-    if (priceRes.error) {
-      redirect("/admin/equipamentos?error=Falha%20ao%20salvar%20pre%C3%A7o")
-    }
-
-    redirect("/admin/equipamentos?ok=created")
   }
 
   async function updateEquipment(formData: FormData) {
     "use server"
-    const { supabase } = await requireAdmin()
+    try {
+      const { supabase } = await requireAdmin()
 
-    const id = getString(formData, "id")
-    const name = getString(formData, "name")
-    const category = getString(formData, "category") || null
-    const description = getString(formData, "description") || null
-    const imageUrl = getString(formData, "image_url") || null
-    const videoUrl = getString(formData, "video_url") || null
-    const active = getString(formData, "active") === "on"
-    const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
-    const minHoursRaw = Number(getString(formData, "min_hours") || "1")
-    const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
+      const id = getString(formData, "id")
+      const name = getString(formData, "name")
+      const category = getString(formData, "category") || null
+      const description = getString(formData, "description") || null
+      const imageUrl = getString(formData, "image_url") || null
+      const videoUrl = getString(formData, "video_url") || null
+      const active = getString(formData, "active") === "on"
+      const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
+      const minHoursRaw = Number(getString(formData, "min_hours") || "1")
+      const minHours = Number.isFinite(minHoursRaw)
+        ? Math.max(1, Math.trunc(minHoursRaw))
+        : 1
 
-    if (!id) redirect("/admin/equipamentos?error=ID%20inv%C3%A1lido")
-    if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
-    if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
+      if (!id) redirect("/admin/equipamentos?error=ID%20inv%C3%A1lido")
+      if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
+      if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
 
-    const updRes = await supabase
-      .from("equipments")
-      .update({
-        name,
-        category,
-        description,
-        image_url: imageUrl,
-        video_url: videoUrl,
-        active
-      })
-      .eq("id", id)
+      const updRes = await supabase
+        .from("equipments")
+        .update({
+          name,
+          category,
+          description,
+          image_url: imageUrl,
+          video_url: videoUrl,
+          active
+        })
+        .eq("id", id)
 
-    if (updRes.error) redirect("/admin/equipamentos?error=Falha%20ao%20atualizar%20esta%C3%A7%C3%A3o")
+      if (updRes.error) {
+        redirect("/admin/equipamentos?error=Falha%20ao%20atualizar%20esta%C3%A7%C3%A3o")
+      }
 
-    const priceRes = await supabase.from("equipment_prices").upsert({
-      equipment_id: id,
-      price_per_hour_cents: priceCents,
-      min_hours: minHours
-    })
+      const priceRes = await supabase
+        .from("equipment_prices")
+        .upsert(
+          {
+            equipment_id: id,
+            price_per_hour_cents: priceCents,
+            min_hours: minHours
+          },
+          { onConflict: "equipment_id" }
+        )
 
-    if (priceRes.error) redirect("/admin/equipamentos?error=Falha%20ao%20salvar%20pre%C3%A7o")
+      if (priceRes.error) {
+        redirect("/admin/equipamentos?error=Falha%20ao%20salvar%20pre%C3%A7o")
+      }
 
-    redirect("/admin/equipamentos?ok=updated")
+      redirect("/admin/equipamentos?ok=updated")
+    } catch (err) {
+      if (isNextRedirectError(err)) throw err
+      redirect(`/admin/equipamentos?error=${encodeURIComponent("Falha inesperada ao salvar.")}`)
+    }
   }
 
   const { supabase } = await requireAdmin()
@@ -181,7 +223,7 @@ export default async function AdminEquipamentosPage({
           <Card>
             {ok ? <p className="text-sm text-emerald-200">Salvo com sucesso.</p> : null}
             {error ? (
-              <p className="text-sm text-red-300">{decodeURIComponent(error)}</p>
+              <p className="text-sm text-red-300">{safeDecodeURIComponent(error)}</p>
             ) : null}
           </Card>
         ) : null}
