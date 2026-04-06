@@ -21,7 +21,7 @@ export default async function AdminEquipamentosPage({
 
   function isNextRedirectError(err: unknown) {
     const digest = (err as any)?.digest
-    return typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")
+    return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
   }
 
   async function requireAdmin() {
@@ -89,7 +89,11 @@ export default async function AdminEquipamentosPage({
         .single()
 
       if (insertRes.error) {
-        redirect("/admin/equipamentos?error=Falha%20ao%20criar%20esta%C3%A7%C3%A3o")
+        redirect(
+          `/admin/equipamentos?error=${encodeURIComponent(
+            `Falha ao criar estação: ${insertRes.error.message}`
+          )}`
+        )
       }
 
       const equipmentId = insertRes.data.id as string
@@ -105,13 +109,19 @@ export default async function AdminEquipamentosPage({
         )
 
       if (priceRes.error) {
-        redirect("/admin/equipamentos?error=Falha%20ao%20salvar%20pre%C3%A7o")
+        redirect(
+          `/admin/equipamentos?error=${encodeURIComponent(
+            `Falha ao salvar preço: ${priceRes.error.message}`
+          )}`
+        )
       }
 
       redirect("/admin/equipamentos?ok=created")
     } catch (err) {
       if (isNextRedirectError(err)) throw err
-      redirect(`/admin/equipamentos?error=${encodeURIComponent("Falha inesperada ao salvar.")}`)
+      const message =
+        err instanceof Error ? err.message : "Falha inesperada ao salvar."
+      redirect(`/admin/equipamentos?error=${encodeURIComponent(message)}`)
     }
   }
 
@@ -150,7 +160,11 @@ export default async function AdminEquipamentosPage({
         .eq("id", id)
 
       if (updRes.error) {
-        redirect("/admin/equipamentos?error=Falha%20ao%20atualizar%20esta%C3%A7%C3%A3o")
+        redirect(
+          `/admin/equipamentos?error=${encodeURIComponent(
+            `Falha ao atualizar estação: ${updRes.error.message}`
+          )}`
+        )
       }
 
       const priceRes = await supabase
@@ -165,13 +179,19 @@ export default async function AdminEquipamentosPage({
         )
 
       if (priceRes.error) {
-        redirect("/admin/equipamentos?error=Falha%20ao%20salvar%20pre%C3%A7o")
+        redirect(
+          `/admin/equipamentos?error=${encodeURIComponent(
+            `Falha ao salvar preço: ${priceRes.error.message}`
+          )}`
+        )
       }
 
       redirect("/admin/equipamentos?ok=updated")
     } catch (err) {
       if (isNextRedirectError(err)) throw err
-      redirect(`/admin/equipamentos?error=${encodeURIComponent("Falha inesperada ao salvar.")}`)
+      const message =
+        err instanceof Error ? err.message : "Falha inesperada ao salvar."
+      redirect(`/admin/equipamentos?error=${encodeURIComponent(message)}`)
     }
   }
 
