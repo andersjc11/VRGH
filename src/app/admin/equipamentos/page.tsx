@@ -5,294 +5,290 @@ import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 
+function safeDecodeURIComponent(value: string | undefined) {
+  if (!value) return ""
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+function isNextRedirectError(err: unknown) {
+  const digest = (err as any)?.digest
+  return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
+}
+
+function isMissingColumnError(err: unknown, column: string) {
+  const message = (err as any)?.message
+  if (typeof message !== "string") return false
+  return message.toLowerCase().includes(`column "${column.toLowerCase()}" does not exist`)
+}
+
+async function requireAdmin() {
+  const supabase = createSupabaseServerClient()
+  const { data } = await supabase.auth.getUser()
+  const user = data.user
+  if (!user) redirect("/login?next=/admin/equipamentos")
+
+  const profileRes = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle()
+
+  if (profileRes.data?.role !== "admin") redirect("/cliente")
+  return { supabase }
+}
+
+function getString(formData: FormData, key: string) {
+  const value = formData.get(key)
+  return typeof value === "string" ? value.trim() : ""
+}
+
+function parseMoneyToCents(raw: string) {
+  const cleaned = raw.replace(/[^\d,.\-]/g, "").trim()
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned
+  const parsed = Number(normalized)
+  if (!Number.isFinite(parsed) || parsed < 0) return null
+  return Math.round(parsed * 100)
+}
+
+async function createEquipment(formData: FormData) {
+  "use server"
+  try {
+    const { supabase } = await requireAdmin()
+
+    const name = getString(formData, "name")
+    const category = getString(formData, "category") || null
+    const description = getString(formData, "description") || null
+    const imageUrl = getString(formData, "image_url") || null
+    const videoUrl = getString(formData, "video_url") || null
+    const active = getString(formData, "active") === "on"
+    const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
+    const minHoursRaw = Number(getString(formData, "min_hours") || "1")
+    const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
+
+    if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
+    if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
+
+    const insertRes = await supabase
+      .from("equipments")
+      .insert({
+        name,
+        category,
+        description,
+        image_url: imageUrl,
+        video_url: videoUrl,
+        active
+      })
+      .select("id")
+      .single()
+
+    if (insertRes.error) {
+      if (isMissingColumnError(insertRes.error, "video_url")) {
+        const fallbackInsertRes = await supabase
+          .from("equipments")
+          .insert({
+            name,
+            category,
+            description,
+            image_url: imageUrl,
+            active
+          })
+          .select("id")
+          .single()
+
+        if (fallbackInsertRes.error) {
+          redirect(
+            `/admin/equipamentos?error=${encodeURIComponent(
+              `Falha ao criar estação: ${fallbackInsertRes.error.message}`
+            )}`
+          )
+        }
+
+        const equipmentId = fallbackInsertRes.data.id as string
+        const priceRes = await supabase
+          .from("equipment_prices")
+          .upsert(
+            {
+              equipment_id: equipmentId,
+              price_per_hour_cents: priceCents,
+              min_hours: minHours
+            },
+            { onConflict: "equipment_id" }
+          )
+
+        if (priceRes.error) {
+          redirect(
+            `/admin/equipamentos?error=${encodeURIComponent(
+              `Falha ao salvar preço: ${priceRes.error.message}`
+            )}`
+          )
+        }
+
+        redirect(
+          `/admin/equipamentos?ok=created&error=${encodeURIComponent(
+            "Vídeo ainda não está disponível no banco. Execute a migration 0004_add_equipment_video.sql no Supabase."
+          )}`
+        )
+      }
+
+      redirect(
+        `/admin/equipamentos?error=${encodeURIComponent(
+          `Falha ao criar estação: ${insertRes.error.message}`
+        )}`
+      )
+    }
+
+    const equipmentId = insertRes.data.id as string
+    const priceRes = await supabase
+      .from("equipment_prices")
+      .upsert(
+        {
+          equipment_id: equipmentId,
+          price_per_hour_cents: priceCents,
+          min_hours: minHours
+        },
+        { onConflict: "equipment_id" }
+      )
+
+    if (priceRes.error) {
+      redirect(
+        `/admin/equipamentos?error=${encodeURIComponent(
+          `Falha ao salvar preço: ${priceRes.error.message}`
+        )}`
+      )
+    }
+
+    redirect("/admin/equipamentos?ok=created")
+  } catch (err) {
+    if (isNextRedirectError(err)) throw err
+    const message = err instanceof Error ? err.message : "Falha inesperada ao salvar."
+    redirect(`/admin/equipamentos?error=${encodeURIComponent(message)}`)
+  }
+}
+
+async function updateEquipment(formData: FormData) {
+  "use server"
+  try {
+    const { supabase } = await requireAdmin()
+
+    const id = getString(formData, "id")
+    const name = getString(formData, "name")
+    const category = getString(formData, "category") || null
+    const description = getString(formData, "description") || null
+    const imageUrl = getString(formData, "image_url") || null
+    const videoUrl = getString(formData, "video_url") || null
+    const active = getString(formData, "active") === "on"
+    const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
+    const minHoursRaw = Number(getString(formData, "min_hours") || "1")
+    const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
+
+    if (!id) redirect("/admin/equipamentos?error=ID%20inv%C3%A1lido")
+    if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
+    if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
+
+    const updRes = await supabase
+      .from("equipments")
+      .update({
+        name,
+        category,
+        description,
+        image_url: imageUrl,
+        video_url: videoUrl,
+        active
+      })
+      .eq("id", id)
+
+    if (updRes.error) {
+      if (isMissingColumnError(updRes.error, "video_url")) {
+        const fallbackUpdRes = await supabase
+          .from("equipments")
+          .update({
+            name,
+            category,
+            description,
+            image_url: imageUrl,
+            active
+          })
+          .eq("id", id)
+
+        if (fallbackUpdRes.error) {
+          redirect(
+            `/admin/equipamentos?error=${encodeURIComponent(
+              `Falha ao atualizar estação: ${fallbackUpdRes.error.message}`
+            )}`
+          )
+        }
+
+        const priceRes = await supabase
+          .from("equipment_prices")
+          .upsert(
+            {
+              equipment_id: id,
+              price_per_hour_cents: priceCents,
+              min_hours: minHours
+            },
+            { onConflict: "equipment_id" }
+          )
+
+        if (priceRes.error) {
+          redirect(
+            `/admin/equipamentos?error=${encodeURIComponent(
+              `Falha ao salvar preço: ${priceRes.error.message}`
+            )}`
+          )
+        }
+
+        redirect(
+          `/admin/equipamentos?ok=updated&error=${encodeURIComponent(
+            "Vídeo ainda não está disponível no banco. Execute a migration 0004_add_equipment_video.sql no Supabase."
+          )}`
+        )
+      }
+
+      redirect(
+        `/admin/equipamentos?error=${encodeURIComponent(
+          `Falha ao atualizar estação: ${updRes.error.message}`
+        )}`
+      )
+    }
+
+    const priceRes = await supabase
+      .from("equipment_prices")
+      .upsert(
+        {
+          equipment_id: id,
+          price_per_hour_cents: priceCents,
+          min_hours: minHours
+        },
+        { onConflict: "equipment_id" }
+      )
+
+    if (priceRes.error) {
+      redirect(
+        `/admin/equipamentos?error=${encodeURIComponent(
+          `Falha ao salvar preço: ${priceRes.error.message}`
+        )}`
+      )
+    }
+
+    redirect("/admin/equipamentos?ok=updated")
+  } catch (err) {
+    if (isNextRedirectError(err)) throw err
+    const message = err instanceof Error ? err.message : "Falha inesperada ao salvar."
+    redirect(`/admin/equipamentos?error=${encodeURIComponent(message)}`)
+  }
+}
+
 export default async function AdminEquipamentosPage({
   searchParams
 }: {
   searchParams?: { ok?: string; error?: string }
 }) {
-  function safeDecodeURIComponent(value: string | undefined) {
-    if (!value) return ""
-    try {
-      return decodeURIComponent(value)
-    } catch {
-      return value
-    }
-  }
-
-  function isNextRedirectError(err: unknown) {
-    const digest = (err as any)?.digest
-    return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
-  }
-
-  function isMissingColumnError(err: unknown, column: string) {
-    const message = (err as any)?.message
-    if (typeof message !== "string") return false
-    return message.toLowerCase().includes(`column "${column.toLowerCase()}" does not exist`)
-  }
-
-  async function requireAdmin() {
-    const supabase = createSupabaseServerClient()
-    const { data } = await supabase.auth.getUser()
-    const user = data.user
-    if (!user) redirect("/login?next=/admin/equipamentos")
-
-    const profileRes = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle()
-
-    if (profileRes.data?.role !== "admin") redirect("/cliente")
-    return { supabase }
-  }
-
-  function getString(formData: FormData, key: string) {
-    const value = formData.get(key)
-    return typeof value === "string" ? value.trim() : ""
-  }
-
-  function parseMoneyToCents(raw: string) {
-    const cleaned = raw.replace(/[^\d,.\-]/g, "").trim()
-    const normalized = cleaned.includes(",")
-      ? cleaned.replace(/\./g, "").replace(",", ".")
-      : cleaned
-    const parsed = Number(normalized)
-    if (!Number.isFinite(parsed) || parsed < 0) return null
-    return Math.round(parsed * 100)
-  }
-
-  async function createEquipment(formData: FormData) {
-    "use server"
-    try {
-      const { supabase } = await requireAdmin()
-
-      const name = getString(formData, "name")
-      const category = getString(formData, "category") || null
-      const description = getString(formData, "description") || null
-      const imageUrl = getString(formData, "image_url") || null
-      const videoUrl = getString(formData, "video_url") || null
-      const active = getString(formData, "active") === "on"
-      const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
-      const minHoursRaw = Number(getString(formData, "min_hours") || "1")
-      const minHours = Number.isFinite(minHoursRaw)
-        ? Math.max(1, Math.trunc(minHoursRaw))
-        : 1
-
-      if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
-      if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
-
-      const insertRes = await supabase
-        .from("equipments")
-        .insert({
-          name,
-          category,
-          description,
-          image_url: imageUrl,
-          video_url: videoUrl,
-          active
-        })
-        .select("id")
-        .single()
-
-      if (insertRes.error) {
-        if (isMissingColumnError(insertRes.error, "video_url")) {
-          const fallbackInsertRes = await supabase
-            .from("equipments")
-            .insert({
-              name,
-              category,
-              description,
-              image_url: imageUrl,
-              active
-            })
-            .select("id")
-            .single()
-
-          if (fallbackInsertRes.error) {
-            redirect(
-              `/admin/equipamentos?error=${encodeURIComponent(
-                `Falha ao criar estação: ${fallbackInsertRes.error.message}`
-              )}`
-            )
-          }
-
-          const equipmentId = fallbackInsertRes.data.id as string
-          const priceRes = await supabase
-            .from("equipment_prices")
-            .upsert(
-              {
-                equipment_id: equipmentId,
-                price_per_hour_cents: priceCents,
-                min_hours: minHours
-              },
-              { onConflict: "equipment_id" }
-            )
-
-          if (priceRes.error) {
-            redirect(
-              `/admin/equipamentos?error=${encodeURIComponent(
-                `Falha ao salvar preço: ${priceRes.error.message}`
-              )}`
-            )
-          }
-
-          redirect(
-            `/admin/equipamentos?ok=created&error=${encodeURIComponent(
-              "Vídeo ainda não está disponível no banco. Execute a migration 0004_add_equipment_video.sql no Supabase."
-            )}`
-          )
-        }
-        redirect(
-          `/admin/equipamentos?error=${encodeURIComponent(
-            `Falha ao criar estação: ${insertRes.error.message}`
-          )}`
-        )
-      }
-
-      const equipmentId = insertRes.data.id as string
-      const priceRes = await supabase
-        .from("equipment_prices")
-        .upsert(
-          {
-            equipment_id: equipmentId,
-            price_per_hour_cents: priceCents,
-            min_hours: minHours
-          },
-          { onConflict: "equipment_id" }
-        )
-
-      if (priceRes.error) {
-        redirect(
-          `/admin/equipamentos?error=${encodeURIComponent(
-            `Falha ao salvar preço: ${priceRes.error.message}`
-          )}`
-        )
-      }
-
-      redirect("/admin/equipamentos?ok=created")
-    } catch (err) {
-      if (isNextRedirectError(err)) throw err
-      const message =
-        err instanceof Error ? err.message : "Falha inesperada ao salvar."
-      redirect(`/admin/equipamentos?error=${encodeURIComponent(message)}`)
-    }
-  }
-
-  async function updateEquipment(formData: FormData) {
-    "use server"
-    try {
-      const { supabase } = await requireAdmin()
-
-      const id = getString(formData, "id")
-      const name = getString(formData, "name")
-      const category = getString(formData, "category") || null
-      const description = getString(formData, "description") || null
-      const imageUrl = getString(formData, "image_url") || null
-      const videoUrl = getString(formData, "video_url") || null
-      const active = getString(formData, "active") === "on"
-      const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
-      const minHoursRaw = Number(getString(formData, "min_hours") || "1")
-      const minHours = Number.isFinite(minHoursRaw)
-        ? Math.max(1, Math.trunc(minHoursRaw))
-        : 1
-
-      if (!id) redirect("/admin/equipamentos?error=ID%20inv%C3%A1lido")
-      if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
-      if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
-
-      const updRes = await supabase
-        .from("equipments")
-        .update({
-          name,
-          category,
-          description,
-          image_url: imageUrl,
-          video_url: videoUrl,
-          active
-        })
-        .eq("id", id)
-
-      if (updRes.error) {
-        if (isMissingColumnError(updRes.error, "video_url")) {
-          const fallbackUpdRes = await supabase
-            .from("equipments")
-            .update({
-              name,
-              category,
-              description,
-              image_url: imageUrl,
-              active
-            })
-            .eq("id", id)
-
-          if (fallbackUpdRes.error) {
-            redirect(
-              `/admin/equipamentos?error=${encodeURIComponent(
-                `Falha ao atualizar estação: ${fallbackUpdRes.error.message}`
-              )}`
-            )
-          }
-
-          const priceRes = await supabase
-            .from("equipment_prices")
-            .upsert(
-              {
-                equipment_id: id,
-                price_per_hour_cents: priceCents,
-                min_hours: minHours
-              },
-              { onConflict: "equipment_id" }
-            )
-
-          if (priceRes.error) {
-            redirect(
-              `/admin/equipamentos?error=${encodeURIComponent(
-                `Falha ao salvar preço: ${priceRes.error.message}`
-              )}`
-            )
-          }
-
-          redirect(
-            `/admin/equipamentos?ok=updated&error=${encodeURIComponent(
-              "Vídeo ainda não está disponível no banco. Execute a migration 0004_add_equipment_video.sql no Supabase."
-            )}`
-          )
-        }
-        redirect(
-          `/admin/equipamentos?error=${encodeURIComponent(
-            `Falha ao atualizar estação: ${updRes.error.message}`
-          )}`
-        )
-      }
-
-      const priceRes = await supabase
-        .from("equipment_prices")
-        .upsert(
-          {
-            equipment_id: id,
-            price_per_hour_cents: priceCents,
-            min_hours: minHours
-          },
-          { onConflict: "equipment_id" }
-        )
-
-      if (priceRes.error) {
-        redirect(
-          `/admin/equipamentos?error=${encodeURIComponent(
-            `Falha ao salvar preço: ${priceRes.error.message}`
-          )}`
-        )
-      }
-
-      redirect("/admin/equipamentos?ok=updated")
-    } catch (err) {
-      if (isNextRedirectError(err)) throw err
-      const message =
-        err instanceof Error ? err.message : "Falha inesperada ao salvar."
-      redirect(`/admin/equipamentos?error=${encodeURIComponent(message)}`)
-    }
-  }
-
   const { supabase } = await requireAdmin()
 
   const equipmentsResWithVideo = await supabase
