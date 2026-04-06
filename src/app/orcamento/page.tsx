@@ -9,28 +9,11 @@ export default async function OrcamentoPage() {
 
   const [equipmentsRes, pricesRes, displacementRes, discountsRes] =
     await Promise.all([
-      (async () => {
-        const resWithVideo = await supabase
-          .from("equipments")
-          .select("id,name,description,category,image_url,video_url,active")
-          .eq("active", true)
-          .order("created_at", { ascending: true })
-
-        if (
-          resWithVideo.error &&
-          String((resWithVideo.error as any)?.message ?? "")
-            .toLowerCase()
-            .includes('column "video_url" does not exist')
-        ) {
-          return await supabase
-            .from("equipments")
-            .select("id,name,description,category,image_url,active")
-            .eq("active", true)
-            .order("created_at", { ascending: true })
-        }
-
-        return resWithVideo
-      })(),
+      supabase
+        .from("equipments")
+        .select("id,name,description,category,image_url,active")
+        .eq("active", true)
+        .order("created_at", { ascending: true }),
       supabase
         .from("equipment_prices")
         .select("equipment_id,price_per_hour_cents,min_hours")

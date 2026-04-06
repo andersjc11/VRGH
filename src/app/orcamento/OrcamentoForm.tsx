@@ -15,35 +15,6 @@ type Props = {
   config: PricingConfig
 }
 
-function toVideoEmbedUrl(raw: string) {
-  const url = raw.trim()
-  if (!url) return null
-  try {
-    const u = new URL(url)
-    const host = u.hostname.replace(/^www\./, "")
-
-    if (host === "youtube.com" || host === "m.youtube.com") {
-      const videoId = u.searchParams.get("v")
-      if (videoId) return `https://www.youtube.com/embed/${videoId}`
-      if (u.pathname.startsWith("/embed/")) return url
-    }
-
-    if (host === "youtu.be") {
-      const videoId = u.pathname.split("/").filter(Boolean)[0]
-      if (videoId) return `https://www.youtube.com/embed/${videoId}`
-    }
-
-    if (host === "vimeo.com") {
-      const videoId = u.pathname.split("/").filter(Boolean)[0]
-      if (videoId && /^\d+$/.test(videoId)) return `https://player.vimeo.com/video/${videoId}`
-    }
-
-    return url
-  } catch {
-    return url
-  }
-}
-
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
@@ -66,7 +37,7 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
   const [durationHours, setDurationHours] = React.useState(4)
   const [distanceKm, setDistanceKm] = React.useState(10)
   const [paymentPlan, setPaymentPlan] = React.useState<PaymentPlanType>("pix")
-  const [qtyById, setQtyById] = React.useState<Record<string, number>>({})
+  const [qtyById, setQtyById] = React.useState<Record<string, string>>({})
 
   const items: QuoteItemInput[] = React.useMemo(
     () =>
@@ -120,18 +91,6 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                         loading="lazy"
                       />
                     ) : null}
-                    {"video_url" in eq && eq.video_url && toVideoEmbedUrl(eq.video_url) ? (
-                      <div className="mt-3 max-w-lg overflow-hidden rounded-lg border border-white/10 bg-black/30">
-                        <iframe
-                          src={toVideoEmbedUrl(eq.video_url) as string}
-                          className="aspect-video w-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                          loading="lazy"
-                          title={`Vídeo - ${eq.name}`}
-                        />
-                      </div>
-                    ) : null}
                     <p className="text-sm text-zinc-400">
                       {eq.category ?? "Equipamento"} •{" "}
                       {price
@@ -145,11 +104,12 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                       type="number"
                       min={0}
                       step={1}
-                      value={qtyById[eq.id] ?? 0}
+                      value={qtyById[eq.id] ?? ""}
+                      placeholder="0"
                       onChange={(e) =>
                         setQtyById((prev) => ({
                           ...prev,
-                          [eq.id]: Number(e.target.value)
+                          [eq.id]: e.target.value
                         }))
                       }
                       className="w-24"
