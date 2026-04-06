@@ -66,7 +66,20 @@ export async function signIn(
     return { error: "E-mail ou senha inválidos." }
   }
 
-  redirect(next)
+  if (next && next !== "/cliente") {
+    redirect(next)
+  }
+
+  const profileRes = await supabase
+    .from("profiles")
+    .select("role")
+    .maybeSingle()
+
+  if (profileRes.data?.role === "admin") {
+    redirect("/admin")
+  }
+
+  redirect("/cliente")
 }
 
 export async function signUp(
