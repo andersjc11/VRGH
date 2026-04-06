@@ -16,6 +16,35 @@ function safeDecodeURIComponent(value: string | undefined) {
   }
 }
 
+function toVideoEmbedUrl(raw: string) {
+  const url = raw.trim()
+  if (!url) return null
+  try {
+    const u = new URL(url)
+    const host = u.hostname.replace(/^www\./, "")
+
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const videoId = u.searchParams.get("v")
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`
+      if (u.pathname.startsWith("/embed/")) return url
+    }
+
+    if (host === "youtu.be") {
+      const videoId = u.pathname.split("/").filter(Boolean)[0]
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`
+    }
+
+    if (host === "vimeo.com") {
+      const videoId = u.pathname.split("/").filter(Boolean)[0]
+      if (videoId && /^\d+$/.test(videoId)) return `https://player.vimeo.com/video/${videoId}`
+    }
+
+    return url
+  } catch {
+    return url
+  }
+}
+
 function isNextRedirectError(err: unknown) {
   const digest = (err as any)?.digest
   return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
@@ -585,6 +614,11 @@ export default async function AdminEquipamentosPage({
               {equipments.map((e: any) => {
                 const isEditing = editId === e.id
                 const price = priceByEquipmentId[e.id]
+                const hasImage = typeof e.image_url === "string" && e.image_url.trim().length > 0
+                const hasVideo =
+                  "video_url" in e &&
+                  typeof e.video_url === "string" &&
+                  e.video_url.trim().length > 0
                 return (
                   <div key={e.id} className="py-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -595,6 +629,8 @@ export default async function AdminEquipamentosPage({
                           {typeof price?.price_per_hour_cents === "number"
                             ? ` • R$ ${(price.price_per_hour_cents / 100).toFixed(2).replace(".", ",")}/h`
                             : ""}
+                          {hasImage ? " • Imagem" : ""}
+                          {hasVideo ? " • Vídeo" : ""}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -681,6 +717,32 @@ export default async function AdminEquipamentosPage({
                           </label>
                           <Input id={`vid_${e.id}`} name="video_url" defaultValue={e.video_url ?? ""} />
                         </div>
+                        {hasImage ? (
+                          <div className="space-y-2 sm:col-span-2">
+                            <p className="text-sm text-zinc-200">Prévia da imagem</p>
+                            <img
+                              src={e.image_url}
+                              alt={e.name}
+                              className="h-44 w-full rounded-lg border border-white/10 bg-white/5 object-cover"
+                              loading="lazy"
+                            />
+                          </div>
+                        ) : null}
+                        {hasVideo && toVideoEmbedUrl(e.video_url) ? (
+                          <div className="space-y-2 sm:col-span-2">
+                            <p className="text-sm text-zinc-200">Prévia do vídeo</p>
+                            <div className="overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                              <iframe
+                                src={toVideoEmbedUrl(e.video_url) as string}
+                                className="aspect-video w-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                loading="lazy"
+                                title={`Vídeo - ${e.name}`}
+                              />
+                            </div>
+                          </div>
+                        ) : null}
                         <div className="space-y-2 sm:col-span-2">
                           <label className="text-sm text-zinc-200" htmlFor={`desc_${e.id}`}>
                             Descrição

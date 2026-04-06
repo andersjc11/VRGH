@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import { Orbitron } from "next/font/google"
 import "./globals.css"
 import { SiteFooter } from "@/components/site/SiteFooter"
 import { SiteHeader } from "@/components/site/SiteHeader"
@@ -7,6 +8,12 @@ import { SiteHeader } from "@/components/site/SiteHeader"
 const inter = Inter({
   subsets: ["latin"],
   display: "swap"
+})
+
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-gamer"
 })
 
 export const metadata: Metadata = {
@@ -21,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className={inter.className}>
+    <html lang="pt-BR" className={`${inter.className} ${orbitron.variable}`}>
       <body>
         <div className="min-h-dvh flex flex-col">
           <SiteHeader />
