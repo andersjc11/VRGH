@@ -82,13 +82,11 @@ export async function signUp(
 
   try {
     const supabase = createSupabaseServerClient()
-    const origin = getOrigin()
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: ref ? { ref } : undefined,
-        emailRedirectTo: origin ? `${origin}/login` : undefined
+        data: ref ? { ref } : undefined
       }
     })
 
@@ -96,11 +94,21 @@ export async function signUp(
       return { error: mapAuthError(error.message) }
     }
 
-    if (!data.session) {
-      return {
-        message:
-          "Conta criada. Verifique seu e-mail para confirmar e depois faça login."
+    if (data.session) {
+      redirect("/cliente")
+    }
+
+    const signInRes = await supabase.auth.signInWithPassword({ email, password })
+    if (signInRes.error) {
+      const msg = signInRes.error.message.toLowerCase()
+      if (msg.includes("email") && msg.includes("not confirmed")) {
+        const origin = getOrigin()
+        return {
+          error:
+            "Seu Supabase está exigindo confirmação de e-mail. Para cadastrar sem e-mail, desative Auth → Providers → Email → Confirm email. Depois tente novamente."
+        }
       }
+      return { error: "Conta criada, mas não foi possível entrar. Tente fazer login." }
     }
 
     redirect("/cliente")
