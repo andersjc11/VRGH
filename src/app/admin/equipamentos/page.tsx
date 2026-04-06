@@ -287,8 +287,33 @@ async function updateEquipment(formData: FormData) {
 export default async function AdminEquipamentosPage({
   searchParams
 }: {
-  searchParams?: { ok?: string; error?: string }
+  searchParams?: { ok?: string; error?: string; edit?: string }
 }) {
+  async function deleteEquipment(formData: FormData) {
+    "use server"
+    try {
+      const { supabase } = await requireAdmin()
+      const id = getString(formData, "id")
+      if (!id) redirect("/admin/equipamentos?error=ID%20inv%C3%A1lido")
+
+      const delRes = await supabase.from("equipments").delete().eq("id", id)
+      if (delRes.error) {
+        redirect(
+          `/admin/equipamentos?error=${encodeURIComponent(
+            `Falha ao deletar: ${delRes.error.message}`
+          )}`
+        )
+      }
+
+      redirect("/admin/equipamentos?ok=deleted")
+    } catch (err) {
+      if (isNextRedirectError(err)) throw err
+      const message =
+        err instanceof Error ? err.message : "Falha inesperada ao deletar."
+      redirect(`/admin/equipamentos?error=${encodeURIComponent(message)}`)
+    }
+  }
+
   const { supabase } = await requireAdmin()
 
   const equipmentsResWithVideo = await supabase
@@ -325,6 +350,7 @@ export default async function AdminEquipamentosPage({
   const equipments = (equipmentsRes.data ?? []) as any[]
   const ok = searchParams?.ok
   const error = searchParams?.error
+  const editId = searchParams?.edit
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -439,97 +465,131 @@ export default async function AdminEquipamentosPage({
             <p className="text-zinc-300">Nenhum equipamento cadastrado.</p>
           </Card>
         ) : (
-          equipments.map((e: any) => (
-            <Card key={e.id}>
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="font-semibold">{e.name}</p>
-                  <p className="text-sm text-zinc-400">
-                    {e.category ?? "—"} • {e.active ? "Ativo" : "Inativo"}
-                  </p>
-                </div>
-              </div>
+          <Card>
+            <p className="text-sm text-zinc-400">Estações cadastradas</p>
+            <div className="mt-4 divide-y divide-white/10">
+              {equipments.map((e: any) => {
+                const isEditing = editId === e.id
+                const price = priceByEquipmentId[e.id]
+                return (
+                  <div key={e.id} className="py-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="font-semibold">{e.name}</p>
+                        <p className="text-sm text-zinc-400">
+                          {e.category ?? "—"}
+                          {typeof price?.price_per_hour_cents === "number"
+                            ? ` • R$ ${(price.price_per_hour_cents / 100).toFixed(2).replace(".", ",")}/h`
+                            : ""}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button asChild intent="secondary">
+                          <Link href={isEditing ? "/admin/equipamentos" : `/admin/equipamentos?edit=${e.id}`}>
+                            {isEditing ? "Fechar" : "Editar"}
+                          </Link>
+                        </Button>
+                        <form action={deleteEquipment}>
+                          <input type="hidden" name="id" value={e.id} />
+                          <Button
+                            type="submit"
+                            intent="ghost"
+                            className="text-red-300 hover:bg-red-500/10"
+                          >
+                            Deletar
+                          </Button>
+                        </form>
+                      </div>
+                    </div>
 
-              <form action={updateEquipment} className="mt-4 grid gap-4 sm:grid-cols-2">
-                <input type="hidden" name="id" value={e.id} />
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm text-zinc-200" htmlFor={`name_${e.id}`}>
-                    Nome
-                  </label>
-                  <Input id={`name_${e.id}`} name="name" required defaultValue={e.name ?? ""} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200" htmlFor={`cat_${e.id}`}>
-                    Categoria
-                  </label>
-                  <Input id={`cat_${e.id}`} name="category" defaultValue={e.category ?? ""} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200" htmlFor={`price_${e.id}`}>
-                    Preço por hora (R$)
-                  </label>
-                  <Input
-                    id={`price_${e.id}`}
-                    name="price_per_hour"
-                    required
-                    defaultValue={
-                      priceByEquipmentId[e.id]
-                        ? (priceByEquipmentId[e.id].price_per_hour_cents / 100).toFixed(2).replace(".", ",")
-                        : ""
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200" htmlFor={`min_${e.id}`}>
-                    Mínimo (horas)
-                  </label>
-                  <Input
-                    id={`min_${e.id}`}
-                    name="min_hours"
-                    type="number"
-                    min={1}
-                    step={1}
-                    defaultValue={priceByEquipmentId[e.id]?.min_hours ?? 4}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200" htmlFor={`img_${e.id}`}>
-                    URL da imagem
-                  </label>
-                  <Input id={`img_${e.id}`} name="image_url" defaultValue={e.image_url ?? ""} />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm text-zinc-200" htmlFor={`vid_${e.id}`}>
-                    URL do vídeo (explicação)
-                  </label>
-                  <Input id={`vid_${e.id}`} name="video_url" defaultValue={e.video_url ?? ""} />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm text-zinc-200" htmlFor={`desc_${e.id}`}>
-                    Descrição
-                  </label>
-                  <textarea
-                    id={`desc_${e.id}`}
-                    name="description"
-                    defaultValue={e.description ?? ""}
-                    className="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-sm text-zinc-200 sm:col-span-2">
-                  <input
-                    type="checkbox"
-                    name="active"
-                    defaultChecked={Boolean(e.active)}
-                    className="h-4 w-4 rounded border-white/20 bg-white/10"
-                  />
-                  Ativo
-                </label>
-                <div className="sm:col-span-2 flex items-center justify-end">
-                  <Button type="submit">Salvar</Button>
-                </div>
-              </form>
-            </Card>
-          ))
+                    {isEditing ? (
+                      <form action={updateEquipment} className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <input type="hidden" name="id" value={e.id} />
+                        <div className="space-y-2 sm:col-span-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`name_${e.id}`}>
+                            Nome
+                          </label>
+                          <Input id={`name_${e.id}`} name="name" required defaultValue={e.name ?? ""} />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`cat_${e.id}`}>
+                            Categoria
+                          </label>
+                          <Input id={`cat_${e.id}`} name="category" defaultValue={e.category ?? ""} />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`price_${e.id}`}>
+                            Preço por hora (R$)
+                          </label>
+                          <Input
+                            id={`price_${e.id}`}
+                            name="price_per_hour"
+                            required
+                            defaultValue={
+                              price
+                                ? (price.price_per_hour_cents / 100).toFixed(2).replace(".", ",")
+                                : ""
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`min_${e.id}`}>
+                            Mínimo (horas)
+                          </label>
+                          <Input
+                            id={`min_${e.id}`}
+                            name="min_hours"
+                            type="number"
+                            min={1}
+                            step={1}
+                            defaultValue={price?.min_hours ?? 4}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`img_${e.id}`}>
+                            URL da imagem
+                          </label>
+                          <Input id={`img_${e.id}`} name="image_url" defaultValue={e.image_url ?? ""} />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`vid_${e.id}`}>
+                            URL do vídeo (explicação)
+                          </label>
+                          <Input id={`vid_${e.id}`} name="video_url" defaultValue={e.video_url ?? ""} />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`desc_${e.id}`}>
+                            Descrição
+                          </label>
+                          <textarea
+                            id={`desc_${e.id}`}
+                            name="description"
+                            defaultValue={e.description ?? ""}
+                            className="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          />
+                        </div>
+                        <label className="flex items-center gap-2 text-sm text-zinc-200 sm:col-span-2">
+                          <input
+                            type="checkbox"
+                            name="active"
+                            defaultChecked={Boolean(e.active)}
+                            className="h-4 w-4 rounded border-white/20 bg-white/10"
+                          />
+                          Ativo
+                        </label>
+                        <div className="sm:col-span-2 flex items-center justify-end gap-2">
+                          <Button asChild intent="secondary">
+                            <Link href="/admin/equipamentos">Cancelar</Link>
+                          </Button>
+                          <Button type="submit">Salvar</Button>
+                        </div>
+                      </form>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
         )}
       </div>
     </div>
