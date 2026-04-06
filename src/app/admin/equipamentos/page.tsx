@@ -287,7 +287,7 @@ async function updateEquipment(formData: FormData) {
 export default async function AdminEquipamentosPage({
   searchParams
 }: {
-  searchParams?: { ok?: string; error?: string; edit?: string }
+  searchParams?: { ok?: string; error?: string; edit?: string; create?: string }
 }) {
   async function deleteEquipment(formData: FormData) {
     "use server"
@@ -351,6 +351,7 @@ export default async function AdminEquipamentosPage({
   const ok = searchParams?.ok
   const error = searchParams?.error
   const editId = searchParams?.edit
+  const isCreating = Boolean(searchParams?.create)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -364,6 +365,11 @@ export default async function AdminEquipamentosPage({
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <Button asChild intent="secondary">
           <Link href="/admin">Voltar</Link>
+        </Button>
+        <Button asChild>
+          <Link href={isCreating ? "/admin/equipamentos" : "/admin/equipamentos?create=1"}>
+            {isCreating ? "Fechar nova estação" : "Nova estação"}
+          </Link>
         </Button>
       </div>
 
@@ -383,82 +389,97 @@ export default async function AdminEquipamentosPage({
             ) : null}
           </Card>
         ) : null}
-        <Card>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm text-zinc-400">Nova estação</p>
-              <p className="mt-1 font-semibold">Criar estação gamer</p>
+        {isCreating ? (
+          <Card>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm text-zinc-400">Nova estação</p>
+                <p className="mt-1 font-semibold">Criar estação gamer</p>
+              </div>
+              <Button asChild intent="secondary">
+                <Link href="/admin/equipamentos">Cancelar</Link>
+              </Button>
             </div>
-          </div>
 
-          <form action={createEquipment} className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <label className="text-sm text-zinc-200" htmlFor="new_name">
-                Nome
+            <form action={createEquipment} className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_name">
+                  Nome
+                </label>
+                <Input id="new_name" name="name" required placeholder='Ex: Console + TV 55"' />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_category">
+                  Categoria
+                </label>
+                <Input id="new_category" name="category" placeholder="Ex: Console" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_price">
+                  Preço por hora (R$)
+                </label>
+                <Input
+                  id="new_price"
+                  name="price_per_hour"
+                  type="text"
+                  required
+                  placeholder="250,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_min_hours">
+                  Mínimo (horas)
+                </label>
+                <Input
+                  id="new_min_hours"
+                  name="min_hours"
+                  type="number"
+                  min={1}
+                  step={1}
+                  defaultValue={4}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_image">
+                  URL da imagem
+                </label>
+                <Input id="new_image" name="image_url" placeholder="https://..." />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_video">
+                  URL do vídeo (explicação)
+                </label>
+                <Input id="new_video" name="video_url" placeholder="https://youtube.com/..." />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_desc">
+                  Descrição
+                </label>
+                <textarea
+                  id="new_desc"
+                  name="description"
+                  className="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  placeholder="Descreva o que acompanha a estação..."
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-zinc-200 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  name="active"
+                  defaultChecked
+                  className="h-4 w-4 rounded border-white/20 bg-white/10"
+                />
+                Ativo
               </label>
-              <Input id="new_name" name="name" required placeholder='Ex: Console + TV 55"' />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-200" htmlFor="new_category">
-                Categoria
-              </label>
-              <Input id="new_category" name="category" placeholder="Ex: Console" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-200" htmlFor="new_price">
-                Preço por hora (R$)
-              </label>
-              <Input
-                id="new_price"
-                name="price_per_hour"
-                type="text"
-                required
-                placeholder="250,00"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-200" htmlFor="new_min_hours">
-                Mínimo (horas)
-              </label>
-              <Input id="new_min_hours" name="min_hours" type="number" min={1} step={1} defaultValue={4} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-200" htmlFor="new_image">
-                URL da imagem
-              </label>
-              <Input id="new_image" name="image_url" placeholder="https://..." />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <label className="text-sm text-zinc-200" htmlFor="new_video">
-                URL do vídeo (explicação)
-              </label>
-              <Input id="new_video" name="video_url" placeholder="https://youtube.com/..." />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <label className="text-sm text-zinc-200" htmlFor="new_desc">
-                Descrição
-              </label>
-              <textarea
-                id="new_desc"
-                name="description"
-                className="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                placeholder="Descreva o que acompanha a estação..."
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm text-zinc-200 sm:col-span-2">
-              <input
-                type="checkbox"
-                name="active"
-                defaultChecked
-                className="h-4 w-4 rounded border-white/20 bg-white/10"
-              />
-              Ativo
-            </label>
-            <div className="sm:col-span-2">
-              <Button type="submit">Criar estação</Button>
-            </div>
-          </form>
-        </Card>
+              <div className="sm:col-span-2 flex items-center justify-end gap-2">
+                <Button asChild intent="secondary">
+                  <Link href="/admin/equipamentos">Cancelar</Link>
+                </Button>
+                <Button type="submit">Criar estação</Button>
+              </div>
+            </form>
+          </Card>
+        ) : null}
 
         {equipments.length === 0 ? (
           <Card>
