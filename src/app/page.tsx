@@ -14,32 +14,33 @@ export default function HomePage({
     <div>
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[url('/hero-gamer.jpg')] bg-cover bg-center opacity-35" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/65 to-black" />
+          <div className="absolute inset-0 bg-[url('/hero-gamer.jpg')] bg-cover bg-center opacity-25" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/80 to-black" />
           <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-brand-500/25 blur-3xl" />
           <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-fuchsia-500/15 blur-3xl" />
         </div>
         <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
           <div className="mx-auto max-w-3xl text-center">
+            <div className="rounded-3xl border border-white/10 bg-black/45 px-6 py-10 shadow-2xl shadow-black/60 backdrop-blur sm:px-10">
             <div className="flex flex-wrap justify-center gap-2">
               {ref ? (
-                <p className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-zinc-200">
+                <p className="inline-flex items-center rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
                   Indicação ativa: {ref}
                 </p>
               ) : null}
-              <p className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-zinc-200">
+              <p className="inline-flex items-center rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
                 Locação profissional para festas, eventos e ações promocionais
               </p>
             </div>
-            <h1 className="mt-6 font-[var(--font-gamer)] text-5xl leading-tight tracking-tight md:text-6xl">
-              <span className="bg-gradient-to-r from-brand-200 via-fuchsia-200 to-cyan-200 bg-clip-text text-transparent">
+            <h1 className="mt-6 font-[var(--font-gamer)] text-5xl leading-tight tracking-tight text-white drop-shadow-[0_2px_28px_rgba(0,0,0,0.9)] md:text-6xl">
+              <span className="bg-gradient-to-r from-white via-brand-100 to-fuchsia-100 bg-clip-text text-transparent">
                 Estrutura gamer completa
               </span>
             </h1>
-            <p className="mt-3 font-[var(--font-gamer)] text-xl text-zinc-100 md:text-2xl">
+            <p className="mt-3 font-[var(--font-gamer)] text-xl text-white/90 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] md:text-2xl">
               Orçamento automático e reserva online
             </p>
-            <p className="mt-5 text-base text-zinc-200 md:text-lg">
+            <p className="mt-5 text-base text-white/80 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] md:text-lg">
               Selecione os equipamentos, informe data, duração e local do evento.
               O sistema calcula deslocamento, descontos e apresenta as opções de
               pagamento.
@@ -48,7 +49,7 @@ export default function HomePage({
               <Button
                 asChild
                 size="lg"
-                className="shadow-lg shadow-brand-500/25 ring-1 ring-brand-400/30"
+                className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40"
               >
                 <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
               </Button>
@@ -56,10 +57,11 @@ export default function HomePage({
                 asChild
                 intent="secondary"
                 size="lg"
-                className="ring-1 ring-white/10"
+                className="bg-white/10 ring-1 ring-white/15 hover:bg-white/15"
               >
                 <Link href="/equipamentos">Ver equipamentos</Link>
               </Button>
+            </div>
             </div>
           </div>
         </div>
