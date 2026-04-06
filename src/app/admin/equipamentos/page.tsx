@@ -24,6 +24,12 @@ export default async function AdminEquipamentosPage({
     return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
   }
 
+  function isMissingColumnError(err: unknown, column: string) {
+    const message = (err as any)?.message
+    if (typeof message !== "string") return false
+    return message.toLowerCase().includes(`column "${column.toLowerCase()}" does not exist`)
+  }
+
   async function requireAdmin() {
     const supabase = createSupabaseServerClient()
     const { data } = await supabase.auth.getUser()
@@ -89,6 +95,53 @@ export default async function AdminEquipamentosPage({
         .single()
 
       if (insertRes.error) {
+        if (isMissingColumnError(insertRes.error, "video_url")) {
+          const fallbackInsertRes = await supabase
+            .from("equipments")
+            .insert({
+              name,
+              category,
+              description,
+              image_url: imageUrl,
+              active
+            })
+            .select("id")
+            .single()
+
+          if (fallbackInsertRes.error) {
+            redirect(
+              `/admin/equipamentos?error=${encodeURIComponent(
+                `Falha ao criar estação: ${fallbackInsertRes.error.message}`
+              )}`
+            )
+          }
+
+          const equipmentId = fallbackInsertRes.data.id as string
+          const priceRes = await supabase
+            .from("equipment_prices")
+            .upsert(
+              {
+                equipment_id: equipmentId,
+                price_per_hour_cents: priceCents,
+                min_hours: minHours
+              },
+              { onConflict: "equipment_id" }
+            )
+
+          if (priceRes.error) {
+            redirect(
+              `/admin/equipamentos?error=${encodeURIComponent(
+                `Falha ao salvar preço: ${priceRes.error.message}`
+              )}`
+            )
+          }
+
+          redirect(
+            `/admin/equipamentos?ok=created&error=${encodeURIComponent(
+              "Vídeo ainda não está disponível no banco. Execute a migration 0004_add_equipment_video.sql no Supabase."
+            )}`
+          )
+        }
         redirect(
           `/admin/equipamentos?error=${encodeURIComponent(
             `Falha ao criar estação: ${insertRes.error.message}`
@@ -160,6 +213,51 @@ export default async function AdminEquipamentosPage({
         .eq("id", id)
 
       if (updRes.error) {
+        if (isMissingColumnError(updRes.error, "video_url")) {
+          const fallbackUpdRes = await supabase
+            .from("equipments")
+            .update({
+              name,
+              category,
+              description,
+              image_url: imageUrl,
+              active
+            })
+            .eq("id", id)
+
+          if (fallbackUpdRes.error) {
+            redirect(
+              `/admin/equipamentos?error=${encodeURIComponent(
+                `Falha ao atualizar estação: ${fallbackUpdRes.error.message}`
+              )}`
+            )
+          }
+
+          const priceRes = await supabase
+            .from("equipment_prices")
+            .upsert(
+              {
+                equipment_id: id,
+                price_per_hour_cents: priceCents,
+                min_hours: minHours
+              },
+              { onConflict: "equipment_id" }
+            )
+
+          if (priceRes.error) {
+            redirect(
+              `/admin/equipamentos?error=${encodeURIComponent(
+                `Falha ao salvar preço: ${priceRes.error.message}`
+              )}`
+            )
+          }
+
+          redirect(
+            `/admin/equipamentos?ok=updated&error=${encodeURIComponent(
+              "Vídeo ainda não está disponível no banco. Execute a migration 0004_add_equipment_video.sql no Supabase."
+            )}`
+          )
+        }
         redirect(
           `/admin/equipamentos?error=${encodeURIComponent(
             `Falha ao atualizar estação: ${updRes.error.message}`
@@ -197,11 +295,20 @@ export default async function AdminEquipamentosPage({
 
   const { supabase } = await requireAdmin()
 
-  const equipmentsRes = await supabase
+  const equipmentsResWithVideo = await supabase
     .from("equipments")
     .select("id,name,description,category,image_url,video_url,active,created_at")
     .order("created_at", { ascending: false })
     .limit(50)
+
+  const equipmentsRes =
+    equipmentsResWithVideo.error && isMissingColumnError(equipmentsResWithVideo.error, "video_url")
+      ? await supabase
+          .from("equipments")
+          .select("id,name,description,category,image_url,active,created_at")
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : equipmentsResWithVideo
 
   const pricesRes = await supabase
     .from("equipment_prices")
@@ -239,6 +346,13 @@ export default async function AdminEquipamentosPage({
       </div>
 
       <div className="mt-8 grid gap-3">
+        {equipmentsRes.error ? (
+          <Card>
+            <p className="text-sm text-red-300">
+              {equipmentsRes.error.message}
+            </p>
+          </Card>
+        ) : null}
         {ok || error ? (
           <Card>
             {ok ? <p className="text-sm text-emerald-200">Salvo com sucesso.</p> : null}
