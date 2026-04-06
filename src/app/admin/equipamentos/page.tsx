@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 
+const EQUIPMENT_IMAGES_BUCKET = "equipment-images"
+
 function safeDecodeURIComponent(value: string | undefined) {
   if (!value) return ""
   try {
@@ -66,6 +68,45 @@ function parseMoneyToCents(raw: string) {
   return Math.round(parsed * 100)
 }
 
+async function uploadEquipmentImage(supabase: any, file: File) {
+  const originalName = typeof file.name === "string" ? file.name : "image"
+  const safeName = originalName.replace(/[^\w.\-]+/g, "_").slice(0, 80) || "image"
+  const objectPath = `equipments/${crypto.randomUUID()}-${safeName}`
+
+  const arrayBuffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(arrayBuffer)
+
+  const uploadRes = await supabase.storage
+    .from(EQUIPMENT_IMAGES_BUCKET)
+    .upload(objectPath, bytes, {
+      contentType: file.type || "application/octet-stream",
+      upsert: true
+    })
+
+  if (uploadRes.error) {
+    redirect(
+      `/admin/equipamentos?error=${encodeURIComponent(
+        `Falha ao enviar imagem: ${uploadRes.error.message}`
+      )}`
+    )
+  }
+
+  const publicUrlRes = supabase.storage
+    .from(EQUIPMENT_IMAGES_BUCKET)
+    .getPublicUrl(objectPath)
+
+  const publicUrl = publicUrlRes.data?.publicUrl
+  if (!publicUrl) {
+    redirect(
+      `/admin/equipamentos?error=${encodeURIComponent(
+        "Falha ao obter URL pública da imagem."
+      )}`
+    )
+  }
+
+  return publicUrl
+}
+
 async function createEquipment(formData: FormData) {
   "use server"
   try {
@@ -74,7 +115,8 @@ async function createEquipment(formData: FormData) {
     const name = getString(formData, "name")
     const category = getString(formData, "category") || null
     const description = getString(formData, "description") || null
-    const imageUrl = getString(formData, "image_url") || null
+    const imageUrlFromInput = getString(formData, "image_url") || null
+    const imageFile = formData.get("image_file")
     const videoUrl = getString(formData, "video_url") || null
     const active = getString(formData, "active") === "on"
     const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
@@ -83,6 +125,11 @@ async function createEquipment(formData: FormData) {
 
     if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
     if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
+
+    const imageUrl =
+      imageFile instanceof File && imageFile.size > 0
+        ? await uploadEquipmentImage(supabase, imageFile)
+        : imageUrlFromInput
 
     const insertRes = await supabase
       .from("equipments")
@@ -190,7 +237,8 @@ async function updateEquipment(formData: FormData) {
     const name = getString(formData, "name")
     const category = getString(formData, "category") || null
     const description = getString(formData, "description") || null
-    const imageUrl = getString(formData, "image_url") || null
+    const imageUrlFromInput = getString(formData, "image_url") || null
+    const imageFile = formData.get("image_file")
     const videoUrl = getString(formData, "video_url") || null
     const active = getString(formData, "active") === "on"
     const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
@@ -200,6 +248,11 @@ async function updateEquipment(formData: FormData) {
     if (!id) redirect("/admin/equipamentos?error=ID%20inv%C3%A1lido")
     if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
     if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
+
+    const imageUrl =
+      imageFile instanceof File && imageFile.size > 0
+        ? await uploadEquipmentImage(supabase, imageFile)
+        : imageUrlFromInput
 
     const updRes = await supabase
       .from("equipments")
@@ -470,8 +523,14 @@ export default async function AdminEquipamentosPage({
                 />
               </div>
               <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_image_file">
+                  Imagem (upload)
+                </label>
+                <Input id="new_image_file" name="image_file" type="file" accept="image/*" />
+              </div>
+              <div className="space-y-2">
                 <label className="text-sm text-zinc-200" htmlFor="new_image">
-                  URL da imagem
+                  URL da imagem (opcional)
                 </label>
                 <Input id="new_image" name="image_url" placeholder="https://..." />
               </div>
@@ -597,8 +656,14 @@ export default async function AdminEquipamentosPage({
                           />
                         </div>
                         <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`img_file_${e.id}`}>
+                            Imagem (upload)
+                          </label>
+                          <Input id={`img_file_${e.id}`} name="image_file" type="file" accept="image/*" />
+                        </div>
+                        <div className="space-y-2">
                           <label className="text-sm text-zinc-200" htmlFor={`img_${e.id}`}>
-                            URL da imagem
+                            URL da imagem (opcional)
                           </label>
                           <Input id={`img_${e.id}`} name="image_url" defaultValue={e.image_url ?? ""} />
                         </div>
