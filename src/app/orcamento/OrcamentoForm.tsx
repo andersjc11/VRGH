@@ -15,6 +15,35 @@ type Props = {
   config: PricingConfig
 }
 
+function toVideoEmbedUrl(raw: string) {
+  const url = raw.trim()
+  if (!url) return null
+  try {
+    const u = new URL(url)
+    const host = u.hostname.replace(/^www\./, "")
+
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const videoId = u.searchParams.get("v")
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`
+      if (u.pathname.startsWith("/embed/")) return url
+    }
+
+    if (host === "youtu.be") {
+      const videoId = u.pathname.split("/").filter(Boolean)[0]
+      if (videoId) return `https://www.youtube.com/embed/${videoId}`
+    }
+
+    if (host === "vimeo.com") {
+      const videoId = u.pathname.split("/").filter(Boolean)[0]
+      if (videoId && /^\d+$/.test(videoId)) return `https://player.vimeo.com/video/${videoId}`
+    }
+
+    return url
+  } catch {
+    return url
+  }
+}
+
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
@@ -83,6 +112,26 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                 >
                   <div>
                     <p className="font-semibold">{eq.name}</p>
+                    {eq.image_url ? (
+                      <img
+                        src={eq.image_url}
+                        alt={eq.name}
+                        className="mt-3 h-40 w-full max-w-lg rounded-lg border border-white/10 bg-white/5 object-cover"
+                        loading="lazy"
+                      />
+                    ) : null}
+                    {"video_url" in eq && eq.video_url && toVideoEmbedUrl(eq.video_url) ? (
+                      <div className="mt-3 max-w-lg overflow-hidden rounded-lg border border-white/10 bg-black/30">
+                        <iframe
+                          src={toVideoEmbedUrl(eq.video_url) as string}
+                          className="aspect-video w-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          loading="lazy"
+                          title={`Vídeo - ${eq.name}`}
+                        />
+                      </div>
+                    ) : null}
                     <p className="text-sm text-zinc-400">
                       {eq.category ?? "Equipamento"} •{" "}
                       {price
@@ -248,4 +297,3 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
     </form>
   )
 }
-

@@ -2,16 +2,35 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { Equipment, EquipmentPrice, PricingConfig } from "@/lib/domain/types"
 import { OrcamentoForm } from "./OrcamentoForm"
 
+export const dynamic = "force-dynamic"
+
 export default async function OrcamentoPage() {
   const supabase = createSupabaseServerClient()
 
   const [equipmentsRes, pricesRes, displacementRes, discountsRes] =
     await Promise.all([
-      supabase
-        .from("equipments")
-        .select("id,name,description,category,image_url,active")
-        .eq("active", true)
-        .order("created_at", { ascending: true }),
+      (async () => {
+        const resWithVideo = await supabase
+          .from("equipments")
+          .select("id,name,description,category,image_url,video_url,active")
+          .eq("active", true)
+          .order("created_at", { ascending: true })
+
+        if (
+          resWithVideo.error &&
+          String((resWithVideo.error as any)?.message ?? "")
+            .toLowerCase()
+            .includes('column "video_url" does not exist')
+        ) {
+          return await supabase
+            .from("equipments")
+            .select("id,name,description,category,image_url,active")
+            .eq("active", true)
+            .order("created_at", { ascending: true })
+        }
+
+        return resWithVideo
+      })(),
       supabase
         .from("equipment_prices")
         .select("equipment_id,price_per_hour_cents,min_hours")
@@ -58,4 +77,3 @@ export default async function OrcamentoPage() {
     </div>
   )
 }
-
