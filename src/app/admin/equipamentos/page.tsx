@@ -41,6 +41,16 @@ async function requireAdmin() {
   return { supabase }
 }
 
+function isEquipmentReferencedByQuoteItems(err: unknown) {
+  const message = (err as any)?.message
+  if (typeof message !== "string") return false
+  const lower = message.toLowerCase()
+  return (
+    lower.includes("violates foreign key constraint") &&
+    (lower.includes("quote_items") || lower.includes("quote_items_equipment_id_fkey"))
+  )
+}
+
 function getString(formData: FormData, key: string) {
   const value = formData.get(key)
   return typeof value === "string" ? value.trim() : ""
@@ -298,6 +308,26 @@ export default async function AdminEquipamentosPage({
 
       const delRes = await supabase.from("equipments").delete().eq("id", id)
       if (delRes.error) {
+        if (isEquipmentReferencedByQuoteItems(delRes.error)) {
+          const disableRes = await supabase
+            .from("equipments")
+            .update({ active: false })
+            .eq("id", id)
+
+          if (disableRes.error) {
+            redirect(
+              `/admin/equipamentos?error=${encodeURIComponent(
+                `Falha ao desativar: ${disableRes.error.message}`
+              )}`
+            )
+          }
+
+          redirect(
+            `/admin/equipamentos?ok=disabled&error=${encodeURIComponent(
+              "Este equipamento já foi usado em pedidos/orçamentos e não pode ser deletado. Ele foi desativado."
+            )}`
+          )
+        }
         redirect(
           `/admin/equipamentos?error=${encodeURIComponent(
             `Falha ao deletar: ${delRes.error.message}`
