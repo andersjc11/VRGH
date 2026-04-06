@@ -50,6 +50,29 @@ export async function createReservation(
   const user = authData.user
   if (!user) redirect("/login?next=/orcamento")
 
+  const profileRes = await supabase
+    .from("profiles")
+    .select("full_name,cpf,address_line1,neighborhood,city,postal_code,whatsapp,phone")
+    .eq("id", user.id)
+    .maybeSingle()
+
+  const profile = profileRes.data as any
+  const missingClientData =
+    !profile?.full_name ||
+    !profile?.cpf ||
+    !profile?.address_line1 ||
+    !profile?.neighborhood ||
+    !profile?.city ||
+    !profile?.postal_code ||
+    !(profile?.whatsapp || profile?.phone)
+
+  if (missingClientData) {
+    return {
+      error:
+        "Antes de enviar a reserva, preencha seus Dados do Cliente em /cliente/dados."
+    }
+  }
+
   const itemsJson = getString(formData, "items_json")
   const items = parseItems(itemsJson)
   if (items.length === 0) return { error: "Selecione pelo menos 1 item." }
@@ -191,4 +214,3 @@ export async function createReservation(
 
   redirect(`/cliente/pedidos/${reservationInsert.data.id}`)
 }
-

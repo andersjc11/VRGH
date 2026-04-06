@@ -8,6 +8,12 @@ type ProfileRow = {
   id: string
   full_name: string | null
   phone: string | null
+  whatsapp?: string | null
+  cpf?: string | null
+  address_line1?: string | null
+  neighborhood?: string | null
+  city?: string | null
+  postal_code?: string | null
   role: string
   referral_code: string
 }
@@ -41,11 +47,22 @@ export default async function ClientePage() {
 
   const profileRes = await supabase
     .from("profiles")
-    .select("id,full_name,phone,role,referral_code")
+    .select(
+      "id,full_name,phone,whatsapp,cpf,address_line1,neighborhood,city,postal_code,role,referral_code"
+    )
     .eq("id", user.id)
     .maybeSingle()
 
   const profile = profileRes.data as ProfileRow | null
+  const clientDataComplete = Boolean(
+    profile?.full_name &&
+      profile?.cpf &&
+      profile?.address_line1 &&
+      profile?.neighborhood &&
+      profile?.city &&
+      profile?.postal_code &&
+      (profile?.whatsapp || profile?.phone)
+  )
 
   const reservationsRes = await supabase
     .from("reservations")
@@ -76,8 +93,27 @@ export default async function ClientePage() {
           <p className="mt-2 font-semibold">
             {profile?.full_name ?? user.email ?? "Cliente"}
           </p>
-          <p className="mt-1 text-sm text-zinc-300">{profile?.phone ?? "—"}</p>
+          <p className="mt-1 text-sm text-zinc-300">
+            {profile?.whatsapp ?? profile?.phone ?? "—"}
+          </p>
           <p className="mt-1 text-sm text-zinc-400">Tipo: {profile?.role ?? "client"}</p>
+        </Card>
+
+        <Card className="lg:col-span-1">
+          <p className="text-sm text-zinc-400">Dados do cliente</p>
+          <p className="mt-2 font-semibold">
+            {clientDataComplete ? "Completo" : "Pendente"}
+          </p>
+          <p className="mt-1 text-sm text-zinc-300">
+            Necessário para formalizar a reserva e gerar o termo.
+          </p>
+          <div className="mt-4">
+            <Button asChild intent={clientDataComplete ? "secondary" : "primary"}>
+              <Link href="/cliente/dados">
+                {clientDataComplete ? "Ver/editar dados" : "Preencher agora"}
+              </Link>
+            </Button>
+          </div>
         </Card>
 
         <Card className="lg:col-span-1">
@@ -91,7 +127,7 @@ export default async function ClientePage() {
           </p>
         </Card>
 
-        <Card className="lg:col-span-1">
+        <Card className="lg:col-span-3">
           <p className="text-sm text-zinc-400">Cashback</p>
           <p className="mt-2 font-semibold">Saldo e histórico</p>
           <p className="mt-1 text-sm text-zinc-300">
@@ -142,4 +178,3 @@ export default async function ClientePage() {
     </div>
   )
 }
-

@@ -1,0 +1,56 @@
+import Link from "next/link"
+import { redirect } from "next/navigation"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { Card } from "@/components/ui/Card"
+import { Button } from "@/components/ui/Button"
+import { DadosClienteForm } from "./DadosClienteForm"
+
+export default async function DadosClientePage() {
+  const supabase = createSupabaseServerClient()
+  const { data } = await supabase.auth.getUser()
+  const user = data.user
+  if (!user) redirect("/login?next=/cliente/dados")
+
+  const profileRes = await supabase
+    .from("profiles")
+    .select(
+      "full_name,cpf,address_line1,neighborhood,city,postal_code,whatsapp,phone"
+    )
+    .eq("id", user.id)
+    .maybeSingle()
+
+  const profile = profileRes.data as any
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-12">
+      <div className="flex items-end justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight">Dados do cliente</h1>
+          <p className="text-zinc-300">
+            Estes dados são obrigatórios para formalizar a reserva e gerar o termo
+            de contratação.
+          </p>
+        </div>
+        <Button asChild intent="secondary">
+          <Link href="/cliente">Voltar</Link>
+        </Button>
+      </div>
+
+      <Card className="mt-8">
+        <DadosClienteForm
+          initial={{
+            full_name: profile?.full_name ?? null,
+            cpf: profile?.cpf ?? null,
+            address_line1: profile?.address_line1 ?? null,
+            neighborhood: profile?.neighborhood ?? null,
+            city: profile?.city ?? null,
+            postal_code: profile?.postal_code ?? null,
+            whatsapp: profile?.whatsapp ?? null,
+            phone: profile?.phone ?? null
+          }}
+        />
+      </Card>
+    </div>
+  )
+}
+
