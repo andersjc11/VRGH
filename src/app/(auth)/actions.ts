@@ -70,9 +70,16 @@ export async function signIn(
     redirect(next)
   }
 
+  const userRes = await supabase.auth.getUser()
+  const user = userRes.data.user
+  if (!user) {
+    redirect("/cliente")
+  }
+
   const profileRes = await supabase
     .from("profiles")
     .select("role")
+    .eq("id", user.id)
     .maybeSingle()
 
   if (profileRes.data?.role === "admin") {
