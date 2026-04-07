@@ -1,8 +1,10 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { headers } from "next/headers"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
+import { ReferralLink } from "./ReferralLink"
 
 type ProfileRow = {
   id: string
@@ -39,6 +41,24 @@ function formatBRLFromCents(cents: number) {
   })
 }
 
+function getBaseUrl() {
+  const h = headers()
+  const origin = h.get("origin")
+  if (origin) return origin
+
+  const proto = h.get("x-forwarded-proto") ?? "https"
+  const host = h.get("x-forwarded-host") ?? h.get("host")
+  if (host) return `${proto}://${host}`
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  if (siteUrl) return siteUrl
+
+  const vercelUrl = process.env.VERCEL_URL
+  if (vercelUrl) return `https://${vercelUrl}`
+
+  return ""
+}
+
 export default async function ClientePage() {
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
@@ -72,6 +92,11 @@ export default async function ClientePage() {
     .limit(10)
 
   const reservations = (reservationsRes.data ?? []) as ReservationRow[]
+  const baseUrl = getBaseUrl()
+  const referralCode = profile?.referral_code ?? ""
+  const referralLink = referralCode
+    ? `${baseUrl || ""}/?ref=${encodeURIComponent(referralCode)}`
+    : ""
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -119,9 +144,7 @@ export default async function ClientePage() {
         <Card className="lg:col-span-1">
           <p className="text-sm text-zinc-400">Indicação</p>
           <p className="mt-2 font-semibold">Seu link exclusivo</p>
-          <p className="mt-1 break-all text-sm text-zinc-300">
-            /?ref={profile?.referral_code ?? "—"}
-          </p>
+          <ReferralLink url={referralLink} />
           <p className="mt-2 text-xs text-zinc-400">
             Ao concluir uma reserva via seu link, você recebe R$10,00 de cashback.
           </p>
