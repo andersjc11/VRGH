@@ -158,7 +158,9 @@ export async function createReservation(
   const user = authData.user
   if (!user) redirect("/login?next=/orcamento")
 
-  const refCode = cookies().get("vrgh_ref")?.value?.trim()
+  const cookieRef = cookies().get("vrgh_ref")?.value?.trim()
+  const metaRef = typeof (user as any)?.user_metadata?.ref === "string" ? (user as any).user_metadata.ref.trim() : ""
+  const refCode = cookieRef || metaRef
   if (refCode) {
     const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
     if (applyRes.error) {
