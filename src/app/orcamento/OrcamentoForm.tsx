@@ -223,6 +223,51 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
               <label className="text-sm text-zinc-200">Local (nome do salão)</label>
               <Input name="venue_name" placeholder="Ex: Salão de festas" />
             </div>
+            <div className="space-y-2 sm:col-span-2">
+              <label className="text-sm text-zinc-200">CEP</label>
+              <Input
+                name="postal_code"
+                value={postalCode}
+                onChange={(e) => {
+                  const next = normalizeCep(e.target.value)
+                  setPostalCode(next)
+                  setDistanceError(null)
+                  setCepError(null)
+                  if (next.length < 8) {
+                    setAddressLine1("")
+                    setNeighborhood("")
+                    setCity("")
+                    setStateUf("")
+                  }
+                  if (next.length === 8) {
+                    startDistanceTransition(async () => {
+                      const res = await calcDistanceKmFromCep(next)
+                      if (res.error) {
+                        setDistanceError(res.error)
+                        return
+                      }
+                      if (typeof res.distanceKm === "number") {
+                        setDistanceKm(res.distanceKm)
+                      }
+                    })
+                    ;(async () => {
+                      try {
+                        const addr = await fetchAddressByCep(next)
+                        setAddressLine1(addr.street || "")
+                        setNeighborhood(addr.neighborhood || "")
+                        setCity(addr.city || "")
+                        setStateUf(addr.uf || "")
+                      } catch (err) {
+                        if ((err as any)?.name === "AbortError") return
+                        setCepError(err instanceof Error ? err.message : "Falha ao buscar endereço.")
+                      }
+                    })()
+                  }
+                }}
+                required
+              />
+              {cepError ? <p className="text-xs text-red-300">{cepError}</p> : null}
+            </div>
             <div className="sm:col-span-2 grid gap-4 sm:grid-cols-3">
               <div className="space-y-2 sm:col-span-2">
                 <label className="text-sm text-zinc-200">Rua</label>
@@ -282,51 +327,6 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                 disabled={lockByCep && !!stateUf}
                 required
               />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <label className="text-sm text-zinc-200">CEP</label>
-              <Input
-                name="postal_code"
-                value={postalCode}
-                onChange={(e) => {
-                  const next = normalizeCep(e.target.value)
-                  setPostalCode(next)
-                  setDistanceError(null)
-                  setCepError(null)
-                  if (next.length < 8) {
-                    setAddressLine1("")
-                    setNeighborhood("")
-                    setCity("")
-                    setStateUf("")
-                  }
-                  if (next.length === 8) {
-                    startDistanceTransition(async () => {
-                      const res = await calcDistanceKmFromCep(next)
-                      if (res.error) {
-                        setDistanceError(res.error)
-                        return
-                      }
-                      if (typeof res.distanceKm === "number") {
-                        setDistanceKm(res.distanceKm)
-                      }
-                    })
-                    ;(async () => {
-                      try {
-                        const addr = await fetchAddressByCep(next)
-                        setAddressLine1(addr.street || "")
-                        setNeighborhood(addr.neighborhood || "")
-                        setCity(addr.city || "")
-                        setStateUf(addr.uf || "")
-                      } catch (err) {
-                        if ((err as any)?.name === "AbortError") return
-                        setCepError(err instanceof Error ? err.message : "Falha ao buscar endereço.")
-                      }
-                    })()
-                  }
-                }}
-                required
-              />
-              {cepError ? <p className="text-xs text-red-300">{cepError}</p> : null}
             </div>
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">Observações</label>
