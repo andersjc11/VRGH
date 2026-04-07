@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
 import { ReferralLink } from "./ReferralLink"
 
 type ProfileRow = {
@@ -37,6 +38,16 @@ type CashbackTxRow = {
   source_referral_id: string | null
 }
 
+type CashbackWithdrawalRow = {
+  id: string
+  amount_cents: number
+  pix_key: string
+  status: string
+  receipt_url: string | null
+  created_at: string
+  paid_at: string | null
+}
+
 function formatDate(iso: string) {
   const date = new Date(iso)
   return date.toLocaleDateString("pt-BR")
@@ -67,7 +78,81 @@ function getBaseUrl() {
   return ""
 }
 
-export default async function ClientePage() {
+function safeDecodeURIComponent(value: string) {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+export default async function ClientePage({
+  searchParams
+}: {
+  searchParams?: { ok?: string; error?: string }
+}) {
+  async function requestCashbackWithdrawal(formData: FormData) {
+    "use server"
+    const supabase = createSupabaseServerClient()
+    const { data } = await supabase.auth.getUser()
+    const user = data.user
+    if (!user) redirect("/login?next=/cliente")
+
+    const pixKeyRaw = formData.get("pix_key")
+    const pixKey = typeof pixKeyRaw === "string" ? pixKeyRaw.trim() : ""
+    if (!pixKey) redirect("/cliente?error=Informe%20a%20chave%20Pix.")
+
+    const approvedRes = await supabase
+      .from("cashback_transactions")
+      .select("amount_cents,status")
+      .eq("owner_profile_id", user.id)
+      .eq("status", "approved")
+      .limit(1000)
+
+    if (approvedRes.error) {
+      redirect(`/cliente?error=${encodeURIComponent(approvedRes.error.message)}`)
+    }
+
+    const approvedCents = (approvedRes.data ?? []).reduce((acc: number, row: any) => {
+      const cents = typeof row?.amount_cents === "number" ? row.amount_cents : 0
+      return acc + cents
+    }, 0)
+
+    const reservedRes = await supabase
+      .from("cashback_withdrawals")
+      .select("amount_cents,status")
+      .eq("requester_id", user.id)
+      .in("status", ["requested", "paid"])
+      .limit(1000)
+
+    if (reservedRes.error) {
+      redirect(`/cliente?error=${encodeURIComponent(reservedRes.error.message)}`)
+    }
+
+    const reservedCents = (reservedRes.data ?? []).reduce((acc: number, row: any) => {
+      const cents = typeof row?.amount_cents === "number" ? row.amount_cents : 0
+      return acc + cents
+    }, 0)
+
+    const availableCents = Math.max(0, approvedCents - reservedCents)
+    if (availableCents <= 0) {
+      redirect("/cliente?error=N%C3%A3o%20h%C3%A1%20saldo%20dispon%C3%ADvel%20para%20resgate.")
+    }
+
+    const insertRes = await supabase.from("cashback_withdrawals").insert({
+      requester_id: user.id,
+      amount_cents: availableCents,
+      pix_key: pixKey,
+      status: "requested"
+    })
+
+    if (insertRes.error) {
+      redirect(`/cliente?error=${encodeURIComponent(insertRes.error.message)}`)
+    }
+
+    redirect("/cliente?ok=withdrawal_requested")
+  }
+
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   const user = data.user
@@ -116,11 +201,30 @@ export default async function ClientePage() {
     .filter((t) => t.status === "pending")
     .reduce((acc, t) => acc + (typeof t.amount_cents === "number" ? t.amount_cents : 0), 0)
 
+  const withdrawalsRes = await supabase
+    .from("cashback_withdrawals")
+    .select("id,amount_cents,pix_key,status,receipt_url,created_at,paid_at")
+    .eq("requester_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(50)
+
+  const withdrawals = (withdrawalsRes.data ?? []) as CashbackWithdrawalRow[]
+  const withdrawalRequestedCents = withdrawals
+    .filter((w) => w.status === "requested")
+    .reduce((acc, w) => acc + (typeof w.amount_cents === "number" ? w.amount_cents : 0), 0)
+  const withdrawalPaidCents = withdrawals
+    .filter((w) => w.status === "paid")
+    .reduce((acc, w) => acc + (typeof w.amount_cents === "number" ? w.amount_cents : 0), 0)
+  const cashbackAvailableToWithdrawCents = Math.max(0, cashbackApprovedCents - withdrawalRequestedCents - withdrawalPaidCents)
+
   const baseUrl = getBaseUrl()
   const referralCode = profile?.referral_code ?? ""
   const referralLink = referralCode
     ? `${baseUrl || ""}/?ref=${encodeURIComponent(referralCode)}`
     : ""
+
+  const ok = searchParams?.ok
+  const error = searchParams?.error
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -135,6 +239,15 @@ export default async function ClientePage() {
           <Link href="/orcamento">Novo orçamento</Link>
         </Button>
       </div>
+
+      {ok || error ? (
+        <Card className="mt-6">
+          {ok === "withdrawal_requested" ? (
+            <p className="text-sm text-emerald-200">Solicitação de resgate enviada.</p>
+          ) : null}
+          {error ? <p className="text-sm text-red-300">{safeDecodeURIComponent(error)}</p> : null}
+        </Card>
+      ) : null}
 
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">
@@ -185,6 +298,13 @@ export default async function ClientePage() {
               <p className="mt-2 text-xs text-zinc-400">
                 Pendente: {formatBRLFromCents(cashbackPendingCents)}
               </p>
+              <p className="mt-2 text-xs text-zinc-400">
+                Disponível para resgate: {formatBRLFromCents(cashbackAvailableToWithdrawCents)}
+              </p>
+              <p className="mt-1 text-xs text-zinc-400">
+                Resgate solicitado: {formatBRLFromCents(withdrawalRequestedCents)} • Pago:{" "}
+                {formatBRLFromCents(withdrawalPaidCents)}
+              </p>
             </div>
             <div className="lg:col-span-2">
               <p className="text-sm text-zinc-300">Histórico</p>
@@ -206,6 +326,56 @@ export default async function ClientePage() {
                       <span className="text-xs text-zinc-400">
                         {t.source_referral_id ? `Ref: ${t.source_referral_id}` : ""}
                       </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-1">
+              <p className="text-sm text-zinc-300">Solicitar resgate via Pix</p>
+              <p className="mt-1 text-xs text-zinc-400">
+                O valor do resgate é calculado automaticamente com base no saldo disponível.
+              </p>
+              <form action={requestCashbackWithdrawal} className="mt-3 space-y-2">
+                <Input name="pix_key" placeholder="Sua chave Pix (CPF, e-mail, celular ou aleatória)" autoComplete="off" />
+                <Button type="submit" intent="secondary" disabled={cashbackAvailableToWithdrawCents <= 0}>
+                  Solicitar resgate de {formatBRLFromCents(cashbackAvailableToWithdrawCents)}
+                </Button>
+              </form>
+            </div>
+            <div className="lg:col-span-2">
+              <p className="text-sm text-zinc-300">Resgates</p>
+              {withdrawals.length === 0 ? (
+                <p className="mt-2 text-sm text-zinc-400">Nenhuma solicitação de resgate.</p>
+              ) : (
+                <div className="mt-3 grid gap-2">
+                  {withdrawals.slice(0, 10).map((w) => (
+                    <div
+                      key={w.id}
+                      className="flex flex-col gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-semibold">{formatBRLFromCents(w.amount_cents)}</span>
+                        <span className="text-xs text-zinc-400">
+                          {formatDate(w.created_at)} • {w.status}
+                          {w.paid_at ? ` • pago em ${formatDate(w.paid_at)}` : ""}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {w.receipt_url ? (
+                          <a
+                            href={w.receipt_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-brand-300 hover:text-brand-200"
+                          >
+                            Comprovante
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
                 </div>
