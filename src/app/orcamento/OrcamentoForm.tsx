@@ -171,12 +171,14 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                 step={0.1}
                 value={distanceKm}
                 onChange={(e) => setDistanceKm(Number(e.target.value))}
-                disabled
+                disabled={isDistancePending || !distanceError}
               />
               <p className="text-xs text-zinc-400">
                 {isDistancePending
                   ? "Calculando pelo CEP..."
-                  : "Calculada automaticamente pelo CEP."}
+                  : distanceError
+                    ? "Não foi possível calcular automaticamente. Informe a distância manualmente."
+                    : "Calculada automaticamente pelo CEP."}
               </p>
               {distanceError ? (
                 <p className="text-xs text-red-300">{distanceError}</p>

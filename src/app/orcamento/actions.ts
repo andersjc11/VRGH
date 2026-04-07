@@ -14,6 +14,59 @@ function normalizeCep(value: string) {
   return digits.length === 8 ? digits : ""
 }
 
+function formatCep(value: string) {
+  const digits = normalizeCep(value)
+  if (!digits) return ""
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`
+}
+
+async function getCepContext(cep: string) {
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { cache: "no-store" })
+    if (!res.ok) return null
+    const json = (await res.json()) as any
+    if (json?.erro) return null
+    const city = typeof json?.localidade === "string" ? json.localidade : ""
+    const uf = typeof json?.uf === "string" ? json.uf : ""
+    return city && uf ? { city, uf } : null
+  } catch {
+    return null
+  }
+}
+
+function buildBrazilLocationQuery(params: { cep: string; city?: string; uf?: string }) {
+  const formatted = formatCep(params.cep) || params.cep
+  const parts = [formatted]
+  if (params.city && params.uf) parts.push(`${params.city}-${params.uf}`)
+  parts.push("Brasil")
+  return parts.join(", ")
+}
+
+async function fetchDistanceMatrixMeters(params: { origins: string; destinations: string; key: string }) {
+  const url = new URL("https://maps.googleapis.com/maps/api/distancematrix/json")
+  url.searchParams.set("origins", params.origins)
+  url.searchParams.set("destinations", params.destinations)
+  url.searchParams.set("mode", "driving")
+  url.searchParams.set("language", "pt-BR")
+  url.searchParams.set("region", "br")
+  url.searchParams.set("key", params.key)
+
+  const res = await fetch(url.toString(), { cache: "no-store" })
+  if (!res.ok) return { meters: null as number | null, status: "HTTP_ERROR" }
+
+  const json = (await res.json()) as any
+  const topStatus = typeof json?.status === "string" ? json.status : ""
+  const element = json?.rows?.[0]?.elements?.[0]
+  const elementStatus = typeof element?.status === "string" ? element.status : ""
+  const meters = element?.distance?.value
+
+  if (topStatus && topStatus !== "OK") return { meters: null as number | null, status: topStatus }
+  if (elementStatus && elementStatus !== "OK") return { meters: null as number | null, status: elementStatus }
+  if (typeof meters !== "number" || !Number.isFinite(meters) || meters < 0) return { meters: null as number | null, status: "INVALID_RESPONSE" }
+
+  return { meters, status: "OK" }
+}
+
 async function getDistanceKmFromGoogle(params: { originCep: string; destinationCep: string }) {
   const key = process.env.GOOGLE_MAPS_API_KEY
   if (!key) return { distanceKm: null as number | null, error: "GOOGLE_MAPS_API_KEY não configurada." }
@@ -24,27 +77,30 @@ async function getDistanceKmFromGoogle(params: { originCep: string; destinationC
     return { distanceKm: null as number | null, error: "CEP inválido para cálculo de distância." }
   }
 
-  const url = new URL("https://maps.googleapis.com/maps/api/distancematrix/json")
-  url.searchParams.set("origins", `${origin},BR`)
-  url.searchParams.set("destinations", `${destination},BR`)
-  url.searchParams.set("mode", "driving")
-  url.searchParams.set("language", "pt-BR")
-  url.searchParams.set("region", "br")
-  url.searchParams.set("key", key)
+  const [originCtx, destCtx] = await Promise.all([getCepContext(origin), getCepContext(destination)])
+  const originsWithContext = buildBrazilLocationQuery({ cep: origin, city: originCtx?.city, uf: originCtx?.uf })
+  const destWithContext = buildBrazilLocationQuery({ cep: destination, city: destCtx?.city, uf: destCtx?.uf })
 
-  const res = await fetch(url.toString(), { cache: "no-store" })
-  if (!res.ok) {
-    return { distanceKm: null as number | null, error: "Falha ao consultar Google Maps." }
-  }
+  const firstTry = await fetchDistanceMatrixMeters({
+    origins: originsWithContext,
+    destinations: destWithContext,
+    key
+  })
 
-  const json = (await res.json()) as any
-  const meters = json?.rows?.[0]?.elements?.[0]?.distance?.value
-  if (typeof meters !== "number" || !Number.isFinite(meters) || meters < 0) {
-    const status = json?.rows?.[0]?.elements?.[0]?.status
-    return {
-      distanceKm: null as number | null,
-      error: typeof status === "string" ? `Google Maps: ${status}` : "Distância indisponível."
-    }
+  const retryStatuses = new Set(["NOT_FOUND", "INVALID_REQUEST", "MAX_ROUTE_LENGTH_EXCEEDED"])
+  const shouldRetry = firstTry.meters === null && retryStatuses.has(firstTry.status)
+
+  const secondTry = shouldRetry
+    ? await fetchDistanceMatrixMeters({
+        origins: buildBrazilLocationQuery({ cep: origin }),
+        destinations: buildBrazilLocationQuery({ cep: destination }),
+        key
+      })
+    : firstTry
+
+  const meters = secondTry.meters
+  if (meters === null) {
+    return { distanceKm: null as number | null, error: `Google Maps: ${secondTry.status}` }
   }
 
   return { distanceKm: Math.round((meters / 1000) * 100) / 100, error: null as string | null }
