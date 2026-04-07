@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Card } from "@/components/ui/Card"
@@ -304,12 +305,16 @@ export default async function AdminPedidoDetalhePage({
         </div>
         <div className="flex gap-2 print:hidden">
           <Button asChild intent="secondary">
-            <a href={`/admin/pedidos/${pedido.id}?print=1`} target="_blank" rel="noreferrer">
+            <Link
+              href={`/admin/pedidos/${pedido.id}?print=1`}
+              target="_blank"
+              rel="noreferrer"
+            >
               Imprimir / PDF
-            </a>
+            </Link>
           </Button>
           <Button asChild intent="ghost">
-            <a href="/admin/pedidos">Voltar</a>
+            <Link href="/admin/pedidos">Voltar</Link>
           </Button>
         </div>
       </div>
@@ -534,7 +539,7 @@ export default async function AdminPedidoDetalhePage({
 
               <div className="flex items-center justify-end gap-2">
                 <Button asChild intent="secondary">
-                  <a href={`/admin/pedidos/${pedido.id}`}>Cancelar</a>
+                  <Link href={`/admin/pedidos/${pedido.id}`}>Cancelar</Link>
                 </Button>
                 <Button type="submit">Salvar alterações</Button>
               </div>
