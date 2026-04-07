@@ -1,11 +1,15 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { Equipment, EquipmentPrice, PricingConfig } from "@/lib/domain/types"
+import { redirect } from "next/navigation"
 import { OrcamentoForm } from "./OrcamentoForm"
 
 export const dynamic = "force-dynamic"
 
 export default async function OrcamentoPage() {
   const supabase = createSupabaseServerClient()
+  const { data } = await supabase.auth.getUser()
+  const user = data.user
+  if (!user) redirect("/login?next=/orcamento")
 
   const [equipmentsRes, pricesRes, displacementRes, discountsRes] =
     await Promise.all([
