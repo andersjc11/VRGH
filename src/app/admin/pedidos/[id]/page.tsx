@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { formatBRLFromCents } from "@/lib/pricing/calc"
+import { calcDisplacementCents, formatBRLFromCents } from "@/lib/pricing/calc"
 
 function safeDecodeURIComponent(value: string) {
   try {
@@ -26,6 +26,17 @@ function parseMoneyToCents(raw: string) {
     : cleaned
   const parsed = Number(normalized)
   if (!Number.isFinite(parsed) || parsed < 0) return null
+  return Math.round(parsed * 100)
+}
+
+function parseSignedMoneyToCents(raw: string) {
+  const cleaned = raw.replace(/[^\d,.\-]/g, "").trim()
+  if (!cleaned) return 0
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned
+  const parsed = Number(normalized)
+  if (!Number.isFinite(parsed)) return null
   return Math.round(parsed * 100)
 }
 
@@ -92,6 +103,18 @@ export default async function AdminPedidoDetalhePage({
   const pedido = res.data as any
   if (!pedido) redirect("/admin/pedidos")
 
+  const displacementSettingsRes = await supabase
+    .from("pricing_settings")
+    .select("value_json")
+    .eq("key", "displacement")
+    .maybeSingle()
+
+  const displacementConfig = {
+    base_fee_cents: displacementSettingsRes.data?.value_json?.base_fee_cents ?? 0,
+    free_km: displacementSettingsRes.data?.value_json?.free_km ?? 10,
+    per_km_cents: displacementSettingsRes.data?.value_json?.per_km_cents ?? 500
+  }
+
   const quoteId = pedido.quote_id as string | null | undefined
   const quoteItemsResWithEquip = quoteId
     ? await supabase
@@ -154,12 +177,33 @@ export default async function AdminPedidoDetalhePage({
         redirect(`/admin/pedidos/${params.id}?error=Dist%C3%A2ncia%20inv%C3%A1lida`)
       }
 
-      const displacementCents = parseMoneyToCents(getString(formData, "displacement"))
+      const displacementSettingsRes = await supabase
+        .from("pricing_settings")
+        .select("value_json")
+        .eq("key", "displacement")
+        .maybeSingle()
+
+      const displacementConfig = {
+        base_fee_cents: displacementSettingsRes.data?.value_json?.base_fee_cents ?? 0,
+        free_km: displacementSettingsRes.data?.value_json?.free_km ?? 10,
+        per_km_cents: displacementSettingsRes.data?.value_json?.per_km_cents ?? 500
+      }
+
+      const displacementAdjustmentCents = parseSignedMoneyToCents(
+        getString(formData, "displacement_adjustment")
+      )
+      if (displacementAdjustmentCents === null) {
+        redirect(`/admin/pedidos/${params.id}?error=Ajuste%20de%20deslocamento%20inv%C3%A1lido`)
+      }
+
+      const displacementBaseCents = calcDisplacementCents({
+        distanceKm,
+        config: displacementConfig
+      })
+
+      const displacementCents = Math.max(0, displacementBaseCents + displacementAdjustmentCents)
       const discountCents = parseMoneyToCents(getString(formData, "discount"))
 
-      if (displacementCents === null) {
-        redirect(`/admin/pedidos/${params.id}?error=Deslocamento%20inv%C3%A1lido`)
-      }
       if (discountCents === null) {
         redirect(`/admin/pedidos/${params.id}?error=Desconto%20inv%C3%A1lido`)
       }
@@ -319,6 +363,15 @@ export default async function AdminPedidoDetalhePage({
   const discountCents =
     typeof pedido.quotes?.discount_cents === "number" ? pedido.quotes.discount_cents : 0
   const totalCents = Math.max(0, subtotalCents + displacementCents - discountCents)
+  const distanceKm =
+    typeof pedido.quotes?.distance_km === "number"
+      ? pedido.quotes.distance_km
+      : Number(pedido.quotes?.distance_km ?? 0) || 0
+  const displacementBaseCents = calcDisplacementCents({
+    distanceKm,
+    config: displacementConfig
+  })
+  const displacementAdjustmentCents = displacementCents - displacementBaseCents
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
@@ -545,11 +598,21 @@ export default async function AdminPedidoDetalhePage({
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1">
-                  <p className="text-sm text-zinc-200">Deslocamento (R$)</p>
+                  <p className="text-sm text-zinc-200">Deslocamento calculado</p>
+                  <div className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white flex items-center">
+                    {formatBRLFromCents(displacementBaseCents)}
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Atualiza ao salvar quando você altera a distância.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-zinc-200">Ajuste de deslocamento (R$)</p>
                   <Input
                     inputMode="decimal"
-                    name="displacement"
-                    defaultValue={(displacementCents / 100).toFixed(2)}
+                    name="displacement_adjustment"
+                    defaultValue={(displacementAdjustmentCents / 100).toFixed(2).replace(".", ",")}
+                    placeholder="0,00"
                   />
                 </div>
                 <div className="space-y-1">
