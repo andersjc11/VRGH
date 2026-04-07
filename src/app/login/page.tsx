@@ -8,9 +8,12 @@ export default function LoginPage({
 }) {
   return (
     <div className="mx-auto max-w-md px-4 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight">Entrar</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">
+        Crie sua conta em segundos ou faça login para gerar seu orçamento.
+      </h1>
       <p className="mt-2 text-zinc-300">
-        Acesse sua área do cliente para acompanhar reservas, cashback e indicações.
+        É rápido e fácil — e você ainda acompanha reservas, cashback e indicações na
+        sua área do cliente.
       </p>
       <LoginForm next={searchParams?.next} />
       <p className="mt-6 text-sm text-zinc-400">
@@ -22,4 +25,3 @@ export default function LoginPage({
     </div>
   )
 }
-
