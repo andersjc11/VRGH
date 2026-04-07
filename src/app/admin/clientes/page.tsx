@@ -25,6 +25,19 @@ function getString(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : ""
 }
 
+function buildClientesUrl(params: Record<string, string | undefined>) {
+  const usp = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value) usp.set(key, value)
+  }
+  const query = usp.toString()
+  return query ? `/admin/clientes?${query}` : "/admin/clientes"
+}
+
+function makeClientesHref(q: string, userId: string, tab: "edit" | "password") {
+  return buildClientesUrl({ q: q || undefined, user: userId, tab })
+}
+
 function createSupabaseAdminClient() {
   return createClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
@@ -52,10 +65,13 @@ async function requireAdmin() {
 export default async function AdminClientesPage({
   searchParams
 }: {
-  searchParams?: { ok?: string; error?: string }
+  searchParams?: { ok?: string; error?: string; q?: string; user?: string; tab?: string }
 }) {
   const ok = searchParams?.ok
   const error = searchParams?.error
+  const q = searchParams?.q ?? ""
+  const selectedUserId = searchParams?.user ?? ""
+  const tab = searchParams?.tab === "password" ? "password" : "edit"
 
   const { supabase } = await requireAdmin()
 
@@ -64,7 +80,9 @@ export default async function AdminClientesPage({
     try {
       const { supabase } = await requireAdmin()
       const userId = getString(formData, "user_id")
-      if (!userId) redirect("/admin/clientes?error=ID%20inv%C3%A1lido")
+      const q = getString(formData, "q")
+      const tab = getString(formData, "tab") === "password" ? "password" : "edit"
+      if (!userId) redirect(buildClientesUrl({ q, error: "ID inválido" }))
 
       const fullName = getString(formData, "full_name") || null
       const phone = getString(formData, "phone") || null
@@ -91,17 +109,23 @@ export default async function AdminClientesPage({
 
       if (updateRes.error) {
         redirect(
-          `/admin/clientes?error=${encodeURIComponent(
-            `Falha ao salvar: ${updateRes.error.message}`
-          )}`
+          buildClientesUrl({
+            q,
+            user: userId,
+            tab,
+            error: `Falha ao salvar: ${updateRes.error.message}`
+          })
         )
       }
 
-      redirect("/admin/clientes?ok=1")
+      redirect(buildClientesUrl({ q, user: userId, tab, ok: "1" }))
     } catch (err) {
       if (isNextRedirectError(err)) throw err
       const message = err instanceof Error ? err.message : "Falha inesperada ao salvar."
-      redirect(`/admin/clientes?error=${encodeURIComponent(message)}`)
+      const userId = getString(formData, "user_id")
+      const q = getString(formData, "q")
+      const tab = getString(formData, "tab") === "password" ? "password" : "edit"
+      redirect(buildClientesUrl({ q, user: userId || undefined, tab, error: message }))
     }
   }
 
@@ -111,25 +135,41 @@ export default async function AdminClientesPage({
       await requireAdmin()
       const userId = getString(formData, "user_id")
       const password = getString(formData, "password")
-      if (!userId) redirect("/admin/clientes?error=ID%20inv%C3%A1lido")
-      if (!password) redirect("/admin/clientes?error=Digite%20uma%20senha")
-      if (password.length < 6) redirect("/admin/clientes?error=A%20senha%20precisa%20ter%20pelo%20menos%206%20caracteres")
+      const q = getString(formData, "q")
+      const tab = getString(formData, "tab") === "password" ? "password" : "edit"
+      if (!userId) redirect(buildClientesUrl({ q, error: "ID inválido" }))
+      if (!password) redirect(buildClientesUrl({ q, user: userId, tab: "password", error: "Digite uma senha" }))
+      if (password.length < 6) {
+        redirect(
+          buildClientesUrl({
+            q,
+            user: userId,
+            tab: "password",
+            error: "A senha precisa ter pelo menos 6 caracteres"
+          })
+        )
+      }
 
       const admin = createSupabaseAdminClient()
       const res = await admin.auth.admin.updateUserById(userId, { password })
       if (res.error) {
         redirect(
-          `/admin/clientes?error=${encodeURIComponent(
-            `Falha ao alterar senha: ${res.error.message}`
-          )}`
+          buildClientesUrl({
+            q,
+            user: userId,
+            tab: "password",
+            error: `Falha ao alterar senha: ${res.error.message}`
+          })
         )
       }
 
-      redirect("/admin/clientes?ok=1")
+      redirect(buildClientesUrl({ q, user: userId, tab: "password", ok: "1" }))
     } catch (err) {
       if (isNextRedirectError(err)) throw err
       const message = err instanceof Error ? err.message : "Falha inesperada ao alterar senha."
-      redirect(`/admin/clientes?error=${encodeURIComponent(message)}`)
+      const userId = getString(formData, "user_id")
+      const q = getString(formData, "q")
+      redirect(buildClientesUrl({ q, user: userId || undefined, tab: "password", error: message }))
     }
   }
 
@@ -138,23 +178,23 @@ export default async function AdminClientesPage({
     try {
       await requireAdmin()
       const userId = getString(formData, "user_id")
-      if (!userId) redirect("/admin/clientes?error=ID%20inv%C3%A1lido")
+      const q = getString(formData, "q")
+      if (!userId) redirect(buildClientesUrl({ q, error: "ID inválido" }))
 
       const admin = createSupabaseAdminClient()
       const res = await admin.auth.admin.deleteUser(userId)
       if (res.error) {
         redirect(
-          `/admin/clientes?error=${encodeURIComponent(
-            `Falha ao excluir: ${res.error.message}`
-          )}`
+          buildClientesUrl({ q, error: `Falha ao excluir: ${res.error.message}` })
         )
       }
 
-      redirect("/admin/clientes?ok=1")
+      redirect(buildClientesUrl({ q, ok: "1" }))
     } catch (err) {
       if (isNextRedirectError(err)) throw err
       const message = err instanceof Error ? err.message : "Falha inesperada ao excluir."
-      redirect(`/admin/clientes?error=${encodeURIComponent(message)}`)
+      const q = getString(formData, "q")
+      redirect(buildClientesUrl({ q, error: message }))
     }
   }
 
@@ -197,6 +237,14 @@ export default async function AdminClientesPage({
     .filter((x) => x.profile?.role === "client")
     .sort((a, b) => String(b.profile?.created_at ?? "").localeCompare(String(a.profile?.created_at ?? "")))
 
+  const filteredRows = q
+    ? rows.filter((r) => String(r.user?.email ?? "").toLowerCase().includes(q.toLowerCase()))
+    : rows
+
+  const selected = selectedUserId
+    ? filteredRows.find((r) => r.user?.id === selectedUserId) ?? null
+    : null
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -218,62 +266,129 @@ export default async function AdminClientesPage({
         </Card>
       ) : null}
 
-      <div className="mt-8 grid gap-3">
-        {rows.length === 0 ? (
-          <Card>
-            <p className="text-zinc-300">Nenhum cliente encontrado.</p>
-          </Card>
-        ) : (
-          rows.map(({ user, profile }) => (
-            <Card key={user.id} className="space-y-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold">{profile?.full_name || user.email || user.id}</p>
-                  <p className="text-sm text-zinc-400">{user.email ?? "—"}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <form action={deleteClient}>
-                    <input type="hidden" name="user_id" value={user.id} />
-                    <Button type="submit" intent="ghost">
-                      Excluir
-                    </Button>
-                  </form>
-                </div>
-              </div>
+      <form method="get" className="mt-8 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex-1">
+          <Input
+            name="q"
+            defaultValue={q}
+            placeholder="Pesquisar por e-mail"
+            autoComplete="off"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button type="submit" intent="secondary">
+            Pesquisar
+          </Button>
+          <Button asChild intent="ghost">
+            <Link href="/admin/clientes">Limpar</Link>
+          </Button>
+        </div>
+      </form>
 
+      <Card className="mt-4 overflow-hidden">
+        <div className="divide-y divide-white/10">
+          {filteredRows.length === 0 ? (
+            <div className="p-4">
+              <p className="text-zinc-300">Nenhum cliente encontrado.</p>
+            </div>
+          ) : (
+            filteredRows.map(({ user, profile }) => {
+              const isSelected = selectedUserId === user.id
+              return (
+                <div
+                  key={user.id}
+                  className={`flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between ${
+                    isSelected ? "bg-white/5" : ""
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{user.email ?? "—"}</p>
+                    <p className="truncate text-sm text-zinc-400">
+                      {profile?.full_name ?? "Sem nome"}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:justify-end">
+                    <Button asChild intent="secondary">
+                      <Link href={makeClientesHref(q, user.id, "edit")}>Editar</Link>
+                    </Button>
+                    <Button asChild intent="secondary">
+                      <Link href={makeClientesHref(q, user.id, "password")}>Senha</Link>
+                    </Button>
+                    <form action={deleteClient}>
+                      <input type="hidden" name="user_id" value={user.id} />
+                      <input type="hidden" name="q" value={q} />
+                      <Button type="submit" intent="ghost">
+                        Excluir
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </Card>
+
+      {selected ? (
+        <div className="mt-6 grid gap-3">
+          <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="truncate font-semibold">{selected.user.email ?? selected.user.id}</p>
+              <p className="truncate text-sm text-zinc-400">
+                {selected.profile?.full_name ?? "Sem nome"}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild intent={tab === "edit" ? "secondary" : "ghost"}>
+                <Link href={makeClientesHref(q, selected.user.id, "edit")}>Editar</Link>
+              </Button>
+              <Button asChild intent={tab === "password" ? "secondary" : "ghost"}>
+                <Link href={makeClientesHref(q, selected.user.id, "password")}>Senha</Link>
+              </Button>
+              <Button asChild intent="ghost">
+                <Link href={buildClientesUrl({ q: q || undefined })}>Fechar</Link>
+              </Button>
+            </div>
+          </Card>
+
+          {tab === "edit" ? (
+            <Card>
               <form action={saveClient} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <input type="hidden" name="user_id" value={user.id} />
+                <input type="hidden" name="user_id" value={selected.user.id} />
+                <input type="hidden" name="q" value={q} />
+                <input type="hidden" name="tab" value="edit" />
                 <div className="space-y-1">
                   <p className="text-sm text-zinc-200">Nome</p>
-                  <Input name="full_name" defaultValue={profile?.full_name ?? ""} />
+                  <Input name="full_name" defaultValue={selected.profile?.full_name ?? ""} />
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-zinc-200">CPF</p>
-                  <Input name="cpf" defaultValue={profile?.cpf ?? ""} />
+                  <Input name="cpf" defaultValue={selected.profile?.cpf ?? ""} />
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-zinc-200">WhatsApp</p>
-                  <Input name="whatsapp" defaultValue={profile?.whatsapp ?? ""} />
+                  <Input name="whatsapp" defaultValue={selected.profile?.whatsapp ?? ""} />
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-zinc-200">Telefone</p>
-                  <Input name="phone" defaultValue={profile?.phone ?? ""} />
+                  <Input name="phone" defaultValue={selected.profile?.phone ?? ""} />
                 </div>
                 <div className="space-y-1 lg:col-span-2">
                   <p className="text-sm text-zinc-200">Endereço</p>
-                  <Input name="address_line1" defaultValue={profile?.address_line1 ?? ""} />
+                  <Input name="address_line1" defaultValue={selected.profile?.address_line1 ?? ""} />
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-zinc-200">Bairro</p>
-                  <Input name="neighborhood" defaultValue={profile?.neighborhood ?? ""} />
+                  <Input name="neighborhood" defaultValue={selected.profile?.neighborhood ?? ""} />
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-zinc-200">Cidade</p>
-                  <Input name="city" defaultValue={profile?.city ?? ""} />
+                  <Input name="city" defaultValue={selected.profile?.city ?? ""} />
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-zinc-200">CEP</p>
-                  <Input name="postal_code" defaultValue={profile?.postal_code ?? ""} />
+                  <Input name="postal_code" defaultValue={selected.profile?.postal_code ?? ""} />
                 </div>
 
                 <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
@@ -282,9 +397,13 @@ export default async function AdminClientesPage({
                   </Button>
                 </div>
               </form>
-
+            </Card>
+          ) : (
+            <Card>
               <form action={setPassword} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <input type="hidden" name="user_id" value={user.id} />
+                <input type="hidden" name="user_id" value={selected.user.id} />
+                <input type="hidden" name="q" value={q} />
+                <input type="hidden" name="tab" value="password" />
                 <div className="space-y-1">
                   <p className="text-sm text-zinc-200">Nova senha</p>
                   <Input name="password" type="password" autoComplete="new-password" />
@@ -296,9 +415,9 @@ export default async function AdminClientesPage({
                 </div>
               </form>
             </Card>
-          ))
-        )}
-      </div>
+          )}
+        </div>
+      ) : null}
     </div>
   )
 }
