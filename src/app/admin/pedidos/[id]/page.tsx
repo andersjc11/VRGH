@@ -119,25 +119,29 @@ async function awardCashbackForReservation(reservationId: string) {
 
   if (referrerRole === "sindico" && !condominiumId) return
 
-  const referralUpsertRes = await admin
-    .from("referrals")
-    .upsert(
-      {
-        referrer_id: referrerId,
-        referred_id: referredId,
-        condominium_id: referrerRole === "sindico" ? condominiumId : null,
-        reservation_id: reservationId,
-        cashback_cents: 1000,
-        status: "approved"
-      },
-      { onConflict: "referred_id,reservation_id" }
-    )
-    .select("id")
-    .maybeSingle()
+  const referralUpsertRes = await admin.from("referrals").upsert(
+    {
+      referrer_id: referrerId,
+      referred_id: referredId,
+      condominium_id: referrerRole === "sindico" ? condominiumId : null,
+      reservation_id: reservationId,
+      cashback_cents: 1000,
+      status: "approved"
+    },
+    { onConflict: "referred_id,reservation_id" }
+  )
 
   if (referralUpsertRes.error) throw new Error(referralUpsertRes.error.message)
-  const referralId = typeof referralUpsertRes.data?.id === "string" ? referralUpsertRes.data.id : ""
-  if (!referralId) return
+
+  const referralRes = await admin
+    .from("referrals")
+    .select("id")
+    .eq("referred_id", referredId)
+    .eq("reservation_id", reservationId)
+    .maybeSingle()
+  if (referralRes.error) throw new Error(referralRes.error.message)
+  const referralId = typeof referralRes.data?.id === "string" ? referralRes.data.id : ""
+  if (!referralId) throw new Error("Falha ao localizar referral para gerar cashback.")
 
   const cashbackPayload =
     referrerRole === "sindico"
