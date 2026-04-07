@@ -158,12 +158,9 @@ export async function createReservation(
   const user = authData.user
   if (!user) redirect("/login?next=/orcamento")
 
-  const refCode = cookies().get("vrgh_ref")?.value
+  const refCode = cookies().get("vrgh_ref")?.value?.trim()
   if (refCode) {
-    const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
-    if (applyRes.error) {
-      return { error: "Falha ao aplicar indicação. Tente novamente." }
-    }
+    await supabase.rpc("apply_referral_code", { ref_code: refCode })
   }
 
   const profileRes = await supabase
@@ -321,6 +318,8 @@ export async function createReservation(
         ? { deposit_pct: config.discounts.deposit_pct }
         : { max_installments: config.discounts.max_installments }
 
+  const paymentTermsWithRef = refCode ? { ...paymentTerms, ref: refCode } : paymentTerms
+
   const reservationInsert = await supabase
     .from("reservations")
     .insert({
@@ -338,7 +337,7 @@ export async function createReservation(
       postal_code: postalCode,
       notes,
       payment_plan: paymentPlan,
-      payment_terms: paymentTerms,
+      payment_terms: paymentTermsWithRef,
       total_cents: breakdown.total_cents
     })
     .select("id")
