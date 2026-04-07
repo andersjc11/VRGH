@@ -8,9 +8,10 @@ export const dynamic = "force-dynamic"
 export default async function OrcamentoPage({
   searchParams
 }: {
-  searchParams?: { ref?: string }
+  searchParams?: Record<string, string | string[] | undefined>
 }) {
-  const ref = typeof searchParams?.ref === "string" ? searchParams?.ref.trim() : ""
+  const rawRef = searchParams?.ref
+  const ref = typeof rawRef === "string" ? rawRef.trim() : ""
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   const user = data.user
