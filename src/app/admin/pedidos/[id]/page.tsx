@@ -131,8 +131,6 @@ async function awardCashbackForReservation(reservationId: string) {
   const referrerRole = String(referrerProfileRes.data?.role ?? "")
   const condominiumId = typeof reservation.condominium_id === "string" ? reservation.condominium_id : null
 
-  if (referrerRole === "sindico" && !condominiumId) return
-
   const referralUpsertRes = await admin.from("referrals").upsert(
     {
       referrer_id: referrerId,
@@ -157,8 +155,10 @@ async function awardCashbackForReservation(reservationId: string) {
   const referralId = typeof referralRes.data?.id === "string" ? referralRes.data.id : ""
   if (!referralId) throw new Error("Falha ao localizar referral para gerar cashback.")
 
+  const shouldCreditCondominium = referrerRole === "sindico" && Boolean(condominiumId)
+
   const cashbackPayload =
-    referrerRole === "sindico"
+    shouldCreditCondominium
       ? {
           owner_profile_id: null,
           owner_condominium_id: condominiumId,
