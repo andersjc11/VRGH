@@ -326,7 +326,7 @@ export default async function AdminPedidoDetalhePage({
             <p className="text-sm text-red-300">{safeDecodeURIComponent(error)}</p>
           ) : null}
         </Card>
-      ) : null
+      ) : null}
 
       <div className="mt-8 grid gap-4">
         <Card>
