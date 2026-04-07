@@ -1,7 +1,9 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
+import { createClient } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { requireEnv } from "@/lib/env"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -44,6 +46,7 @@ type CashbackWithdrawalRow = {
   pix_key: string
   status: string
   receipt_url: string | null
+  receipt_path: string | null
   created_at: string
   paid_at: string | null
 }
@@ -84,6 +87,29 @@ function safeDecodeURIComponent(value: string) {
   } catch {
     return value
   }
+}
+
+function isNextRedirectError(err: unknown) {
+  const digest = (err as any)?.digest
+  return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
+}
+
+const CASHBACK_RECEIPTS_BUCKET = "cashback-receipts"
+
+function createSupabaseAdminClient() {
+  return createClient(
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    { auth: { persistSession: false } }
+  )
+}
+
+function extractReceiptPathFromPublicUrl(url: string | null | undefined) {
+  if (!url) return ""
+  const marker = `/${CASHBACK_RECEIPTS_BUCKET}/`
+  const idx = url.indexOf(marker)
+  if (idx < 0) return ""
+  return url.slice(idx + marker.length)
 }
 
 export default async function ClientePage({
@@ -153,6 +179,50 @@ export default async function ClientePage({
     redirect("/cliente?ok=withdrawal_requested")
   }
 
+  async function viewWithdrawalReceipt(formData: FormData) {
+    "use server"
+    try {
+      const supabase = createSupabaseServerClient()
+      const { data } = await supabase.auth.getUser()
+      const user = data.user
+      if (!user) redirect("/login?next=/cliente")
+
+      const idRaw = formData.get("id")
+      const id = typeof idRaw === "string" ? idRaw.trim() : ""
+      if (!id) redirect("/cliente?error=ID%20inv%C3%A1lido.")
+
+      const rowRes = await supabase
+        .from("cashback_withdrawals")
+        .select("id,requester_id,receipt_url,receipt_path")
+        .eq("id", id)
+        .maybeSingle()
+
+      if (rowRes.error) redirect(`/cliente?error=${encodeURIComponent(rowRes.error.message)}`)
+      if (!rowRes.data) redirect("/cliente?error=Resgate%20n%C3%A3o%20encontrado.")
+      if (rowRes.data.requester_id !== user.id) redirect("/cliente?error=Acesso%20negado.")
+
+      const receiptPath =
+        typeof rowRes.data.receipt_path === "string" && rowRes.data.receipt_path
+          ? rowRes.data.receipt_path
+          : extractReceiptPathFromPublicUrl(rowRes.data.receipt_url)
+
+      if (!receiptPath && rowRes.data.receipt_url) redirect(rowRes.data.receipt_url)
+      if (!receiptPath) redirect("/cliente?error=Comprovante%20indispon%C3%ADvel.")
+
+      const admin = createSupabaseAdminClient()
+      const signedRes = await admin.storage.from(CASHBACK_RECEIPTS_BUCKET).createSignedUrl(receiptPath, 60 * 10)
+      if (signedRes.error) redirect(`/cliente?error=${encodeURIComponent(signedRes.error.message)}`)
+
+      const signedUrl = signedRes.data?.signedUrl
+      if (!signedUrl) redirect("/cliente?error=Falha%20ao%20gerar%20link%20do%20comprovante.")
+      redirect(signedUrl)
+    } catch (err) {
+      if (isNextRedirectError(err)) throw err
+      const message = err instanceof Error ? err.message : "Falha inesperada."
+      redirect(`/cliente?error=${encodeURIComponent(message)}`)
+    }
+  }
+
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   const user = data.user
@@ -203,7 +273,7 @@ export default async function ClientePage({
 
   const withdrawalsRes = await supabase
     .from("cashback_withdrawals")
-    .select("id,amount_cents,pix_key,status,receipt_url,created_at,paid_at")
+    .select("id,amount_cents,pix_key,status,receipt_url,receipt_path,created_at,paid_at")
     .eq("requester_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50)
@@ -365,15 +435,13 @@ export default async function ClientePage({
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {w.receipt_url ? (
-                          <a
-                            href={w.receipt_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-brand-300 hover:text-brand-200"
-                          >
-                            Comprovante
-                          </a>
+                        {w.receipt_url || w.receipt_path ? (
+                          <form action={viewWithdrawalReceipt} target="_blank">
+                            <input type="hidden" name="id" value={w.id} />
+                            <Button type="submit" intent="ghost">
+                              Comprovante
+                            </Button>
+                          </form>
                         ) : null}
                       </div>
                     </div>

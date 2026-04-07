@@ -19,6 +19,7 @@ type WithdrawalRow = {
   pix_key: string
   status: string
   receipt_url: string | null
+  receipt_path: string | null
   created_at: string
   paid_at: string | null
 }
@@ -97,13 +98,29 @@ async function ensureReceiptBucketExists(admin: any) {
     throw new Error(`Falha ao listar buckets: ${listRes.error.message}`)
   }
 
-  const exists = (listRes.data ?? []).some((b: any) => b?.name === CASHBACK_RECEIPTS_BUCKET)
-  if (exists) return
-
-  const createRes = await admin.storage.createBucket(CASHBACK_RECEIPTS_BUCKET, { public: true })
-  if (createRes.error) {
-    throw new Error(`Falha ao criar bucket de comprovantes: ${createRes.error.message}`)
+  const bucket = (listRes.data ?? []).find((b: any) => b?.name === CASHBACK_RECEIPTS_BUCKET)
+  if (!bucket) {
+    const createRes = await admin.storage.createBucket(CASHBACK_RECEIPTS_BUCKET, { public: false })
+    if (createRes.error) {
+      throw new Error(`Falha ao criar bucket de comprovantes: ${createRes.error.message}`)
+    }
+    return
   }
+
+  if (bucket.public === true) {
+    const updRes = await admin.storage.updateBucket(CASHBACK_RECEIPTS_BUCKET, { public: false })
+    if (updRes.error) {
+      throw new Error(`Falha ao atualizar bucket de comprovantes: ${updRes.error.message}`)
+    }
+  }
+}
+
+function extractReceiptPathFromPublicUrl(url: string | null | undefined) {
+  if (!url) return ""
+  const marker = `/${CASHBACK_RECEIPTS_BUCKET}/`
+  const idx = url.indexOf(marker)
+  if (idx < 0) return ""
+  return url.slice(idx + marker.length)
 }
 
 async function uploadReceipt(admin: any, file: File) {
@@ -121,10 +138,7 @@ async function uploadReceipt(admin: any, file: File) {
 
   if (uploadRes.error) throw new Error(`Falha ao enviar comprovante: ${uploadRes.error.message}`)
 
-  const publicUrlRes = admin.storage.from(CASHBACK_RECEIPTS_BUCKET).getPublicUrl(objectPath)
-  const publicUrl = publicUrlRes.data?.publicUrl
-  if (!publicUrl) throw new Error("Falha ao obter URL pública do comprovante.")
-  return publicUrl
+  return objectPath
 }
 
 export default async function AdminResgatesPage({
@@ -148,13 +162,14 @@ export default async function AdminResgatesPage({
 
       const admin = createSupabaseAdminClient()
       await ensureReceiptBucketExists(admin)
-      const receiptUrl = await uploadReceipt(admin, file)
+      const receiptPath = await uploadReceipt(admin, file)
 
       const updRes = await supabase
         .from("cashback_withdrawals")
         .update({
           status: "paid",
-          receipt_url: receiptUrl,
+          receipt_url: null,
+          receipt_path: receiptPath,
           paid_by: user.id,
           paid_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -166,6 +181,47 @@ export default async function AdminResgatesPage({
       }
 
       redirect("/admin/resgates?ok=paid")
+    } catch (err) {
+      if (isNextRedirectError(err)) throw err
+      const message = err instanceof Error ? err.message : "Falha inesperada."
+      redirect(`/admin/resgates?error=${encodeURIComponent(message)}`)
+    }
+  }
+
+  async function viewReceipt(formData: FormData) {
+    "use server"
+    try {
+      const { supabase } = await requireAdmin()
+      const idRaw = formData.get("id")
+      const id = typeof idRaw === "string" ? idRaw.trim() : ""
+      if (!id) redirect("/admin/resgates?error=ID%20inv%C3%A1lido")
+
+      const rowRes = await supabase
+        .from("cashback_withdrawals")
+        .select("receipt_path,receipt_url")
+        .eq("id", id)
+        .maybeSingle()
+
+      if (rowRes.error) redirect(`/admin/resgates?error=${encodeURIComponent(rowRes.error.message)}`)
+
+      const receiptPath =
+        typeof rowRes.data?.receipt_path === "string" && rowRes.data.receipt_path
+          ? rowRes.data.receipt_path
+          : extractReceiptPathFromPublicUrl(rowRes.data?.receipt_url)
+
+      if (!receiptPath && rowRes.data?.receipt_url) redirect(rowRes.data.receipt_url)
+      if (!receiptPath) redirect("/admin/resgates?error=Comprovante%20indispon%C3%ADvel.")
+
+      const admin = createSupabaseAdminClient()
+      await ensureReceiptBucketExists(admin)
+      const signedRes = await admin.storage.from(CASHBACK_RECEIPTS_BUCKET).createSignedUrl(receiptPath, 60 * 10)
+      if (signedRes.error) {
+        redirect(`/admin/resgates?error=${encodeURIComponent(signedRes.error.message)}`)
+      }
+
+      const signedUrl = signedRes.data?.signedUrl
+      if (!signedUrl) redirect("/admin/resgates?error=Falha%20ao%20gerar%20link%20do%20comprovante.")
+      redirect(signedUrl)
     } catch (err) {
       if (isNextRedirectError(err)) throw err
       const message = err instanceof Error ? err.message : "Falha inesperada."
@@ -190,7 +246,7 @@ export default async function AdminResgatesPage({
 
   const baseQuery = supabase
     .from("cashback_withdrawals")
-    .select("id,requester_id,amount_cents,pix_key,status,receipt_url,created_at,paid_at")
+    .select("id,requester_id,amount_cents,pix_key,status,receipt_url,receipt_path,created_at,paid_at")
     .order("created_at", { ascending: false })
     .limit(200)
 
@@ -312,12 +368,13 @@ export default async function AdminResgatesPage({
                     <p className="mt-1 text-sm text-zinc-400">
                       Solicitado em: {formatDateTimePtBR(w.created_at)} • Pago em: {formatDateTimePtBR(w.paid_at)}
                     </p>
-                    {w.receipt_url ? (
-                      <p className="mt-1 text-sm">
-                        <a href={w.receipt_url} target="_blank" rel="noreferrer" className="text-brand-300 hover:text-brand-200">
+                    {w.receipt_url || w.receipt_path ? (
+                      <form action={viewReceipt} target="_blank" className="mt-1">
+                        <input type="hidden" name="id" value={w.id} />
+                        <Button type="submit" intent="ghost">
                           Ver comprovante
-                        </a>
-                      </p>
+                        </Button>
+                      </form>
                     ) : null}
                   </div>
 
