@@ -5,11 +5,19 @@ import { OrcamentoForm } from "./OrcamentoForm"
 
 export const dynamic = "force-dynamic"
 
-export default async function OrcamentoPage() {
+export default async function OrcamentoPage({
+  searchParams
+}: {
+  searchParams?: { ref?: string }
+}) {
+  const ref = typeof searchParams?.ref === "string" ? searchParams?.ref.trim() : ""
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   const user = data.user
-  if (!user) redirect("/login?next=/orcamento")
+  if (!user) {
+    const next = ref ? `/orcamento?ref=${encodeURIComponent(ref)}` : "/orcamento"
+    redirect(`/login?next=${encodeURIComponent(next)}`)
+  }
 
   const [equipmentsRes, pricesRes, displacementRes, discountsRes] =
     await Promise.all([
@@ -60,7 +68,7 @@ export default async function OrcamentoPage() {
         </p>
       </div>
 
-      <OrcamentoForm equipments={equipments} prices={prices} config={config} />
+      <OrcamentoForm equipments={equipments} prices={prices} config={config} refCode={ref || undefined} />
     </div>
   )
 }

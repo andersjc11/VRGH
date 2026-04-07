@@ -13,6 +13,7 @@ type Props = {
   equipments: Equipment[]
   prices: EquipmentPrice[]
   config: PricingConfig
+  refCode?: string
 }
 
 function SubmitButton() {
@@ -24,7 +25,7 @@ function SubmitButton() {
   )
 }
 
-export function OrcamentoForm({ equipments, prices, config }: Props) {
+export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const priceByEquipmentId = React.useMemo(
     () =>
       Object.fromEntries(prices.map((p) => [p.equipment_id, p])) as Record<
@@ -104,6 +105,7 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
 
   return (
     <form action={action} className="mt-8 grid gap-6 lg:grid-cols-3">
+      <input type="hidden" name="ref" value={refCode ?? ""} />
       <div className="lg:col-span-2 space-y-6">
         <Card>
           <p className="text-sm text-zinc-400">1. Equipamentos</p>

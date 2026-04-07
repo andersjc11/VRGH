@@ -153,15 +153,19 @@ export async function createReservation(
   _prevState: CreateReservationState,
   formData: FormData
 ): Promise<CreateReservationState> {
+  const formRef = getString(formData, "ref").trim()
   const supabase = createSupabaseServerClient()
   const { data: authData } = await supabase.auth.getUser()
   const user = authData.user
-  if (!user) redirect("/login?next=/orcamento")
-
+  if (!user) {
+    const next = formRef ? `/orcamento?ref=${encodeURIComponent(formRef)}` : "/orcamento"
+    redirect(`/login?next=${encodeURIComponent(next)}`)
+  }
   const cookieRef = cookies().get("vrgh_ref")?.value?.trim()
   const metaRef = typeof (user as any)?.user_metadata?.ref === "string" ? (user as any).user_metadata.ref.trim() : ""
-  const refCode = cookieRef || metaRef
+  const refCode = formRef || cookieRef || metaRef
   if (refCode) {
+    const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
     const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
     if (applyRes.error) {
       return { error: `Falha ao aplicar indicação: ${applyRes.error.message}` }
