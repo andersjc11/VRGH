@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { createClient } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { requireEnv } from "@/lib/env"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -76,7 +78,30 @@ async function requireAdmin() {
 
 const CASHBACK_RECEIPTS_BUCKET = "cashback-receipts"
 
-async function uploadReceipt(supabase: any, file: File) {
+function createSupabaseAdminClient() {
+  return createClient(
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    { auth: { persistSession: false } }
+  )
+}
+
+async function ensureReceiptBucketExists(admin: any) {
+  const listRes = await admin.storage.listBuckets()
+  if (listRes.error) {
+    throw new Error(`Falha ao listar buckets: ${listRes.error.message}`)
+  }
+
+  const exists = (listRes.data ?? []).some((b: any) => b?.name === CASHBACK_RECEIPTS_BUCKET)
+  if (exists) return
+
+  const createRes = await admin.storage.createBucket(CASHBACK_RECEIPTS_BUCKET, { public: true })
+  if (createRes.error) {
+    throw new Error(`Falha ao criar bucket de comprovantes: ${createRes.error.message}`)
+  }
+}
+
+async function uploadReceipt(admin: any, file: File) {
   const originalName = typeof file.name === "string" ? file.name : "comprovante"
   const safeName = originalName.replace(/[^\w.\-]+/g, "_").slice(0, 80) || "comprovante"
   const objectPath = `withdrawals/${crypto.randomUUID()}-${safeName}`
@@ -84,14 +109,14 @@ async function uploadReceipt(supabase: any, file: File) {
   const arrayBuffer = await file.arrayBuffer()
   const bytes = new Uint8Array(arrayBuffer)
 
-  const uploadRes = await supabase.storage.from(CASHBACK_RECEIPTS_BUCKET).upload(objectPath, bytes, {
+  const uploadRes = await admin.storage.from(CASHBACK_RECEIPTS_BUCKET).upload(objectPath, bytes, {
     contentType: file.type || "application/octet-stream",
     upsert: true
   })
 
   if (uploadRes.error) throw new Error(`Falha ao enviar comprovante: ${uploadRes.error.message}`)
 
-  const publicUrlRes = supabase.storage.from(CASHBACK_RECEIPTS_BUCKET).getPublicUrl(objectPath)
+  const publicUrlRes = admin.storage.from(CASHBACK_RECEIPTS_BUCKET).getPublicUrl(objectPath)
   const publicUrl = publicUrlRes.data?.publicUrl
   if (!publicUrl) throw new Error("Falha ao obter URL pública do comprovante.")
   return publicUrl
@@ -116,7 +141,9 @@ export default async function AdminResgatesPage({
         redirect(`/admin/resgates?error=Envie%20o%20comprovante.`)
       }
 
-      const receiptUrl = await uploadReceipt(supabase, file)
+      const admin = createSupabaseAdminClient()
+      await ensureReceiptBucketExists(admin)
+      const receiptUrl = await uploadReceipt(admin, file)
 
       const updRes = await supabase
         .from("cashback_withdrawals")
@@ -317,4 +344,3 @@ export default async function AdminResgatesPage({
     </div>
   )
 }
-
