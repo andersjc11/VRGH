@@ -160,13 +160,17 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">Duração (horas)</label>
-              <Input
-                type="number"
-                min={1}
-                step={1}
+              <select
                 value={durationHours}
                 onChange={(e) => setDurationHours(Number(e.target.value))}
-              />
+                className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option value={4}>4</option>
+                <option value={5}>5</option>
+                <option value={6}>6</option>
+                <option value={7}>7</option>
+                <option value={8}>8</option>
+              </select>
             </div>
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">Distância (km)</label>
@@ -276,8 +280,7 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                   placeholder="Ex: Avenida Brasil"
                   value={addressLine1}
                   onChange={(e) => setAddressLine1(e.target.value)}
-                  disabled={lockByCep && !!addressLine1}
-                  required
+                  readOnly={lockByCep}
                 />
               </div>
               <div className="space-y-2">
@@ -299,8 +302,7 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                 placeholder="Ex: Centro"
                 value={neighborhood}
                 onChange={(e) => setNeighborhood(e.target.value)}
-                disabled={lockByCep && !!neighborhood}
-                required
+                readOnly={lockByCep}
               />
             </div>
             <div className="space-y-2">
@@ -313,8 +315,7 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                 name="city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                disabled={lockByCep && !!city}
-                required
+                readOnly={lockByCep}
               />
             </div>
             <div className="space-y-2">
@@ -324,8 +325,7 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                 maxLength={2}
                 value={stateUf}
                 onChange={(e) => setStateUf(e.target.value)}
-                disabled={lockByCep && !!stateUf}
-                required
+                readOnly={lockByCep}
               />
             </div>
             <div className="space-y-2 sm:col-span-2">

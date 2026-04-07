@@ -184,7 +184,7 @@ export async function createReservation(
   const items = parseItems(itemsJson)
   if (items.length === 0) return { error: "Selecione pelo menos 1 item." }
 
-  const durationHours = Math.max(1, getInt(formData, "duration_hours"))
+  const durationHours = getInt(formData, "duration_hours")
   const paymentPlan = getString(formData, "payment_plan") as PaymentPlanType
 
   const eventName = getString(formData, "event_name")
@@ -200,8 +200,15 @@ export async function createReservation(
   const eventDate = getString(formData, "event_date") || null
   const startTime = getString(formData, "start_time") || null
 
-  const distanceFromForm = Math.max(0, getNumber(formData, "distance_km"))
   const destinationCep = normalizeCep(postalCode)
+  if (!eventName) return { error: "Informe o nome do evento." }
+  if (!eventDate) return { error: "Informe a data do evento." }
+  if (!startTime) return { error: "Informe o horário do evento." }
+  if (!destinationCep) return { error: "Informe um CEP válido." }
+  if (!addressNumber) return { error: "Informe o número do endereço." }
+  if (![4, 5, 6, 7, 8].includes(durationHours)) return { error: "Selecione uma duração entre 4 e 8 horas." }
+
+  const distanceFromForm = Math.max(0, getNumber(formData, "distance_km"))
   const distanceKm =
     destinationCep
       ? (await getDistanceKmFromGoogle({ originCep: "12305800", destinationCep: destinationCep }))
