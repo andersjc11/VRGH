@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@supabase/supabase-js"
+import { Fragment } from "react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { requireEnv } from "@/lib/env"
 import { Card } from "@/components/ui/Card"
@@ -34,7 +35,11 @@ function buildClientesUrl(params: Record<string, string | undefined>) {
   return query ? `/admin/clientes?${query}` : "/admin/clientes"
 }
 
-function makeClientesHref(q: string, userId: string, tab: "edit" | "password") {
+function makeClientesHref(
+  q: string,
+  userId: string,
+  tab: "edit" | "password" | "delete"
+) {
   return buildClientesUrl({ q: q || undefined, user: userId, tab })
 }
 
@@ -71,7 +76,12 @@ export default async function AdminClientesPage({
   const error = searchParams?.error
   const q = searchParams?.q ?? ""
   const selectedUserId = searchParams?.user ?? ""
-  const tab = searchParams?.tab === "password" ? "password" : "edit"
+  const tab =
+    searchParams?.tab === "password"
+      ? "password"
+      : searchParams?.tab === "delete"
+        ? "delete"
+        : "edit"
 
   const { supabase } = await requireAdmin()
 
@@ -293,131 +303,173 @@ export default async function AdminClientesPage({
             </div>
           ) : (
             filteredRows.map(({ user, profile }) => {
-              const isSelected = selectedUserId === user.id
+              const isSelected = selectedUserId === user.id && selected?.user?.id === user.id
               return (
-                <div
-                  key={user.id}
-                  className={`flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between ${
-                    isSelected ? "bg-white/5" : ""
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{user.email ?? "—"}</p>
-                    <p className="truncate text-sm text-zinc-400">
-                      {profile?.full_name ?? "Sem nome"}
-                    </p>
+                <Fragment key={user.id}>
+                  <div
+                    className={`flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between ${
+                      isSelected ? "bg-white/5" : ""
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{user.email ?? "—"}</p>
+                      <p className="truncate text-sm text-zinc-400">
+                        {profile?.full_name ?? "Sem nome"}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:justify-end">
+                      <Button asChild intent="secondary">
+                        <Link href={makeClientesHref(q, user.id, "edit")}>Editar</Link>
+                      </Button>
+                      <Button asChild intent="secondary">
+                        <Link href={makeClientesHref(q, user.id, "password")}>Senha</Link>
+                      </Button>
+                      <Button asChild intent="ghost">
+                        <Link href={makeClientesHref(q, user.id, "delete")}>Excluir</Link>
+                      </Button>
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 sm:flex-nowrap sm:justify-end">
-                    <Button asChild intent="secondary">
-                      <Link href={makeClientesHref(q, user.id, "edit")}>Editar</Link>
-                    </Button>
-                    <Button asChild intent="secondary">
-                      <Link href={makeClientesHref(q, user.id, "password")}>Senha</Link>
-                    </Button>
-                    <form action={deleteClient}>
-                      <input type="hidden" name="user_id" value={user.id} />
-                      <input type="hidden" name="q" value={q} />
-                      <Button type="submit" intent="ghost">
-                        Excluir
-                      </Button>
-                    </form>
-                  </div>
-                </div>
+                  {isSelected ? (
+                    <div className="p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">
+                            {user.email ?? user.id}
+                          </p>
+                          <p className="truncate text-sm text-zinc-400">
+                            {profile?.full_name ?? "Sem nome"}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button asChild intent={tab === "edit" ? "secondary" : "ghost"}>
+                            <Link href={makeClientesHref(q, user.id, "edit")}>Editar</Link>
+                          </Button>
+                          <Button
+                            asChild
+                            intent={tab === "password" ? "secondary" : "ghost"}
+                          >
+                            <Link href={makeClientesHref(q, user.id, "password")}>Senha</Link>
+                          </Button>
+                          <Button asChild intent={tab === "delete" ? "secondary" : "ghost"}>
+                            <Link href={makeClientesHref(q, user.id, "delete")}>Excluir</Link>
+                          </Button>
+                          <Button asChild intent="ghost">
+                            <Link href={buildClientesUrl({ q: q || undefined })}>Fechar</Link>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        {tab === "edit" ? (
+                          <form
+                            action={saveClient}
+                            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                          >
+                            <input type="hidden" name="user_id" value={user.id} />
+                            <input type="hidden" name="q" value={q} />
+                            <input type="hidden" name="tab" value="edit" />
+                            <div className="space-y-1">
+                              <p className="text-sm text-zinc-200">Nome</p>
+                              <Input name="full_name" defaultValue={profile?.full_name ?? ""} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm text-zinc-200">CPF</p>
+                              <Input name="cpf" defaultValue={profile?.cpf ?? ""} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm text-zinc-200">WhatsApp</p>
+                              <Input name="whatsapp" defaultValue={profile?.whatsapp ?? ""} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm text-zinc-200">Telefone</p>
+                              <Input name="phone" defaultValue={profile?.phone ?? ""} />
+                            </div>
+                            <div className="space-y-1 lg:col-span-2">
+                              <p className="text-sm text-zinc-200">Endereço</p>
+                              <Input
+                                name="address_line1"
+                                defaultValue={profile?.address_line1 ?? ""}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm text-zinc-200">Bairro</p>
+                              <Input
+                                name="neighborhood"
+                                defaultValue={profile?.neighborhood ?? ""}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm text-zinc-200">Cidade</p>
+                              <Input name="city" defaultValue={profile?.city ?? ""} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm text-zinc-200">CEP</p>
+                              <Input
+                                name="postal_code"
+                                defaultValue={profile?.postal_code ?? ""}
+                              />
+                            </div>
+
+                            <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
+                              <Button type="submit" intent="secondary">
+                                Salvar dados
+                              </Button>
+                            </div>
+                          </form>
+                        ) : tab === "password" ? (
+                          <form
+                            action={setPassword}
+                            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                          >
+                            <input type="hidden" name="user_id" value={user.id} />
+                            <input type="hidden" name="q" value={q} />
+                            <input type="hidden" name="tab" value="password" />
+                            <div className="space-y-1">
+                              <p className="text-sm text-zinc-200">Nova senha</p>
+                              <Input
+                                name="password"
+                                type="password"
+                                autoComplete="new-password"
+                              />
+                            </div>
+                            <div className="sm:col-span-2 lg:col-span-2 flex items-end justify-end">
+                              <Button type="submit" intent="secondary">
+                                Alterar senha
+                              </Button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div className="space-y-3">
+                            <p className="text-sm text-zinc-300">
+                              Confirmar exclusão desta conta? Essa ação não pode ser desfeita.
+                            </p>
+                            <div className="flex flex-wrap gap-2 justify-end">
+                              <Button asChild intent="ghost">
+                                <Link href={buildClientesUrl({ q: q || undefined })}>
+                                  Cancelar
+                                </Link>
+                              </Button>
+                              <form action={deleteClient}>
+                                <input type="hidden" name="user_id" value={user.id} />
+                                <input type="hidden" name="q" value={q} />
+                                <Button type="submit" intent="secondary">
+                                  Confirmar exclusão
+                                </Button>
+                              </form>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </Fragment>
               )
             })
           )}
         </div>
       </Card>
-
-      {selected ? (
-        <div className="mt-6 grid gap-3">
-          <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="truncate font-semibold">{selected.user.email ?? selected.user.id}</p>
-              <p className="truncate text-sm text-zinc-400">
-                {selected.profile?.full_name ?? "Sem nome"}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button asChild intent={tab === "edit" ? "secondary" : "ghost"}>
-                <Link href={makeClientesHref(q, selected.user.id, "edit")}>Editar</Link>
-              </Button>
-              <Button asChild intent={tab === "password" ? "secondary" : "ghost"}>
-                <Link href={makeClientesHref(q, selected.user.id, "password")}>Senha</Link>
-              </Button>
-              <Button asChild intent="ghost">
-                <Link href={buildClientesUrl({ q: q || undefined })}>Fechar</Link>
-              </Button>
-            </div>
-          </Card>
-
-          {tab === "edit" ? (
-            <Card>
-              <form action={saveClient} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <input type="hidden" name="user_id" value={selected.user.id} />
-                <input type="hidden" name="q" value={q} />
-                <input type="hidden" name="tab" value="edit" />
-                <div className="space-y-1">
-                  <p className="text-sm text-zinc-200">Nome</p>
-                  <Input name="full_name" defaultValue={selected.profile?.full_name ?? ""} />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-zinc-200">CPF</p>
-                  <Input name="cpf" defaultValue={selected.profile?.cpf ?? ""} />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-zinc-200">WhatsApp</p>
-                  <Input name="whatsapp" defaultValue={selected.profile?.whatsapp ?? ""} />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-zinc-200">Telefone</p>
-                  <Input name="phone" defaultValue={selected.profile?.phone ?? ""} />
-                </div>
-                <div className="space-y-1 lg:col-span-2">
-                  <p className="text-sm text-zinc-200">Endereço</p>
-                  <Input name="address_line1" defaultValue={selected.profile?.address_line1 ?? ""} />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-zinc-200">Bairro</p>
-                  <Input name="neighborhood" defaultValue={selected.profile?.neighborhood ?? ""} />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-zinc-200">Cidade</p>
-                  <Input name="city" defaultValue={selected.profile?.city ?? ""} />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-zinc-200">CEP</p>
-                  <Input name="postal_code" defaultValue={selected.profile?.postal_code ?? ""} />
-                </div>
-
-                <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
-                  <Button type="submit" intent="secondary">
-                    Salvar dados
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          ) : (
-            <Card>
-              <form action={setPassword} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <input type="hidden" name="user_id" value={selected.user.id} />
-                <input type="hidden" name="q" value={q} />
-                <input type="hidden" name="tab" value="password" />
-                <div className="space-y-1">
-                  <p className="text-sm text-zinc-200">Nova senha</p>
-                  <Input name="password" type="password" autoComplete="new-password" />
-                </div>
-                <div className="sm:col-span-2 lg:col-span-2 flex items-end justify-end">
-                  <Button type="submit" intent="secondary">
-                    Alterar senha
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          )}
-        </div>
-      ) : null}
     </div>
   )
 }
