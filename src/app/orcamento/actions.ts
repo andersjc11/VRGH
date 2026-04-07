@@ -1,6 +1,7 @@
 "use server"
 
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { PaymentPlanType, QuoteItemInput } from "@/lib/domain/types"
 import { calcQuoteBreakdown } from "@/lib/pricing/calc"
@@ -156,6 +157,14 @@ export async function createReservation(
   const { data: authData } = await supabase.auth.getUser()
   const user = authData.user
   if (!user) redirect("/login?next=/orcamento")
+
+  const refCode = cookies().get("vrgh_ref")?.value
+  if (refCode) {
+    const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
+    if (applyRes.error) {
+      return { error: "Falha ao aplicar indicação. Tente novamente." }
+    }
+  }
 
   const profileRes = await supabase
     .from("profiles")
@@ -336,6 +345,13 @@ export async function createReservation(
     .single()
 
   if (reservationInsert.error) return { error: "Falha ao enviar solicitação de reserva." }
+
+  cookies().set({
+    name: "vrgh_ref",
+    value: "",
+    path: "/",
+    maxAge: 0
+  })
 
   redirect(`/cliente/pedidos/${reservationInsert.data.id}`)
 }
