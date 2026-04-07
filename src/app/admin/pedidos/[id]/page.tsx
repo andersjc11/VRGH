@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { createClient } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { requireEnv } from "@/lib/env"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -56,6 +58,126 @@ function parseIntSafe(raw: string) {
 function isNextRedirectError(err: unknown) {
   const digest = (err as any)?.digest
   return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
+}
+
+function createSupabaseAdminClient() {
+  return createClient(
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    { auth: { persistSession: false } }
+  )
+}
+
+function normalizeReferralCode(value: unknown) {
+  return typeof value === "string" ? value.trim().toUpperCase() : ""
+}
+
+async function awardCashbackForReservation(reservationId: string) {
+  const admin = createSupabaseAdminClient()
+
+  const reservationRes = await admin
+    .from("reservations")
+    .select("id,user_id,condominium_id,payment_terms")
+    .eq("id", reservationId)
+    .maybeSingle()
+
+  if (reservationRes.error) throw new Error(reservationRes.error.message)
+  const reservation = reservationRes.data as any
+  if (!reservation?.user_id) return
+
+  const referredId = reservation.user_id as string
+  const paymentTerms = reservation.payment_terms as any
+
+  const referredProfileRes = await admin
+    .from("profiles")
+    .select("referred_by")
+    .eq("id", referredId)
+    .maybeSingle()
+  if (referredProfileRes.error) throw new Error(referredProfileRes.error.message)
+
+  let referrerId = typeof referredProfileRes.data?.referred_by === "string" ? referredProfileRes.data.referred_by : ""
+  if (!referrerId) {
+    const refFromPaymentTerms = normalizeReferralCode(paymentTerms?.ref)
+    if (refFromPaymentTerms) {
+      const referrerRes = await admin
+        .from("profiles")
+        .select("id")
+        .eq("referral_code", refFromPaymentTerms)
+        .maybeSingle()
+      if (referrerRes.error) throw new Error(referrerRes.error.message)
+      referrerId = typeof referrerRes.data?.id === "string" ? referrerRes.data.id : ""
+    }
+  }
+
+  if (!referrerId || referrerId === referredId) return
+
+  const referrerProfileRes = await admin.from("profiles").select("role").eq("id", referrerId).maybeSingle()
+  if (referrerProfileRes.error) throw new Error(referrerProfileRes.error.message)
+
+  const referrerRole = String(referrerProfileRes.data?.role ?? "")
+  const condominiumId = typeof reservation.condominium_id === "string" ? reservation.condominium_id : null
+
+  if (referrerRole === "sindico" && !condominiumId) return
+
+  const referralUpsertRes = await admin
+    .from("referrals")
+    .upsert(
+      {
+        referrer_id: referrerId,
+        referred_id: referredId,
+        condominium_id: referrerRole === "sindico" ? condominiumId : null,
+        reservation_id: reservationId,
+        cashback_cents: 1000,
+        status: "approved"
+      },
+      { onConflict: "referred_id,reservation_id" }
+    )
+    .select("id")
+    .maybeSingle()
+
+  if (referralUpsertRes.error) throw new Error(referralUpsertRes.error.message)
+  const referralId = typeof referralUpsertRes.data?.id === "string" ? referralUpsertRes.data.id : ""
+  if (!referralId) return
+
+  const cashbackPayload =
+    referrerRole === "sindico"
+      ? {
+          owner_profile_id: null,
+          owner_condominium_id: condominiumId,
+          amount_cents: 1000,
+          status: "approved",
+          source_referral_id: referralId
+        }
+      : {
+          owner_profile_id: referrerId,
+          owner_condominium_id: null,
+          amount_cents: 1000,
+          status: "approved",
+          source_referral_id: referralId
+        }
+
+  const cashbackUpsertRes = await admin
+    .from("cashback_transactions")
+    .upsert(cashbackPayload, { onConflict: "source_referral_id" })
+
+  if (cashbackUpsertRes.error) throw new Error(cashbackUpsertRes.error.message)
+}
+
+async function cancelCashbackForReservation(reservationId: string) {
+  const admin = createSupabaseAdminClient()
+  const referralRes = await admin.from("referrals").select("id").eq("reservation_id", reservationId).maybeSingle()
+  if (referralRes.error) throw new Error(referralRes.error.message)
+  const referralId = typeof referralRes.data?.id === "string" ? referralRes.data.id : ""
+  if (!referralId) return
+
+  const updReferral = await admin.from("referrals").update({ status: "cancelled" }).eq("id", referralId)
+  if (updReferral.error) throw new Error(updReferral.error.message)
+
+  const updCashback = await admin
+    .from("cashback_transactions")
+    .update({ status: "cancelled" })
+    .eq("source_referral_id", referralId)
+  if (updCashback.error) throw new Error(updCashback.error.message)
 }
 
 function statusLabel(status: string | null | undefined) {
@@ -370,6 +492,12 @@ export default async function AdminPedidoDetalhePage({
             `Falha ao salvar pedido: ${reservationRes.error.message}`
           )}`
         )
+      }
+
+      if (status === "confirmed" || status === "completed") {
+        await awardCashbackForReservation(reservationId)
+      } else if (status === "cancelled") {
+        await cancelCashbackForReservation(reservationId)
       }
 
       redirect(`/admin/pedidos/${params.id}?ok=1`)
