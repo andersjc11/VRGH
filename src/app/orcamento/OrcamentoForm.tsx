@@ -39,11 +39,33 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
   const [paymentPlan, setPaymentPlan] = React.useState<PaymentPlanType>("pix")
   const [qtyById, setQtyById] = React.useState<Record<string, string>>({})
   const [postalCode, setPostalCode] = React.useState("")
+  const [addressLine1, setAddressLine1] = React.useState("")
+  const [city, setCity] = React.useState("")
+  const [stateUf, setStateUf] = React.useState("")
   const [distanceError, setDistanceError] = React.useState<string | null>(null)
+  const [cepError, setCepError] = React.useState<string | null>(null)
   const [isDistancePending, startDistanceTransition] = React.useTransition()
+  const cepAbortRef = React.useRef<AbortController | null>(null)
 
   function normalizeCep(value: string) {
     return value.replace(/\D/g, "").slice(0, 8)
+  }
+
+  async function fetchAddressByCep(cep: string) {
+    cepAbortRef.current?.abort()
+    const controller = new AbortController()
+    cepAbortRef.current = controller
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+      signal: controller.signal
+    })
+    if (!res.ok) throw new Error("Falha ao consultar CEP.")
+    const json = (await res.json()) as any
+    if (json?.erro) throw new Error("CEP não encontrado.")
+    return {
+      street: typeof json?.logradouro === "string" ? json.logradouro : "",
+      city: typeof json?.localidade === "string" ? json.localidade : "",
+      uf: typeof json?.uf === "string" ? json.uf : ""
+    }
   }
 
   const items: QuoteItemInput[] = React.useMemo(
@@ -196,7 +218,13 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
             </div>
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">Endereço</label>
-              <Input name="address_line1" placeholder="Rua, número" required />
+              <Input
+                name="address_line1"
+                placeholder="Rua, número"
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">Complemento</label>
@@ -204,11 +232,22 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
             </div>
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">Cidade</label>
-              <Input name="city" required />
+              <Input
+                name="city"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">UF</label>
-              <Input name="state" maxLength={2} required />
+              <Input
+                name="state"
+                maxLength={2}
+                value={stateUf}
+                onChange={(e) => setStateUf(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">CEP</label>
@@ -219,6 +258,7 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                   const next = normalizeCep(e.target.value)
                   setPostalCode(next)
                   setDistanceError(null)
+                  setCepError(null)
                   if (next.length === 8) {
                     startDistanceTransition(async () => {
                       const res = await calcDistanceKmFromCep(next)
@@ -230,10 +270,22 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                         setDistanceKm(res.distanceKm)
                       }
                     })
+                    ;(async () => {
+                      try {
+                        const addr = await fetchAddressByCep(next)
+                        setAddressLine1(addr.street || "")
+                        setCity(addr.city || "")
+                        setStateUf(addr.uf || "")
+                      } catch (err) {
+                        if ((err as any)?.name === "AbortError") return
+                        setCepError(err instanceof Error ? err.message : "Falha ao buscar endereço.")
+                      }
+                    })()
                   }
                 }}
                 required
               />
+              {cepError ? <p className="text-xs text-red-300">{cepError}</p> : null}
             </div>
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">Observações</label>
