@@ -9,6 +9,11 @@ export type AuthActionState = {
   message?: string
 }
 
+function isNextRedirectError(err: unknown) {
+  const digest = (err as any)?.digest
+  return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
+}
+
 function getString(formData: FormData, key: string) {
   const value = formData.get(key)
   return typeof value === "string" ? value.trim() : ""
@@ -133,6 +138,7 @@ export async function signUp(
 
     redirect("/cliente")
   } catch (e) {
+    if (isNextRedirectError(e)) throw e
     const message = e instanceof Error ? e.message : ""
     if (message.includes("Missing environment variable")) {
       return {
