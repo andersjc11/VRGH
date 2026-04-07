@@ -58,6 +58,23 @@ function isNextRedirectError(err: unknown) {
   return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
 }
 
+function statusLabel(status: string | null | undefined) {
+  switch (status) {
+    case "submitted":
+      return "Solicitação enviada"
+    case "in_review":
+      return "Aguardando confirmação de pagamento"
+    case "confirmed":
+      return "Pagamento realizado"
+    case "cancelled":
+      return "Reserva cancelada"
+    case "completed":
+      return "Reserva concluída"
+    default:
+      return status ?? "—"
+  }
+}
+
 export default async function AdminPedidoDetalhePage({
   params,
   searchParams
@@ -134,6 +151,53 @@ export default async function AdminPedidoDetalhePage({
       : quoteItemsResWithEquip
 
   const quoteItems = (quoteItemsRes.data ?? []) as any[]
+
+  async function updateStatus(formData: FormData) {
+    "use server"
+    try {
+      const supabase = createSupabaseServerClient()
+      const { data } = await supabase.auth.getUser()
+      const user = data.user
+      if (!user) redirect(`/login?next=/admin/pedidos/${params.id}`)
+
+      const profileRes = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle()
+
+      if (profileRes.data?.role !== "admin") redirect("/cliente")
+
+      const reservationId = getString(formData, "reservation_id")
+      const nextStatus = getString(formData, "status")
+      if (!reservationId) redirect(`/admin/pedidos/${params.id}?error=ID%20inv%C3%A1lido`)
+
+      const allowed = new Set(["in_review", "confirmed", "cancelled"])
+      if (!allowed.has(nextStatus)) {
+        redirect(`/admin/pedidos/${params.id}?error=Status%20inv%C3%A1lido`)
+      }
+
+      const updRes = await supabase
+        .from("reservations")
+        .update({ status: nextStatus })
+        .eq("id", reservationId)
+
+      if (updRes.error) {
+        redirect(
+          `/admin/pedidos/${params.id}?error=${encodeURIComponent(
+            `Falha ao atualizar status: ${updRes.error.message}`
+          )}`
+        )
+      }
+
+      redirect(`/admin/pedidos/${params.id}?ok=1`)
+    } catch (err) {
+      if (isNextRedirectError(err)) throw err
+      const message =
+        err instanceof Error ? err.message : "Falha inesperada ao atualizar status."
+      redirect(`/admin/pedidos/${params.id}?error=${encodeURIComponent(message)}`)
+    }
+  }
 
   async function savePedido(formData: FormData) {
     "use server"
@@ -383,7 +447,8 @@ export default async function AdminPedidoDetalhePage({
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Pedido</h1>
           <p className="mt-2 text-zinc-300">
-            ID: {pedido.id} • Status: {pedido.status} • Pagamento: {pedido.payment_plan}
+            ID: {pedido.id} • Status: {statusLabel(pedido.status)} • Pagamento:{" "}
+            {pedido.payment_plan}
           </p>
           {isPrint ? (
             <p className="mt-2 text-sm text-zinc-300 print:hidden">
@@ -417,6 +482,41 @@ export default async function AdminPedidoDetalhePage({
       ) : null}
 
       <div className="mt-8 grid gap-4">
+        {isPrint ? null : (
+          <Card className="print:hidden">
+            <p className="text-sm text-zinc-400">Status do pedido</p>
+            <p className="mt-2 text-sm text-zinc-300">
+              Atual: <span className="font-semibold">{statusLabel(pedido.status)}</span>
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <form action={updateStatus}>
+                <input type="hidden" name="reservation_id" value={pedido.id} />
+                <input type="hidden" name="status" value="in_review" />
+                <Button type="submit" intent="secondary">
+                  Aguardando confirmação de pagamento
+                </Button>
+              </form>
+              <form action={updateStatus}>
+                <input type="hidden" name="reservation_id" value={pedido.id} />
+                <input type="hidden" name="status" value="confirmed" />
+                <Button type="submit" intent="secondary">
+                  Pagamento realizado
+                </Button>
+              </form>
+              <form action={updateStatus}>
+                <input type="hidden" name="reservation_id" value={pedido.id} />
+                <input type="hidden" name="status" value="cancelled" />
+                <Button type="submit" intent="ghost">
+                  Reserva cancelada
+                </Button>
+              </form>
+            </div>
+            <p className="mt-3 text-xs text-zinc-400">
+              Ao marcar como “Pagamento realizado”, o cashback de indicação é gerado automaticamente.
+            </p>
+          </Card>
+        ) : null}
+
         <Card>
           <p className="text-sm text-zinc-400">Contratante</p>
           <p className="mt-2 font-semibold">
