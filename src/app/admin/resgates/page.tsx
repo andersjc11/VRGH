@@ -7,6 +7,11 @@ import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 
+function isNextRedirectError(err: unknown) {
+  const digest = (err as any)?.digest
+  return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
+}
+
 type WithdrawalRow = {
   id: string
   requester_id: string
@@ -162,6 +167,7 @@ export default async function AdminResgatesPage({
 
       redirect("/admin/resgates?ok=paid")
     } catch (err) {
+      if (isNextRedirectError(err)) throw err
       const message = err instanceof Error ? err.message : "Falha inesperada."
       redirect(`/admin/resgates?error=${encodeURIComponent(message)}`)
     }
