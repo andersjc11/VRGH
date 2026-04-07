@@ -62,6 +62,18 @@ export default async function AdminHomePage() {
           </div>
         </Card>
         <Card>
+          <p className="text-sm text-zinc-400">Financeiro</p>
+          <p className="mt-2 font-semibold">Cashback</p>
+          <p className="mt-1 text-sm text-zinc-300">
+            Histórico e status das transações de cashback.
+          </p>
+          <div className="mt-4">
+            <Button asChild intent="secondary">
+              <Link href="/admin/cashback">Abrir</Link>
+            </Button>
+          </div>
+        </Card>
+        <Card>
           <p className="text-sm text-zinc-400">Regras</p>
           <p className="mt-2 font-semibold">Taxas e descontos</p>
           <p className="mt-1 text-sm text-zinc-300">
