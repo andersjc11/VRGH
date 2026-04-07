@@ -7,7 +7,7 @@ import { calcQuoteBreakdown, formatBRLFromCents } from "@/lib/pricing/calc"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
-import { createReservation, type CreateReservationState } from "./actions"
+import { calcDistanceKmFromCep, createReservation, type CreateReservationState } from "./actions"
 
 type Props = {
   equipments: Equipment[]
@@ -38,6 +38,13 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
   const [distanceKm, setDistanceKm] = React.useState(10)
   const [paymentPlan, setPaymentPlan] = React.useState<PaymentPlanType>("pix")
   const [qtyById, setQtyById] = React.useState<Record<string, string>>({})
+  const [postalCode, setPostalCode] = React.useState("")
+  const [distanceError, setDistanceError] = React.useState<string | null>(null)
+  const [isDistancePending, startDistanceTransition] = React.useTransition()
+
+  function normalizeCep(value: string) {
+    return value.replace(/\D/g, "").slice(0, 8)
+  }
 
   const items: QuoteItemInput[] = React.useMemo(
     () =>
@@ -142,7 +149,16 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                 step={0.1}
                 value={distanceKm}
                 onChange={(e) => setDistanceKm(Number(e.target.value))}
+                disabled
               />
+              <p className="text-xs text-zinc-400">
+                {isDistancePending
+                  ? "Calculando pelo CEP..."
+                  : "Calculada automaticamente pelo CEP."}
+              </p>
+              {distanceError ? (
+                <p className="text-xs text-red-300">{distanceError}</p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">Pagamento</label>
@@ -196,7 +212,28 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
             </div>
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">CEP</label>
-              <Input name="postal_code" required />
+              <Input
+                name="postal_code"
+                value={postalCode}
+                onChange={(e) => {
+                  const next = normalizeCep(e.target.value)
+                  setPostalCode(next)
+                  setDistanceError(null)
+                  if (next.length === 8) {
+                    startDistanceTransition(async () => {
+                      const res = await calcDistanceKmFromCep(next)
+                      if (res.error) {
+                        setDistanceError(res.error)
+                        return
+                      }
+                      if (typeof res.distanceKm === "number") {
+                        setDistanceKm(res.distanceKm)
+                      }
+                    })
+                  }
+                }}
+                required
+              />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">Observações</label>

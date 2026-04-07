@@ -9,6 +9,57 @@ export type CreateReservationState = {
   error?: string
 }
 
+function normalizeCep(value: string) {
+  const digits = value.replace(/\D/g, "")
+  return digits.length === 8 ? digits : ""
+}
+
+async function getDistanceKmFromGoogle(params: { originCep: string; destinationCep: string }) {
+  const key = process.env.GOOGLE_MAPS_API_KEY
+  if (!key) return { distanceKm: null as number | null, error: "GOOGLE_MAPS_API_KEY não configurada." }
+
+  const origin = normalizeCep(params.originCep)
+  const destination = normalizeCep(params.destinationCep)
+  if (!origin || !destination) {
+    return { distanceKm: null as number | null, error: "CEP inválido para cálculo de distância." }
+  }
+
+  const url = new URL("https://maps.googleapis.com/maps/api/distancematrix/json")
+  url.searchParams.set("origins", `${origin},BR`)
+  url.searchParams.set("destinations", `${destination},BR`)
+  url.searchParams.set("mode", "driving")
+  url.searchParams.set("language", "pt-BR")
+  url.searchParams.set("region", "br")
+  url.searchParams.set("key", key)
+
+  const res = await fetch(url.toString(), { cache: "no-store" })
+  if (!res.ok) {
+    return { distanceKm: null as number | null, error: "Falha ao consultar Google Maps." }
+  }
+
+  const json = (await res.json()) as any
+  const meters = json?.rows?.[0]?.elements?.[0]?.distance?.value
+  if (typeof meters !== "number" || !Number.isFinite(meters) || meters < 0) {
+    const status = json?.rows?.[0]?.elements?.[0]?.status
+    return {
+      distanceKm: null as number | null,
+      error: typeof status === "string" ? `Google Maps: ${status}` : "Distância indisponível."
+    }
+  }
+
+  return { distanceKm: Math.round((meters / 1000) * 100) / 100, error: null as string | null }
+}
+
+export async function calcDistanceKmFromCep(destinationCep: string) {
+  const originCep = "12305800"
+  const { distanceKm, error } = await getDistanceKmFromGoogle({
+    originCep,
+    destinationCep
+  })
+  if (distanceKm === null) return { distanceKm: null as number | null, error: error ?? "Falha ao calcular distância." }
+  return { distanceKm, error: null as string | null }
+}
+
 function getString(formData: FormData, key: string) {
   const value = formData.get(key)
   return typeof value === "string" ? value.trim() : ""
@@ -78,8 +129,26 @@ export async function createReservation(
   if (items.length === 0) return { error: "Selecione pelo menos 1 item." }
 
   const durationHours = Math.max(1, getInt(formData, "duration_hours"))
-  const distanceKm = Math.max(0, getNumber(formData, "distance_km"))
   const paymentPlan = getString(formData, "payment_plan") as PaymentPlanType
+
+  const eventName = getString(formData, "event_name")
+  const venueName = getString(formData, "venue_name")
+  const addressLine1 = getString(formData, "address_line1")
+  const addressLine2 = getString(formData, "address_line2")
+  const city = getString(formData, "city")
+  const state = getString(formData, "state")
+  const postalCode = getString(formData, "postal_code")
+  const notes = getString(formData, "notes")
+  const eventDate = getString(formData, "event_date") || null
+  const startTime = getString(formData, "start_time") || null
+
+  const distanceFromForm = Math.max(0, getNumber(formData, "distance_km"))
+  const destinationCep = normalizeCep(postalCode)
+  const distanceKm =
+    destinationCep
+      ? (await getDistanceKmFromGoogle({ originCep: "12305800", destinationCep: destinationCep }))
+          .distanceKm ?? distanceFromForm
+      : distanceFromForm
 
   const { data: pricesData } = await supabase
     .from("equipment_prices")
@@ -133,17 +202,6 @@ export async function createReservation(
     priceByEquipmentId,
     config
   })
-
-  const eventName = getString(formData, "event_name")
-  const venueName = getString(formData, "venue_name")
-  const addressLine1 = getString(formData, "address_line1")
-  const addressLine2 = getString(formData, "address_line2")
-  const city = getString(formData, "city")
-  const state = getString(formData, "state")
-  const postalCode = getString(formData, "postal_code")
-  const notes = getString(formData, "notes")
-  const eventDate = getString(formData, "event_date") || null
-  const startTime = getString(formData, "start_time") || null
 
   const quoteInsert = await supabase
     .from("quotes")
