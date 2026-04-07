@@ -160,7 +160,10 @@ export async function createReservation(
 
   const refCode = cookies().get("vrgh_ref")?.value?.trim()
   if (refCode) {
-    await supabase.rpc("apply_referral_code", { ref_code: refCode })
+    const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
+    if (applyRes.error) {
+      return { error: `Falha ao aplicar indicação: ${applyRes.error.message}` }
+    }
   }
 
   const profileRes = await supabase
@@ -344,13 +347,6 @@ export async function createReservation(
     .single()
 
   if (reservationInsert.error) return { error: "Falha ao enviar solicitação de reserva." }
-
-  cookies().set({
-    name: "vrgh_ref",
-    value: "",
-    path: "/",
-    maxAge: 0
-  })
 
   redirect(`/cliente/pedidos/${reservationInsert.data.id}`)
 }
