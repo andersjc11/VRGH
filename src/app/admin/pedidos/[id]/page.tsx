@@ -445,7 +445,13 @@ export default async function AdminPedidoDetalhePage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <div className={isPrint ? "print:block" : "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:block"}>
+      <div
+        className={
+          isPrint
+            ? "print:block"
+            : "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:block"
+        }
+      >
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Pedido</h1>
           <p className="mt-2 text-zinc-300">
