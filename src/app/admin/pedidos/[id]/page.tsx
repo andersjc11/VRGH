@@ -75,55 +75,6 @@ function statusLabel(status: string | null | undefined) {
   }
 }
 
-async function updateReservationStatus(formData: FormData) {
-  "use server"
-  try {
-    const supabase = createSupabaseServerClient()
-    const { data } = await supabase.auth.getUser()
-    const user = data.user
-    const returnTo = getString(formData, "return_to") || "/admin/pedidos"
-    if (!user) redirect(`/login?next=${encodeURIComponent(returnTo)}`)
-
-    const profileRes = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle()
-
-    if (profileRes.data?.role !== "admin") redirect("/cliente")
-
-    const reservationId = getString(formData, "reservation_id")
-    const nextStatus = getString(formData, "status")
-    if (!reservationId) redirect(`${returnTo}?error=ID%20inv%C3%A1lido`)
-
-    const allowed = new Set(["in_review", "confirmed", "cancelled"])
-    if (!allowed.has(nextStatus)) {
-      redirect(`${returnTo}?error=Status%20inv%C3%A1lido`)
-    }
-
-    const updRes = await supabase
-      .from("reservations")
-      .update({ status: nextStatus })
-      .eq("id", reservationId)
-
-    if (updRes.error) {
-      redirect(
-        `${returnTo}?error=${encodeURIComponent(
-          `Falha ao atualizar status: ${updRes.error.message}`
-        )}`
-      )
-    }
-
-    redirect(`${returnTo}?ok=1`)
-  } catch (err) {
-    if (isNextRedirectError(err)) throw err
-    const message =
-      err instanceof Error ? err.message : "Falha inesperada ao atualizar status."
-    const returnTo = getString(formData, "return_to") || "/admin/pedidos"
-    redirect(`${returnTo}?error=${encodeURIComponent(message)}`)
-  }
-}
-
 export default async function AdminPedidoDetalhePage({
   params,
   searchParams
@@ -276,6 +227,12 @@ export default async function AdminPedidoDetalhePage({
         redirect(`/admin/pedidos/${params.id}?error=Desconto%20inv%C3%A1lido`)
       }
 
+      const status = getString(formData, "status")
+      const allowedStatus = new Set(["draft", "submitted", "in_review", "confirmed", "cancelled", "completed"])
+      if (status && !allowedStatus.has(status)) {
+        redirect(`/admin/pedidos/${params.id}?error=Status%20inv%C3%A1lido`)
+      }
+
       const paymentPlan = getString(formData, "payment_plan") || "pix"
 
       const itemIdsRaw = getString(formData, "item_ids")
@@ -391,6 +348,7 @@ export default async function AdminPedidoDetalhePage({
       const reservationRes = await supabase
         .from("reservations")
         .update({
+          ...(status ? { status } : {}),
           event_name: eventName,
           venue_name: venueName,
           address_line1: addressLine1,
@@ -490,44 +448,6 @@ export default async function AdminPedidoDetalhePage({
       ) : null}
 
       <div className="mt-8 grid gap-4">
-        {isPrint ? null : (
-          <Card className="print:hidden">
-            <p className="text-sm text-zinc-400">Status do pedido</p>
-            <p className="mt-2 text-sm text-zinc-300">
-              Atual: <span className="font-semibold">{statusLabel(pedido.status)}</span>
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <form action={updateReservationStatus}>
-                <input type="hidden" name="reservation_id" value={pedido.id} />
-                <input type="hidden" name="return_to" value={`/admin/pedidos/${pedido.id}`} />
-                <input type="hidden" name="status" value="in_review" />
-                <Button type="submit" intent="secondary">
-                  Aguardando confirmação de pagamento
-                </Button>
-              </form>
-              <form action={updateReservationStatus}>
-                <input type="hidden" name="reservation_id" value={pedido.id} />
-                <input type="hidden" name="return_to" value={`/admin/pedidos/${pedido.id}`} />
-                <input type="hidden" name="status" value="confirmed" />
-                <Button type="submit" intent="secondary">
-                  Pagamento realizado
-                </Button>
-              </form>
-              <form action={updateReservationStatus}>
-                <input type="hidden" name="reservation_id" value={pedido.id} />
-                <input type="hidden" name="return_to" value={`/admin/pedidos/${pedido.id}`} />
-                <input type="hidden" name="status" value="cancelled" />
-                <Button type="submit" intent="ghost">
-                  Reserva cancelada
-                </Button>
-              </form>
-            </div>
-            <p className="mt-3 text-xs text-zinc-400">
-              Ao marcar como “Pagamento realizado”, o cashback de indicação é gerado automaticamente.
-            </p>
-          </Card>
-        ) : null}
-
         <Card>
           <p className="text-sm text-zinc-400">Contratante</p>
           <p className="mt-2 font-semibold">
@@ -576,6 +496,24 @@ export default async function AdminPedidoDetalhePage({
               <input type="hidden" name="reservation_id" value={pedido.id} />
               <input type="hidden" name="quote_id" value={quoteId ?? ""} />
               <input type="hidden" name="item_ids" value={quoteItems.map((i) => i.id).join(",")} />
+
+              <div className="space-y-1">
+                <p className="text-sm text-zinc-200">Status</p>
+                <select
+                  name="status"
+                  defaultValue={pedido.status ?? "submitted"}
+                  className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="submitted">Solicitação enviada</option>
+                  <option value="in_review">Aguardando confirmação de pagamento</option>
+                  <option value="confirmed">Pagamento realizado</option>
+                  <option value="cancelled">Reserva cancelada</option>
+                  <option value="completed">Reserva concluída</option>
+                </select>
+                <p className="text-xs text-zinc-400">
+                  Ao marcar como “Pagamento realizado”, o cashback de indicação é gerado automaticamente.
+                </p>
+              </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
