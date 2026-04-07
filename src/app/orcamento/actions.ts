@@ -166,7 +166,6 @@ export async function createReservation(
   const refCode = formRef || cookieRef || metaRef
   if (refCode) {
     const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
-    const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
     if (applyRes.error) {
       return { error: `Falha ao aplicar indicação: ${applyRes.error.message}` }
     }
