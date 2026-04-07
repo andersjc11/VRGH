@@ -75,6 +75,55 @@ function statusLabel(status: string | null | undefined) {
   }
 }
 
+async function updateReservationStatus(formData: FormData) {
+  "use server"
+  try {
+    const supabase = createSupabaseServerClient()
+    const { data } = await supabase.auth.getUser()
+    const user = data.user
+    const returnTo = getString(formData, "return_to") || "/admin/pedidos"
+    if (!user) redirect(`/login?next=${encodeURIComponent(returnTo)}`)
+
+    const profileRes = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (profileRes.data?.role !== "admin") redirect("/cliente")
+
+    const reservationId = getString(formData, "reservation_id")
+    const nextStatus = getString(formData, "status")
+    if (!reservationId) redirect(`${returnTo}?error=ID%20inv%C3%A1lido`)
+
+    const allowed = new Set(["in_review", "confirmed", "cancelled"])
+    if (!allowed.has(nextStatus)) {
+      redirect(`${returnTo}?error=Status%20inv%C3%A1lido`)
+    }
+
+    const updRes = await supabase
+      .from("reservations")
+      .update({ status: nextStatus })
+      .eq("id", reservationId)
+
+    if (updRes.error) {
+      redirect(
+        `${returnTo}?error=${encodeURIComponent(
+          `Falha ao atualizar status: ${updRes.error.message}`
+        )}`
+      )
+    }
+
+    redirect(`${returnTo}?ok=1`)
+  } catch (err) {
+    if (isNextRedirectError(err)) throw err
+    const message =
+      err instanceof Error ? err.message : "Falha inesperada ao atualizar status."
+    const returnTo = getString(formData, "return_to") || "/admin/pedidos"
+    redirect(`${returnTo}?error=${encodeURIComponent(message)}`)
+  }
+}
+
 export default async function AdminPedidoDetalhePage({
   params,
   searchParams
@@ -151,53 +200,6 @@ export default async function AdminPedidoDetalhePage({
       : quoteItemsResWithEquip
 
   const quoteItems = (quoteItemsRes.data ?? []) as any[]
-
-  async function updateStatus(formData: FormData) {
-    "use server"
-    try {
-      const supabase = createSupabaseServerClient()
-      const { data } = await supabase.auth.getUser()
-      const user = data.user
-      if (!user) redirect(`/login?next=/admin/pedidos/${params.id}`)
-
-      const profileRes = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle()
-
-      if (profileRes.data?.role !== "admin") redirect("/cliente")
-
-      const reservationId = getString(formData, "reservation_id")
-      const nextStatus = getString(formData, "status")
-      if (!reservationId) redirect(`/admin/pedidos/${params.id}?error=ID%20inv%C3%A1lido`)
-
-      const allowed = new Set(["in_review", "confirmed", "cancelled"])
-      if (!allowed.has(nextStatus)) {
-        redirect(`/admin/pedidos/${params.id}?error=Status%20inv%C3%A1lido`)
-      }
-
-      const updRes = await supabase
-        .from("reservations")
-        .update({ status: nextStatus })
-        .eq("id", reservationId)
-
-      if (updRes.error) {
-        redirect(
-          `/admin/pedidos/${params.id}?error=${encodeURIComponent(
-            `Falha ao atualizar status: ${updRes.error.message}`
-          )}`
-        )
-      }
-
-      redirect(`/admin/pedidos/${params.id}?ok=1`)
-    } catch (err) {
-      if (isNextRedirectError(err)) throw err
-      const message =
-        err instanceof Error ? err.message : "Falha inesperada ao atualizar status."
-      redirect(`/admin/pedidos/${params.id}?error=${encodeURIComponent(message)}`)
-    }
-  }
 
   async function savePedido(formData: FormData) {
     "use server"
@@ -489,22 +491,25 @@ export default async function AdminPedidoDetalhePage({
               Atual: <span className="font-semibold">{statusLabel(pedido.status)}</span>
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <form action={updateStatus}>
+              <form action={updateReservationStatus}>
                 <input type="hidden" name="reservation_id" value={pedido.id} />
+                <input type="hidden" name="return_to" value={`/admin/pedidos/${pedido.id}`} />
                 <input type="hidden" name="status" value="in_review" />
                 <Button type="submit" intent="secondary">
                   Aguardando confirmação de pagamento
                 </Button>
               </form>
-              <form action={updateStatus}>
+              <form action={updateReservationStatus}>
                 <input type="hidden" name="reservation_id" value={pedido.id} />
+                <input type="hidden" name="return_to" value={`/admin/pedidos/${pedido.id}`} />
                 <input type="hidden" name="status" value="confirmed" />
                 <Button type="submit" intent="secondary">
                   Pagamento realizado
                 </Button>
               </form>
-              <form action={updateStatus}>
+              <form action={updateReservationStatus}>
                 <input type="hidden" name="reservation_id" value={pedido.id} />
+                <input type="hidden" name="return_to" value={`/admin/pedidos/${pedido.id}`} />
                 <input type="hidden" name="status" value="cancelled" />
                 <Button type="submit" intent="ghost">
                   Reserva cancelada
