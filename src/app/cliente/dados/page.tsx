@@ -14,7 +14,7 @@ export default async function DadosClientePage() {
   const profileRes = await supabase
     .from("profiles")
     .select(
-      "full_name,cpf,address_line1,neighborhood,city,postal_code,whatsapp,phone"
+      "full_name,cpf,address_line1,address_number,address_line2,neighborhood,city,postal_code,whatsapp,phone"
     )
     .eq("id", user.id)
     .maybeSingle()
@@ -42,6 +42,8 @@ export default async function DadosClientePage() {
             full_name: profile?.full_name ?? null,
             cpf: profile?.cpf ?? null,
             address_line1: profile?.address_line1 ?? null,
+            address_number: profile?.address_number ?? null,
+            address_line2: profile?.address_line2 ?? null,
             neighborhood: profile?.neighborhood ?? null,
             city: profile?.city ?? null,
             postal_code: profile?.postal_code ?? null,

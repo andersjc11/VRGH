@@ -29,6 +29,8 @@ export async function updateClientData(
   const fullName = getString(formData, "full_name")
   const cpfRaw = getString(formData, "cpf")
   const addressLine1 = getString(formData, "address_line1")
+  const addressNumber = getString(formData, "address_number")
+  const addressLine2 = getString(formData, "address_line2")
   const neighborhood = getString(formData, "neighborhood")
   const city = getString(formData, "city")
   const postalCodeRaw = getString(formData, "postal_code")
@@ -38,6 +40,7 @@ export async function updateClientData(
   const cpf = onlyDigits(cpfRaw)
   if (cpf.length !== 11) return { error: "CPF inválido. Digite 11 números." }
   if (!addressLine1) return { error: "Informe seu endereço." }
+  if (!addressNumber) return { error: "Informe o número do endereço." }
   if (!neighborhood) return { error: "Informe seu bairro." }
   if (!city) return { error: "Informe sua cidade." }
   const postalCode = onlyDigits(postalCodeRaw)
@@ -51,6 +54,8 @@ export async function updateClientData(
       full_name: fullName,
       cpf,
       address_line1: addressLine1,
+      address_number: addressNumber,
+      address_line2: addressLine2 || null,
       neighborhood,
       city,
       postal_code: postalCode,
