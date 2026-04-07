@@ -15,7 +15,7 @@ export default function HomePage({
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-[url('/hero-gamer.jpg')] bg-cover bg-center opacity-60 md:opacity-45" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/45 to-black/80 md:from-black/55 md:via-black/55 md:to-black/85" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/35 to-black/75 md:from-black/55 md:via-black/55 md:to-black/85" />
           <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-brand-500/25 blur-3xl" />
           <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-fuchsia-500/15 blur-3xl" />
         </div>
