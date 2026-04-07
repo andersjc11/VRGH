@@ -190,7 +190,9 @@ export async function createReservation(
   const eventName = getString(formData, "event_name")
   const venueName = getString(formData, "venue_name")
   const addressLine1 = getString(formData, "address_line1")
+  const addressNumber = getString(formData, "address_number")
   const addressLine2 = getString(formData, "address_line2")
+  const neighborhood = getString(formData, "neighborhood")
   const city = getString(formData, "city")
   const state = getString(formData, "state")
   const postalCode = getString(formData, "postal_code")
@@ -312,7 +314,9 @@ export async function createReservation(
       event_name: eventName,
       venue_name: venueName,
       address_line1: addressLine1,
+      address_number: addressNumber,
       address_line2: addressLine2,
+      neighborhood: neighborhood,
       city,
       state,
       postal_code: postalCode,

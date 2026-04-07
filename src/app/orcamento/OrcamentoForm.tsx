@@ -40,6 +40,8 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
   const [qtyById, setQtyById] = React.useState<Record<string, string>>({})
   const [postalCode, setPostalCode] = React.useState("")
   const [addressLine1, setAddressLine1] = React.useState("")
+  const [addressNumber, setAddressNumber] = React.useState("")
+  const [neighborhood, setNeighborhood] = React.useState("")
   const [city, setCity] = React.useState("")
   const [stateUf, setStateUf] = React.useState("")
   const [distanceError, setDistanceError] = React.useState<string | null>(null)
@@ -63,10 +65,13 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
     if (json?.erro) throw new Error("CEP não encontrado.")
     return {
       street: typeof json?.logradouro === "string" ? json.logradouro : "",
+      neighborhood: typeof json?.bairro === "string" ? json.bairro : "",
       city: typeof json?.localidade === "string" ? json.localidade : "",
       uf: typeof json?.uf === "string" ? json.uf : ""
     }
   }
+
+  const lockByCep = postalCode.length === 8 && !cepError
 
   const items: QuoteItemInput[] = React.useMemo(
     () =>
@@ -218,17 +223,42 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
               <label className="text-sm text-zinc-200">Local (nome do salão)</label>
               <Input name="venue_name" placeholder="Ex: Salão de festas" />
             </div>
-            <div className="space-y-2 sm:col-span-2">
-              <label className="text-sm text-zinc-200">Endereço</label>
+            <div className="sm:col-span-2 grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm text-zinc-200">Rua</label>
+                <Input
+                  name="address_line1"
+                  placeholder="Ex: Avenida Brasil"
+                  value={addressLine1}
+                  onChange={(e) => setAddressLine1(e.target.value)}
+                  disabled={lockByCep && !!addressLine1}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-200">Número</label>
+                <Input
+                  name="address_number"
+                  inputMode="numeric"
+                  placeholder="Ex: 123"
+                  value={addressNumber}
+                  onChange={(e) => setAddressNumber(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-200">Bairro</label>
               <Input
-                name="address_line1"
-                placeholder="Rua, número"
-                value={addressLine1}
-                onChange={(e) => setAddressLine1(e.target.value)}
+                name="neighborhood"
+                placeholder="Ex: Centro"
+                value={neighborhood}
+                onChange={(e) => setNeighborhood(e.target.value)}
+                disabled={lockByCep && !!neighborhood}
                 required
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-2">
               <label className="text-sm text-zinc-200">Complemento</label>
               <Input name="address_line2" placeholder="Apto, bloco, referência" />
             </div>
@@ -238,6 +268,7 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                 name="city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
+                disabled={lockByCep && !!city}
                 required
               />
             </div>
@@ -248,10 +279,11 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                 maxLength={2}
                 value={stateUf}
                 onChange={(e) => setStateUf(e.target.value)}
+                disabled={lockByCep && !!stateUf}
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">CEP</label>
               <Input
                 name="postal_code"
@@ -261,6 +293,12 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                   setPostalCode(next)
                   setDistanceError(null)
                   setCepError(null)
+                  if (next.length < 8) {
+                    setAddressLine1("")
+                    setNeighborhood("")
+                    setCity("")
+                    setStateUf("")
+                  }
                   if (next.length === 8) {
                     startDistanceTransition(async () => {
                       const res = await calcDistanceKmFromCep(next)
@@ -276,6 +314,7 @@ export function OrcamentoForm({ equipments, prices, config }: Props) {
                       try {
                         const addr = await fetchAddressByCep(next)
                         setAddressLine1(addr.street || "")
+                        setNeighborhood(addr.neighborhood || "")
                         setCity(addr.city || "")
                         setStateUf(addr.uf || "")
                       } catch (err) {

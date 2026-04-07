@@ -95,7 +95,7 @@ export default async function AdminPedidoDetalhePage({
   const res = await supabase
     .from("reservations")
     .select(
-      "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_line2,city,state,postal_code,notes,payment_terms,user_id,profiles(full_name,cpf,phone,whatsapp,address_line1,neighborhood,city,postal_code),quote_id,quotes(event_date,start_time,duration_hours,distance_km,subtotal_cents,displacement_cents,discount_cents,total_cents)"
+      "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_number,address_line2,neighborhood,city,state,postal_code,notes,payment_terms,user_id,profiles(full_name,cpf,phone,whatsapp,address_line1,neighborhood,city,postal_code),quote_id,quotes(event_date,start_time,duration_hours,distance_km,subtotal_cents,displacement_cents,discount_cents,total_cents)"
     )
     .eq("id", params.id)
     .maybeSingle()
@@ -159,7 +159,9 @@ export default async function AdminPedidoDetalhePage({
       const eventName = getString(formData, "event_name") || null
       const venueName = getString(formData, "venue_name") || null
       const addressLine1 = getString(formData, "address_line1") || null
+      const addressNumber = getString(formData, "address_number") || null
       const addressLine2 = getString(formData, "address_line2") || null
+      const neighborhood = getString(formData, "neighborhood") || null
       const city = getString(formData, "city") || null
       const state = getString(formData, "state") || null
       const postalCode = getString(formData, "postal_code") || null
@@ -326,7 +328,9 @@ export default async function AdminPedidoDetalhePage({
           event_name: eventName,
           venue_name: venueName,
           address_line1: addressLine1,
+          address_number: addressNumber,
           address_line2: addressLine2,
+          neighborhood,
           city,
           state,
           postal_code: postalCode,
@@ -445,7 +449,9 @@ export default async function AdminPedidoDetalhePage({
           <p className="mt-1 text-sm text-zinc-300">{pedido.venue_name ?? "—"}</p>
           <p className="mt-3 text-sm text-zinc-300">
             {pedido.address_line1 ?? "—"}
+            {pedido.address_number ? `, ${pedido.address_number}` : ""}
             {pedido.address_line2 ? `, ${pedido.address_line2}` : ""}
+            {pedido.neighborhood ? ` • ${pedido.neighborhood}` : ""}
             {pedido.city ? ` • ${pedido.city}` : ""}
             {pedido.state ? `/${pedido.state}` : ""}
           </p>
@@ -507,6 +513,14 @@ export default async function AdminPedidoDetalhePage({
                 <div className="space-y-1 sm:col-span-2">
                   <p className="text-sm text-zinc-200">Endereço</p>
                   <Input name="address_line1" defaultValue={pedido.address_line1 ?? ""} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-zinc-200">Número</p>
+                  <Input name="address_number" defaultValue={pedido.address_number ?? ""} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-zinc-200">Bairro</p>
+                  <Input name="neighborhood" defaultValue={pedido.neighborhood ?? ""} />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
                   <p className="text-sm text-zinc-200">Complemento</p>

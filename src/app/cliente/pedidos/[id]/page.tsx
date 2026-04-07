@@ -15,7 +15,7 @@ export default async function PedidoDetalhePage({
   const res = await supabase
     .from("reservations")
     .select(
-      "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_line2,city,state,postal_code,notes,payment_terms"
+      "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_number,address_line2,neighborhood,city,state,postal_code,notes,payment_terms"
     )
     .eq("id", params.id)
     .eq("user_id", user.id)
@@ -38,7 +38,9 @@ export default async function PedidoDetalhePage({
           <p className="mt-1 text-sm text-zinc-300">{pedido.venue_name ?? "—"}</p>
           <p className="mt-3 text-sm text-zinc-300">
             {pedido.address_line1 ?? "—"}
+            {pedido.address_number ? `, ${pedido.address_number}` : ""}
             {pedido.address_line2 ? `, ${pedido.address_line2}` : ""}
+            {pedido.neighborhood ? ` • ${pedido.neighborhood}` : ""}
             {pedido.city ? ` • ${pedido.city}` : ""}
             {pedido.state ? `/${pedido.state}` : ""}
           </p>
@@ -54,4 +56,3 @@ export default async function PedidoDetalhePage({
     </div>
   )
 }
-
