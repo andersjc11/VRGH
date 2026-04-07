@@ -108,6 +108,20 @@ async function awardCashbackForReservation(reservationId: string) {
       referrerId = typeof referrerRes.data?.id === "string" ? referrerRes.data.id : ""
     }
   }
+  if (!referrerId) {
+    const authUserRes = await admin.auth.admin.getUserById(referredId)
+    if (authUserRes.error) throw new Error(authUserRes.error.message)
+    const refFromAuthMeta = normalizeReferralCode((authUserRes.data.user as any)?.user_metadata?.ref)
+    if (refFromAuthMeta) {
+      const referrerRes = await admin
+        .from("profiles")
+        .select("id")
+        .eq("referral_code", refFromAuthMeta)
+        .maybeSingle()
+      if (referrerRes.error) throw new Error(referrerRes.error.message)
+      referrerId = typeof referrerRes.data?.id === "string" ? referrerRes.data.id : ""
+    }
+  }
 
   if (!referrerId || referrerId === referredId) return
 
