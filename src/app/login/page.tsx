@@ -1,13 +1,25 @@
 import Link from "next/link"
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { LoginForm } from "./LoginForm"
 
 export default function LoginPage({
   searchParams
 }: {
-  searchParams?: { next?: string }
+  searchParams?: { next?: string; ref?: string }
 }) {
-  const ref = cookies().get("vrgh_ref")?.value
+  const cookieRef = cookies().get("vrgh_ref")?.value?.trim()
+  const refFromQuery = typeof searchParams?.ref === "string" ? searchParams.ref.trim() : ""
+  const referer = headers().get("referer")
+  const refFromReferer = (() => {
+    if (!referer) return ""
+    try {
+      const url = new URL(referer)
+      return (url.searchParams.get("ref") ?? "").trim()
+    } catch {
+      return ""
+    }
+  })()
+  const ref = refFromQuery || cookieRef || refFromReferer
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
   return (
     <div className="mx-auto max-w-md px-4 py-12">
@@ -21,7 +33,7 @@ export default function LoginPage({
         É rápido e fácil — e você ainda acompanha reservas, cashback e indicações na
         sua área do cliente.
       </p>
-      <LoginForm next={searchParams?.next} />
+      <LoginForm next={searchParams?.next} refCode={ref || undefined} />
       <p className="mt-6 text-sm text-zinc-400">
         Não tem conta?{" "}
         <Link href={`/cadastro${refQuery}`} className="text-brand-300 hover:text-brand-200">

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { CadastroForm } from "./CadastroForm"
 
 export default function CadastroPage({
@@ -7,8 +7,20 @@ export default function CadastroPage({
 }: {
   searchParams?: { ref?: string }
 }) {
-  const cookieRef = cookies().get("vrgh_ref")?.value
-  const refCode = searchParams?.ref ?? cookieRef
+  const cookieRef = cookies().get("vrgh_ref")?.value?.trim()
+  const refFromQuery = typeof searchParams?.ref === "string" ? searchParams.ref.trim() : ""
+  const referer = headers().get("referer")
+  const refFromReferer = (() => {
+    if (!referer) return ""
+    try {
+      const url = new URL(referer)
+      return (url.searchParams.get("ref") ?? "").trim()
+    } catch {
+      return ""
+    }
+  })()
+  const refCode = refFromQuery || cookieRef || refFromReferer
+  const refQuery = refCode ? `?ref=${encodeURIComponent(refCode)}` : ""
 
   return (
     <div className="mx-auto max-w-md px-4 py-12">
@@ -19,7 +31,7 @@ export default function CadastroPage({
       <CadastroForm refCode={refCode} />
       <p className="mt-6 text-sm text-zinc-400">
         Já tem conta?{" "}
-        <Link href="/login" className="text-brand-300 hover:text-brand-200">
+        <Link href={`/login${refQuery}`} className="text-brand-300 hover:text-brand-200">
           Entrar
         </Link>
       </p>

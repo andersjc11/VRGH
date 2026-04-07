@@ -14,12 +14,13 @@ function SubmitButton() {
   )
 }
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({ next, refCode }: { next?: string; refCode?: string }) {
   const [state, action] = useFormState<AuthActionState, FormData>(signIn, {})
 
   return (
     <form action={action} className="mt-8 space-y-4">
       <input type="hidden" name="next" value={next ?? ""} />
+      <input type="hidden" name="ref" value={refCode ?? ""} />
       <div className="space-y-2">
         <label className="text-sm text-zinc-200" htmlFor="email">
           E-mail
@@ -45,4 +46,3 @@ export function LoginForm({ next }: { next?: string }) {
     </form>
   )
 }
-

@@ -1,9 +1,16 @@
 import Link from "next/link"
+import { cookies } from "next/headers"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/Button"
 import { signOut } from "@/app/(auth)/actions"
 
 export async function SiteHeader() {
+  const ref = cookies().get("vrgh_ref")?.value?.trim()
+  const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
+  const orcamentoHref = ref ? `/orcamento${refQuery}` : "/orcamento"
+  const loginHref = ref ? `/login${refQuery}` : "/login"
+  const cadastroHref = ref ? `/cadastro${refQuery}` : "/cadastro"
+
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   const user = data.user
@@ -32,7 +39,7 @@ export async function SiteHeader() {
               <Link href="/cobertura">Cobertura</Link>
             </Button>
             <Button asChild intent="ghost">
-              <Link href="/orcamento">Orçamento</Link>
+              <Link href={orcamentoHref}>Orçamento</Link>
             </Button>
           </nav>
         ) : null}
@@ -54,10 +61,10 @@ export async function SiteHeader() {
           ) : (
             <>
               <Button asChild intent="ghost">
-                <Link href="/login">Entrar</Link>
+                <Link href={loginHref}>Entrar</Link>
               </Button>
               <Button asChild>
-                <Link href="/cadastro">Criar conta</Link>
+                <Link href={cadastroHref}>Criar conta</Link>
               </Button>
             </>
           )}

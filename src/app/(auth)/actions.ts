@@ -1,7 +1,7 @@
 "use server"
 
 import { redirect } from "next/navigation"
-import { headers } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type AuthActionState = {
@@ -59,6 +59,7 @@ export async function signIn(
   const email = getString(formData, "email")
   const password = getString(formData, "password")
   const next = getString(formData, "next") || "/cliente"
+  const ref = getString(formData, "ref")
 
   const supabase = createSupabaseServerClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -69,6 +70,26 @@ export async function signIn(
       return { error: "Confirme seu e-mail antes de entrar." }
     }
     return { error: "E-mail ou senha inválidos." }
+  }
+
+  if (ref) {
+    cookies().set("vrgh_ref", ref, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+      sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production"
+    })
+
+    try {
+      const userRes = await supabase.auth.getUser()
+      const user = userRes.data.user
+      const existingRef = typeof (user as any)?.user_metadata?.ref === "string" ? String((user as any).user_metadata.ref).trim() : ""
+      if (user && !existingRef) {
+        await supabase.auth.updateUser({ data: { ref } })
+      }
+    } catch {
+    }
   }
 
   if (next && next !== "/cliente") {
