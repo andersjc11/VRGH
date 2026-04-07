@@ -59,7 +59,7 @@ export default async function AdminHomePage() {
           </p>
           <div className="mt-4">
             <Button asChild intent="secondary">
-              <Link href="/admin/configuracoes">Abrir</Link>
+              <Link href="/admin/regras">Abrir</Link>
             </Button>
           </div>
         </Card>
@@ -67,4 +67,3 @@ export default async function AdminHomePage() {
     </div>
   )
 }
-
