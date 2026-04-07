@@ -175,6 +175,35 @@ export default async function AdminPedidoDetalhePage({
         : []
 
       let subtotalCents = 0
+      const existingItemsRes =
+        itemIds.length > 0
+          ? await supabase
+              .from("quote_items")
+              .select("id,quote_id,equipment_id")
+              .in("id", itemIds)
+          : { data: [], error: null }
+
+      if (existingItemsRes.error) {
+        redirect(
+          `/admin/pedidos/${params.id}?error=${encodeURIComponent(
+            `Falha ao carregar itens: ${existingItemsRes.error.message}`
+          )}`
+        )
+      }
+
+      const equipmentIdByItemId = Object.fromEntries(
+        (existingItemsRes.data ?? []).map((row: any) => [row.id, row.equipment_id])
+      ) as Record<string, string | undefined>
+
+      const missingItemIds = itemIds.filter((id) => !equipmentIdByItemId[id])
+      if (missingItemIds.length > 0) {
+        redirect(
+          `/admin/pedidos/${params.id}?error=${encodeURIComponent(
+            `Itens não encontrados: ${missingItemIds.join(", ")}`
+          )}`
+        )
+      }
+
       const itemsToUpsert = itemIds.map((id) => {
         const qty = parseIntSafe(getString(formData, `item_${id}_qty`))
         const unitCents = parseMoneyToCents(getString(formData, `item_${id}_unit`))
@@ -188,6 +217,8 @@ export default async function AdminPedidoDetalhePage({
         subtotalCents += lineTotal
         return {
           id,
+          quote_id: quoteId,
+          equipment_id: equipmentIdByItemId[id],
           quantity: qty,
           unit_price_cents: unitCents,
           line_total_cents: lineTotal
