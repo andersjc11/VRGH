@@ -28,6 +28,16 @@ export default async function AdminHomePage() {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
+          <p className="text-sm text-zinc-400">Usuários</p>
+          <p className="mt-2 font-semibold">Clientes</p>
+          <p className="mt-1 text-sm text-zinc-300">Editar dados, alterar senha e excluir contas.</p>
+          <div className="mt-4">
+            <Button asChild intent="secondary">
+              <Link href="/admin/clientes">Abrir</Link>
+            </Button>
+          </div>
+        </Card>
+        <Card>
           <p className="text-sm text-zinc-400">Cadastros</p>
           <p className="mt-2 font-semibold">Equipamentos</p>
           <p className="mt-1 text-sm text-zinc-300">
