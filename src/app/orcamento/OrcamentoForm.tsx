@@ -152,143 +152,21 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
     })
   }, [availabilityByEquipmentId])
 
+  const isEventReady = Boolean(eventDate && startTime)
+  const hasAvailabilityData = Object.keys(availabilityByEquipmentId).length > 0
+
+  const filteredEquipments = React.useMemo(() => {
+    if (!isEventReady) return [] as Equipment[]
+    if (!hasAvailabilityData) return [] as Equipment[]
+    return equipments.filter((eq) => (availabilityByEquipmentId[eq.id]?.available ?? 0) > 0)
+  }, [equipments, availabilityByEquipmentId, isEventReady, hasAvailabilityData])
+
   return (
     <form action={action} className="mt-8 grid gap-6 lg:grid-cols-3">
       <input type="hidden" name="ref" value={refCode ?? ""} />
       <div className="lg:col-span-2 space-y-6">
         <Card>
-          <p className="text-sm text-zinc-400">1. Equipamentos</p>
-          <div className="mt-4 grid gap-4">
-            {equipments.map((eq) => {
-              const price = priceByEquipmentId[eq.id]
-              const totalQty = typeof (eq as any)?.quantity_total === "number" ? (eq as any).quantity_total : 1
-              const availability = availabilityByEquipmentId[eq.id]
-              const availableQty = availability ? availability.available : null
-              const qtyMax = typeof availableQty === "number" ? availableQty : totalQty
-              return (
-                <div
-                  key={eq.id}
-                  className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="font-semibold">{eq.name}</p>
-                    {eq.image_url ? (
-                      <img
-                        src={eq.image_url}
-                        alt={eq.name}
-                        className="mt-3 h-40 w-full max-w-lg rounded-lg border border-white/10 bg-white/5 object-cover"
-                        loading="lazy"
-                      />
-                    ) : null}
-                    <p className="text-sm text-zinc-400">
-                      {eq.category ?? "Equipamento"} •{" "}
-                      {price
-                        ? `${formatBRLFromCents(price.price_per_hour_cents)}/h (mín. ${price.min_hours}h)`
-                        : "Preço indisponível"}
-                      {typeof availableQty === "number"
-                        ? ` • Disponível: ${availableQty}/${totalQty}`
-                        : ` • Estoque: ${totalQty}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-zinc-300">Qtd</label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={Math.max(qtyMax, 0)}
-                      step={1}
-                      value={qtyById[eq.id] ?? ""}
-                      placeholder="0"
-                      onChange={(e) =>
-                        setQtyById((prev) => {
-                          const raw = e.target.value
-                          const parsed = Number(raw)
-                          const clamped =
-                            raw === ""
-                              ? ""
-                              : String(
-                                  Math.max(
-                                    0,
-                                    Math.min(
-                                      Math.trunc(Number.isFinite(parsed) ? parsed : 0),
-                                      Math.max(qtyMax, 0)
-                                    )
-                                  )
-                                )
-                          return { ...prev, [eq.id]: clamped }
-                        })
-                      }
-                      disabled={
-                        isAvailabilityPending ||
-                        (typeof availableQty === "number" ? availableQty <= 0 : false)
-                      }
-                      className="w-24"
-                    />
-                  </div>
-                </div>
-              )
-            })}
-            {availabilityError ? (
-              <p className="text-xs text-red-300">{availabilityError}</p>
-            ) : null}
-          </div>
-        </Card>
-
-        <Card>
-          <p className="text-sm text-zinc-400">2. Período e deslocamento</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-200">Duração (horas)</label>
-              <select
-                value={durationHours}
-                onChange={(e) => setDurationHours(Number(e.target.value))}
-                className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                <option value={4}>4</option>
-                <option value={5}>5</option>
-                <option value={6}>6</option>
-                <option value={7}>7</option>
-                <option value={8}>8</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-200">Distância (km)</label>
-              <Input
-                type="number"
-                min={0}
-                step={0.1}
-                value={distanceKm}
-                onChange={(e) => setDistanceKm(Number(e.target.value))}
-                disabled={isDistancePending || !distanceError}
-              />
-              <p className="text-xs text-zinc-400">
-                {isDistancePending
-                  ? "Calculando pelo CEP..."
-                  : distanceError
-                    ? "Não foi possível calcular automaticamente. Informe a distância manualmente."
-                    : "Calculada automaticamente pelo CEP."}
-              </p>
-              {distanceError ? (
-                <p className="text-xs text-red-300">{distanceError}</p>
-              ) : null}
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-200">Pagamento</label>
-              <select
-                value={paymentPlan}
-                onChange={(e) => setPaymentPlan(e.target.value as PaymentPlanType)}
-                className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                <option value="pix">Pix (desconto)</option>
-                <option value="deposit">Sinal + restante</option>
-                <option value="installments">Parcelado</option>
-              </select>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <p className="text-sm text-zinc-400">3. Dados do evento</p>
+          <p className="text-sm text-zinc-400">1. Dados do evento</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">Nome do evento</label>
@@ -427,6 +305,146 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                 placeholder="Detalhes do evento, restrições de acesso, etc."
               />
             </div>
+          </div>
+        </Card>
+
+        <Card>
+          <p className="text-sm text-zinc-400">2. Período e deslocamento</p>
+          <div className="mt-4 grid gap-4">
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-200">Duração (horas)</label>
+              <select
+                value={durationHours}
+                onChange={(e) => setDurationHours(Number(e.target.value))}
+                className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option value={4}>4</option>
+                <option value={5}>5</option>
+                <option value={6}>6</option>
+                <option value={7}>7</option>
+                <option value={8}>8</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-200">Distância (km)</label>
+              <Input
+                type="number"
+                min={0}
+                step={0.1}
+                value={distanceKm}
+                onChange={(e) => setDistanceKm(Number(e.target.value))}
+                disabled={isDistancePending || !distanceError}
+              />
+              <p className="text-xs text-zinc-400">
+                {isDistancePending
+                  ? "Calculando pelo CEP..."
+                  : distanceError
+                    ? "Não foi possível calcular automaticamente. Informe a distância manualmente."
+                    : "Calculada automaticamente pelo CEP."}
+              </p>
+              {distanceError ? (
+                <p className="text-xs text-red-300">{distanceError}</p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-200">Pagamento</label>
+              <select
+                value={paymentPlan}
+                onChange={(e) => setPaymentPlan(e.target.value as PaymentPlanType)}
+                className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option value="pix">Pix (desconto)</option>
+                <option value="deposit">Sinal + restante</option>
+                <option value="installments">Parcelado</option>
+              </select>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <p className="text-sm text-zinc-400">3. Equipamentos (disponíveis)</p>
+          <div className="mt-4 grid gap-4">
+            {!isEventReady ? (
+              <p className="text-sm text-zinc-300">
+                Informe a data e o horário do evento para ver os equipamentos disponíveis.
+              </p>
+            ) : isAvailabilityPending ? (
+              <p className="text-sm text-zinc-300">Carregando disponibilidade...</p>
+            ) : availabilityError ? (
+              <p className="text-sm text-red-300">{availabilityError}</p>
+            ) : filteredEquipments.length === 0 ? (
+              <p className="text-sm text-zinc-300">
+                Nenhum equipamento disponível para esse horário.
+              </p>
+            ) : (
+              filteredEquipments.map((eq) => {
+                const price = priceByEquipmentId[eq.id]
+                const totalQty =
+                  typeof (eq as any)?.quantity_total === "number"
+                    ? (eq as any).quantity_total
+                    : 1
+                const availability = availabilityByEquipmentId[eq.id]
+                const availableQty = availability ? availability.available : 0
+                const qtyMax = availableQty
+                return (
+                  <div
+                    key={eq.id}
+                    className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold">{eq.name}</p>
+                      {eq.image_url ? (
+                        <img
+                          src={eq.image_url}
+                          alt={eq.name}
+                          className="mt-3 h-40 w-full max-w-lg rounded-lg border border-white/10 bg-white/5 object-cover"
+                          loading="lazy"
+                        />
+                      ) : null}
+                      <p className="text-sm text-zinc-400">
+                        {eq.category ?? "Equipamento"} •{" "}
+                        {price
+                          ? `${formatBRLFromCents(price.price_per_hour_cents)}/h (mín. ${price.min_hours}h)`
+                          : "Preço indisponível"}
+                        {` • Disponível: ${availableQty}/${totalQty}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-zinc-300">Qtd</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={Math.max(qtyMax, 0)}
+                        step={1}
+                        value={qtyById[eq.id] ?? ""}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setQtyById((prev) => {
+                            const raw = e.target.value
+                            const parsed = Number(raw)
+                            const clamped =
+                              raw === ""
+                                ? ""
+                                : String(
+                                    Math.max(
+                                      0,
+                                      Math.min(
+                                        Math.trunc(Number.isFinite(parsed) ? parsed : 0),
+                                        Math.max(qtyMax, 0)
+                                      )
+                                    )
+                                  )
+                            return { ...prev, [eq.id]: clamped }
+                          })
+                        }
+                        className="w-24"
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </Card>
       </div>
