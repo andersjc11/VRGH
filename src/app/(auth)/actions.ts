@@ -174,5 +174,12 @@ export async function signUp(
 export async function signOut() {
   const supabase = createSupabaseServerClient()
   await supabase.auth.signOut()
+  cookies().set("vrgh_ref", "", {
+    path: "/",
+    maxAge: 0,
+    sameSite: "lax",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production"
+  })
   redirect("/")
 }
