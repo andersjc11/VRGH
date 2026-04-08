@@ -4,24 +4,6 @@ alter table public.equipments
 create or replace function public.get_equipment_availability(
   event_date date,
   start_time time,
-  duration_hours int
-)
-returns table (
-  equipment_id uuid,
-  total_qty int,
-  reserved_qty int,
-  available_qty int
-)
-language sql
-security definer
-set search_path = public
-as $$
-  select * from public.get_equipment_availability(event_date, start_time, duration_hours, 0::numeric);
-$$;
-
-create or replace function public.get_equipment_availability(
-  event_date date,
-  start_time time,
   duration_hours int,
   distance_km numeric default 0
 )
@@ -90,6 +72,24 @@ as $$
   left join reserved r on r.equipment_id = e.id
   where e.active = true
   order by e.created_at asc;
+$$;
+
+create or replace function public.get_equipment_availability(
+  event_date date,
+  start_time time,
+  duration_hours int
+)
+returns table (
+  equipment_id uuid,
+  total_qty int,
+  reserved_qty int,
+  available_qty int
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select * from public.get_equipment_availability(event_date, start_time, duration_hours, 0::numeric);
 $$;
 
 revoke all on function public.get_equipment_availability(date, time, int) from public;
