@@ -16,7 +16,7 @@ language sql
 security definer
 set search_path = public
 as $$
-  select * from public.get_equipment_availability(event_date, start_time, duration_hours, 0);
+  select * from public.get_equipment_availability(event_date, start_time, duration_hours, 0::numeric);
 $$;
 
 create or replace function public.get_equipment_availability(
