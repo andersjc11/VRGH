@@ -105,10 +105,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
     [items, durationHours, distanceKm, paymentPlan, priceByEquipmentId, config]
   )
 
-  const [state, action] = useFormState<CreateReservationState, FormData>(
-    createReservation,
-    {}
-  )
+  const [state, action] = useFormState(createReservation, {} as CreateReservationState)
 
   React.useEffect(() => {
     if (!eventDate || !startTime) {
@@ -156,11 +153,10 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const isEventReady = Boolean(eventDate && startTime)
   const hasAvailabilityData = Object.keys(availabilityByEquipmentId).length > 0
 
-  const filteredEquipments = React.useMemo((): Equipment[] => {
-    if (!isEventReady) return []
-    if (!hasAvailabilityData) return []
-    return equipments.filter((eq) => (availabilityByEquipmentId[eq.id]?.available ?? 0) > 0)
-  }, [equipments, availabilityByEquipmentId, isEventReady, hasAvailabilityData])
+  const filteredEquipments =
+    !isEventReady || !hasAvailabilityData
+      ? []
+      : equipments.filter((eq) => (availabilityByEquipmentId[eq.id]?.available ?? 0) > 0)
 
   return (
     <form action={action} className="mt-8 grid gap-6 lg:grid-cols-3">
