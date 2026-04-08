@@ -307,7 +307,6 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
 
         <Card>
           <p className="text-sm text-zinc-400">2. Período e deslocamento</p>
-          <div className="mt-4 grid gap-4">
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">Duração (horas)</label>
