@@ -151,9 +151,11 @@ async function createEquipment(formData: FormData) {
     const category = getString(formData, "category") || null
     const description = getString(formData, "description") || null
     const imageUrlFromInput = getString(formData, "image_url") || null
+    const videoUrl = getString(formData, "video_url") || null
+    const active = getString(formData, "active") === "on"
     const imageFile = formData.get("image_file")
-      const quantityTotalRaw = getInt(formData, "quantity_total", 1)
-      const quantityTotal = Math.max(quantityTotalRaw, 0)
+    const quantityTotalRaw = getInt(formData, "quantity_total", 1)
+    const quantityTotal = Math.max(quantityTotalRaw, 0)
     const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
@@ -174,17 +176,17 @@ async function createEquipment(formData: FormData) {
         description,
         image_url: imageUrl,
         video_url: videoUrl,
-          active,
-          quantity_total: quantityTotal
+        active,
+        quantity_total: quantityTotal
       })
       .select("id")
       .single()
 
     if (insertRes.error) {
-        if (
-          isMissingColumnError(insertRes.error, "video_url") ||
-          isMissingColumnError(insertRes.error, "quantity_total")
-        ) {
+      if (
+        isMissingColumnError(insertRes.error, "video_url") ||
+        isMissingColumnError(insertRes.error, "quantity_total")
+      ) {
         const fallbackInsertRes = await supabase
           .from("equipments")
           .insert({
@@ -227,13 +229,14 @@ async function createEquipment(formData: FormData) {
 
         redirect(
           `/admin/equipamentos?ok=created&error=${encodeURIComponent(
-              "Alguns campos ainda não estão disponíveis no banco. Execute as migrations pendentes no Supabase."
+            "Alguns campos ainda não estão disponíveis no banco. Execute as migrations pendentes no Supabase."
           )}`
         )
       }
 
       redirect(
         `/admin/equipamentos?error=${encodeURIComponent(
+          `Falha ao criar estação: ${insertRes.error.message}`
         )}`
       )
     }
@@ -276,9 +279,11 @@ async function updateEquipment(formData: FormData) {
     const category = getString(formData, "category") || null
     const description = getString(formData, "description") || null
     const imageUrlFromInput = getString(formData, "image_url") || null
+    const videoUrl = getString(formData, "video_url") || null
+    const active = getString(formData, "active") === "on"
     const imageFile = formData.get("image_file")
-      const quantityTotalRaw = getInt(formData, "quantity_total", 1)
-      const quantityTotal = Math.max(quantityTotalRaw, 0)
+    const quantityTotalRaw = getInt(formData, "quantity_total", 1)
+    const quantityTotal = Math.max(quantityTotalRaw, 0)
     const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
@@ -300,16 +305,16 @@ async function updateEquipment(formData: FormData) {
         description,
         image_url: imageUrl,
         video_url: videoUrl,
-          active,
-          quantity_total: quantityTotal
+        active,
+        quantity_total: quantityTotal
       })
       .eq("id", id)
 
     if (updRes.error) {
-        if (
-          isMissingColumnError(updRes.error, "video_url") ||
-          isMissingColumnError(updRes.error, "quantity_total")
-        ) {
+      if (
+        isMissingColumnError(updRes.error, "video_url") ||
+        isMissingColumnError(updRes.error, "quantity_total")
+      ) {
         const fallbackUpdRes = await supabase
           .from("equipments")
           .update({
