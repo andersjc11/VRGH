@@ -20,6 +20,7 @@ export type Equipment = {
   image_url: string | null
   video_url?: string | null
   active: boolean
+  quantity_total?: number
 }
 
 export type EquipmentPrice = {

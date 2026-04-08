@@ -117,6 +117,57 @@ export async function calcDistanceKmFromCep(destinationCep: string) {
   return { distanceKm, error: null as string | null }
 }
 
+export async function getEquipmentAvailability(params: {
+  eventDate: string
+  startTime: string
+  durationHours: number
+}) {
+  const eventDate = typeof params?.eventDate === "string" ? params.eventDate.trim() : ""
+  const startTime = typeof params?.startTime === "string" ? params.startTime.trim() : ""
+  const durationHours = Number.isFinite(params?.durationHours) ? Math.trunc(params.durationHours) : 0
+
+  if (!eventDate || !startTime || durationHours <= 0) {
+    return { availabilityByEquipmentId: {} as Record<string, { total: number; reserved: number; available: number }>, error: null as string | null }
+  }
+
+  const supabase = createSupabaseServerClient()
+  const { data, error } = await supabase.rpc("get_equipment_availability", {
+    event_date: eventDate,
+    start_time: startTime,
+    duration_hours: durationHours
+  })
+
+  if (error) {
+    const msg = error.message.toLowerCase()
+    if (msg.includes("get_equipment_availability") && msg.includes("does not exist")) {
+      return {
+        availabilityByEquipmentId: {} as Record<
+          string,
+          { total: number; reserved: number; available: number }
+        >,
+        error: "Disponibilidade ainda não está configurada no banco. Execute a migration 0014_equipments_inventory_and_availability.sql no Supabase."
+      }
+    }
+    return { availabilityByEquipmentId: {} as Record<string, { total: number; reserved: number; available: number }>, error: error.message }
+  }
+
+  const rows = (data ?? []) as any[]
+  const availabilityByEquipmentId = Object.fromEntries(
+    rows
+      .filter((r) => typeof r?.equipment_id === "string")
+      .map((r) => [
+        r.equipment_id,
+        {
+          total: typeof r?.total_qty === "number" ? r.total_qty : 1,
+          reserved: typeof r?.reserved_qty === "number" ? r.reserved_qty : 0,
+          available: typeof r?.available_qty === "number" ? r.available_qty : 0
+        }
+      ])
+  ) as Record<string, { total: number; reserved: number; available: number }>
+
+  return { availabilityByEquipmentId, error: null as string | null }
+}
+
 function getString(formData: FormData, key: string) {
   const value = formData.get(key)
   return typeof value === "string" ? value.trim() : ""
@@ -221,6 +272,62 @@ export async function createReservation(
   if (!destinationCep) return { error: "Informe um CEP válido." }
   if (!addressNumber) return { error: "Informe o número do endereço." }
   if (![4, 5, 6, 7, 8].includes(durationHours)) return { error: "Selecione uma duração entre 4 e 8 horas." }
+
+  const availabilityRes = await supabase.rpc("get_equipment_availability", {
+    event_date: eventDate,
+    start_time: startTime,
+    duration_hours: durationHours
+  })
+
+  if (availabilityRes.error) {
+    const msg = availabilityRes.error.message.toLowerCase()
+    if (msg.includes("get_equipment_availability") && msg.includes("does not exist")) {
+      return {
+        error:
+          "Disponibilidade ainda não está configurada no banco. Execute a migration 0014_equipments_inventory_and_availability.sql no Supabase."
+      }
+    }
+    return { error: `Falha ao checar disponibilidade: ${availabilityRes.error.message}` }
+  }
+
+  const availabilityRows = (availabilityRes.data ?? []) as any[]
+  const availableByEquipmentId = Object.fromEntries(
+    availabilityRows
+      .filter((r) => typeof r?.equipment_id === "string")
+      .map((r) => [
+        r.equipment_id,
+        typeof r?.available_qty === "number" ? r.available_qty : 0
+      ])
+  ) as Record<string, number>
+
+  const equipmentIds = Array.from(new Set(items.map((i) => i.equipmentId)))
+  const equipmentNamesRes = await supabase
+    .from("equipments")
+    .select("id,name")
+    .in("id", equipmentIds)
+
+  const equipmentNameById = Object.fromEntries(
+    (equipmentNamesRes.data ?? [])
+      .filter((r: any) => typeof r?.id === "string")
+      .map((r: any) => [r.id, typeof r?.name === "string" ? r.name : r.id])
+  ) as Record<string, string>
+
+  const insufficient = items
+    .map((i) => {
+      const available = availableByEquipmentId[i.equipmentId] ?? 0
+      return { ...i, available }
+    })
+    .filter((i) => i.quantity > i.available)
+
+  if (insufficient.length > 0) {
+    const details = insufficient
+      .map((i) => {
+        const name = equipmentNameById[i.equipmentId] ?? i.equipmentId
+        return `${name}: solicitado ${i.quantity}, disponível ${i.available}`
+      })
+      .join(" • ")
+    return { error: `Equipamentos indisponíveis para esse horário: ${details}` }
+  }
 
   const distanceFromForm = Math.max(0, getNumber(formData, "distance_km"))
   const distanceKm =

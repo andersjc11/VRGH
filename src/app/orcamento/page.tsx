@@ -5,6 +5,12 @@ import { OrcamentoForm } from "./OrcamentoForm"
 
 export const dynamic = "force-dynamic"
 
+function isMissingColumnError(err: unknown, column: string) {
+  const message = (err as any)?.message
+  if (typeof message !== "string") return false
+  return message.toLowerCase().includes(`column "${column.toLowerCase()}" does not exist`)
+}
+
 export default async function OrcamentoPage({
   searchParams
 }: {
@@ -20,11 +26,11 @@ export default async function OrcamentoPage({
     redirect(`/login?next=${encodeURIComponent(next)}`)
   }
 
-  const [equipmentsRes, pricesRes, displacementRes, discountsRes] =
+  const [equipmentsResWithQty, pricesRes, displacementRes, discountsRes] =
     await Promise.all([
       supabase
         .from("equipments")
-        .select("id,name,description,category,image_url,active")
+        .select("id,name,description,category,image_url,active,quantity_total")
         .eq("active", true)
         .order("created_at", { ascending: true }),
       supabase
@@ -42,6 +48,15 @@ export default async function OrcamentoPage({
         .eq("key", "discounts")
         .maybeSingle()
     ])
+
+  const equipmentsRes =
+    equipmentsResWithQty.error && isMissingColumnError(equipmentsResWithQty.error, "quantity_total")
+      ? await supabase
+          .from("equipments")
+          .select("id,name,description,category,image_url,active")
+          .eq("active", true)
+          .order("created_at", { ascending: true })
+      : equipmentsResWithQty
 
   const equipments = (equipmentsRes.data ?? []) as Equipment[]
   const prices = (pricesRes.data ?? []) as EquipmentPrice[]

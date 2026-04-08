@@ -87,6 +87,12 @@ function getString(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : ""
 }
 
+function getInt(formData: FormData, key: string, fallback: number) {
+  const raw = getString(formData, key)
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback
+}
+
 function parseMoneyToCents(raw: string) {
   const cleaned = raw.replace(/[^\d,.\-]/g, "").trim()
   const normalized = cleaned.includes(",")
@@ -146,8 +152,8 @@ async function createEquipment(formData: FormData) {
     const description = getString(formData, "description") || null
     const imageUrlFromInput = getString(formData, "image_url") || null
     const imageFile = formData.get("image_file")
-    const videoUrl = getString(formData, "video_url") || null
-    const active = getString(formData, "active") === "on"
+      const quantityTotalRaw = getInt(formData, "quantity_total", 1)
+      const quantityTotal = Math.max(quantityTotalRaw, 0)
     const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
@@ -168,13 +174,17 @@ async function createEquipment(formData: FormData) {
         description,
         image_url: imageUrl,
         video_url: videoUrl,
-        active
+          active,
+          quantity_total: quantityTotal
       })
       .select("id")
       .single()
 
     if (insertRes.error) {
-      if (isMissingColumnError(insertRes.error, "video_url")) {
+        if (
+          isMissingColumnError(insertRes.error, "video_url") ||
+          isMissingColumnError(insertRes.error, "quantity_total")
+        ) {
         const fallbackInsertRes = await supabase
           .from("equipments")
           .insert({
@@ -217,14 +227,13 @@ async function createEquipment(formData: FormData) {
 
         redirect(
           `/admin/equipamentos?ok=created&error=${encodeURIComponent(
-            "Vídeo ainda não está disponível no banco. Execute a migration 0004_add_equipment_video.sql no Supabase."
+              "Alguns campos ainda não estão disponíveis no banco. Execute as migrations pendentes no Supabase."
           )}`
         )
       }
 
       redirect(
         `/admin/equipamentos?error=${encodeURIComponent(
-          `Falha ao criar estação: ${insertRes.error.message}`
         )}`
       )
     }
@@ -268,8 +277,8 @@ async function updateEquipment(formData: FormData) {
     const description = getString(formData, "description") || null
     const imageUrlFromInput = getString(formData, "image_url") || null
     const imageFile = formData.get("image_file")
-    const videoUrl = getString(formData, "video_url") || null
-    const active = getString(formData, "active") === "on"
+      const quantityTotalRaw = getInt(formData, "quantity_total", 1)
+      const quantityTotal = Math.max(quantityTotalRaw, 0)
     const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
@@ -291,12 +300,16 @@ async function updateEquipment(formData: FormData) {
         description,
         image_url: imageUrl,
         video_url: videoUrl,
-        active
+          active,
+          quantity_total: quantityTotal
       })
       .eq("id", id)
 
     if (updRes.error) {
-      if (isMissingColumnError(updRes.error, "video_url")) {
+        if (
+          isMissingColumnError(updRes.error, "video_url") ||
+          isMissingColumnError(updRes.error, "quantity_total")
+        ) {
         const fallbackUpdRes = await supabase
           .from("equipments")
           .update({
@@ -337,7 +350,7 @@ async function updateEquipment(formData: FormData) {
 
         redirect(
           `/admin/equipamentos?ok=updated&error=${encodeURIComponent(
-            "Vídeo ainda não está disponível no banco. Execute a migration 0004_add_equipment_video.sql no Supabase."
+            "Alguns campos ainda não estão disponíveis no banco. Execute as migrations pendentes no Supabase."
           )}`
         )
       }
@@ -379,8 +392,28 @@ async function updateEquipment(formData: FormData) {
 export default async function AdminEquipamentosPage({
   searchParams
 }: {
-  searchParams?: { ok?: string; error?: string; edit?: string; create?: string }
+  searchParams?: {
+    ok?: string
+    error?: string
+    edit?: string
+    create?: string
+    availability_date?: string
+    availability_time?: string
+    availability_duration?: string
+  }
 }) {
+  async function checkAvailability(formData: FormData) {
+    "use server"
+    const date = getString(formData, "availability_date")
+    const time = getString(formData, "availability_time")
+    const duration = getString(formData, "availability_duration")
+    const qs = new URLSearchParams()
+    if (date) qs.set("availability_date", date)
+    if (time) qs.set("availability_time", time)
+    if (duration) qs.set("availability_duration", duration)
+    redirect(`/admin/equipamentos?${qs.toString()}`)
+  }
+
   async function deleteEquipment(formData: FormData) {
     "use server"
     try {
@@ -430,7 +463,7 @@ export default async function AdminEquipamentosPage({
 
   const equipmentsResWithVideo = await supabase
     .from("equipments")
-    .select("id,name,description,category,image_url,video_url,active,created_at")
+    .select("id,name,description,category,image_url,video_url,active,quantity_total,created_at")
     .order("created_at", { ascending: false })
     .limit(50)
 
@@ -438,7 +471,7 @@ export default async function AdminEquipamentosPage({
     equipmentsResWithVideo.error && isMissingColumnError(equipmentsResWithVideo.error, "video_url")
       ? await supabase
           .from("equipments")
-          .select("id,name,description,category,image_url,active,created_at")
+          .select("id,name,description,category,image_url,active,quantity_total,created_at")
           .order("created_at", { ascending: false })
           .limit(50)
       : equipmentsResWithVideo
@@ -464,6 +497,42 @@ export default async function AdminEquipamentosPage({
   const error = searchParams?.error
   const editId = searchParams?.edit
   const isCreating = Boolean(searchParams?.create)
+  const availabilityDate = typeof searchParams?.availability_date === "string" ? searchParams.availability_date.trim() : ""
+  const availabilityTime = typeof searchParams?.availability_time === "string" ? searchParams.availability_time.trim() : ""
+  const availabilityDuration = (() => {
+    const raw = typeof searchParams?.availability_duration === "string" ? searchParams.availability_duration.trim() : ""
+    const parsed = Number(raw)
+    return Number.isFinite(parsed) ? Math.trunc(parsed) : 4
+  })()
+
+  const availabilityRes =
+    availabilityDate && availabilityTime && availabilityDuration > 0
+      ? await supabase.rpc("get_equipment_availability", {
+          event_date: availabilityDate,
+          start_time: availabilityTime,
+          duration_hours: availabilityDuration
+        })
+      : null
+
+  const availabilityError =
+    availabilityRes?.error?.message &&
+    availabilityRes.error.message.toLowerCase().includes("get_equipment_availability") &&
+    availabilityRes.error.message.toLowerCase().includes("does not exist")
+      ? "Disponibilidade ainda não está configurada no banco. Execute a migration 0014_equipments_inventory_and_availability.sql no Supabase."
+      : availabilityRes?.error?.message ?? null
+
+  const availabilityByEquipmentId = Object.fromEntries(
+    ((availabilityRes?.data ?? []) as any[])
+      .filter((r) => typeof r?.equipment_id === "string")
+      .map((r) => [
+        r.equipment_id,
+        {
+          total: typeof r?.total_qty === "number" ? r.total_qty : 1,
+          reserved: typeof r?.reserved_qty === "number" ? r.reserved_qty : 0,
+          available: typeof r?.available_qty === "number" ? r.available_qty : 0
+        }
+      ])
+  ) as Record<string, { total: number; reserved: number; available: number }>
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -486,6 +555,81 @@ export default async function AdminEquipamentosPage({
       </div>
 
       <div className="mt-8 grid gap-3">
+        <Card>
+          <p className="text-sm text-zinc-400">Disponibilidade</p>
+          <form action={checkAvailability} className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-200" htmlFor="avail_date">
+                Data
+              </label>
+              <Input
+                id="avail_date"
+                name="availability_date"
+                type="date"
+                defaultValue={availabilityDate || ""}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-200" htmlFor="avail_time">
+                Horário
+              </label>
+              <Input
+                id="avail_time"
+                name="availability_time"
+                type="time"
+                defaultValue={availabilityTime || ""}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-200" htmlFor="avail_duration">
+                Duração (horas)
+              </label>
+              <Input
+                id="avail_duration"
+                name="availability_duration"
+                type="number"
+                min={1}
+                step={1}
+                defaultValue={availabilityDuration}
+              />
+            </div>
+            <div className="sm:col-span-3 flex items-center justify-end">
+              <Button type="submit">Checar</Button>
+            </div>
+          </form>
+          {availabilityError ? (
+            <p className="mt-3 text-sm text-red-300">{availabilityError}</p>
+          ) : availabilityRes ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-zinc-300">
+                    <th className="py-2 pr-4">Equipamento</th>
+                    <th className="py-2 pr-4">Total</th>
+                    <th className="py-2 pr-4">Reservado</th>
+                    <th className="py-2 pr-4">Disponível</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {equipments
+                    .filter((e) => Boolean(e.active))
+                    .map((e) => {
+                      const row = availabilityByEquipmentId[e.id]
+                      if (!row) return null
+                      return (
+                        <tr key={e.id} className="border-b border-white/5 text-zinc-100">
+                          <td className="py-2 pr-4">{e.name}</td>
+                          <td className="py-2 pr-4">{row.total}</td>
+                          <td className="py-2 pr-4">{row.reserved}</td>
+                          <td className="py-2 pr-4">{row.available}</td>
+                        </tr>
+                      )
+                    })}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </Card>
         {equipmentsRes.error ? (
           <Card>
             <p className="text-sm text-red-300">
@@ -556,6 +700,19 @@ export default async function AdminEquipamentosPage({
                 />
               </div>
               <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_qty">
+                  Quantidade disponível
+                </label>
+                <Input
+                  id="new_qty"
+                  name="quantity_total"
+                  type="number"
+                  min={0}
+                  step={1}
+                  defaultValue={1}
+                />
+              </div>
+              <div className="space-y-2">
                 <label className="text-sm text-zinc-200" htmlFor="new_image_file">
                   Imagem (upload)
                 </label>
@@ -619,6 +776,7 @@ export default async function AdminEquipamentosPage({
                   "video_url" in e &&
                   typeof e.video_url === "string" &&
                   e.video_url.trim().length > 0
+                const qtyTotal = typeof (e as any)?.quantity_total === "number" ? (e as any).quantity_total : 1
                 return (
                   <div key={e.id} className="py-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -629,6 +787,7 @@ export default async function AdminEquipamentosPage({
                           {typeof price?.price_per_hour_cents === "number"
                             ? ` • R$ ${(price.price_per_hour_cents / 100).toFixed(2).replace(".", ",")}/h`
                             : ""}
+                          {` • Estoque: ${qtyTotal}`}
                           {hasImage ? " • Imagem" : ""}
                           {hasVideo ? " • Vídeo" : ""}
                         </p>
@@ -697,6 +856,19 @@ export default async function AdminEquipamentosPage({
                             min={1}
                             step={1}
                             defaultValue={price?.min_hours ?? 4}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`qty_${e.id}`}>
+                            Quantidade disponível
+                          </label>
+                          <Input
+                            id={`qty_${e.id}`}
+                            name="quantity_total"
+                            type="number"
+                            min={0}
+                            step={1}
+                            defaultValue={qtyTotal}
                           />
                         </div>
                         <div className="space-y-2">

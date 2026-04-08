@@ -7,7 +7,7 @@ import { calcQuoteBreakdown, formatBRLFromCents } from "@/lib/pricing/calc"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
-import { calcDistanceKmFromCep, createReservation, type CreateReservationState } from "./actions"
+import { calcDistanceKmFromCep, createReservation, getEquipmentAvailability, type CreateReservationState } from "./actions"
 
 type Props = {
   equipments: Equipment[]
@@ -39,6 +39,8 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const [distanceKm, setDistanceKm] = React.useState(10)
   const [paymentPlan, setPaymentPlan] = React.useState<PaymentPlanType>("pix")
   const [qtyById, setQtyById] = React.useState<Record<string, string>>({})
+  const [eventDate, setEventDate] = React.useState("")
+  const [startTime, setStartTime] = React.useState("")
   const [postalCode, setPostalCode] = React.useState("")
   const [addressLine1, setAddressLine1] = React.useState("")
   const [addressNumber, setAddressNumber] = React.useState("")
@@ -48,6 +50,11 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const [distanceError, setDistanceError] = React.useState<string | null>(null)
   const [cepError, setCepError] = React.useState<string | null>(null)
   const [isDistancePending, startDistanceTransition] = React.useTransition()
+  const [availabilityByEquipmentId, setAvailabilityByEquipmentId] = React.useState<
+    Record<string, { total: number; reserved: number; available: number }>
+  >({})
+  const [availabilityError, setAvailabilityError] = React.useState<string | null>(null)
+  const [isAvailabilityPending, startAvailabilityTransition] = React.useTransition()
   const cepAbortRef = React.useRef<AbortController | null>(null)
 
   function normalizeCep(value: string) {
@@ -103,6 +110,48 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
     {}
   )
 
+  React.useEffect(() => {
+    if (!eventDate || !startTime) {
+      setAvailabilityByEquipmentId({})
+      setAvailabilityError(null)
+      return
+    }
+
+    startAvailabilityTransition(async () => {
+      const res = await getEquipmentAvailability({
+        eventDate,
+        startTime,
+        durationHours
+      })
+      if (res.error) {
+        setAvailabilityByEquipmentId({})
+        setAvailabilityError(res.error)
+        return
+      }
+      setAvailabilityError(null)
+      setAvailabilityByEquipmentId(res.availabilityByEquipmentId)
+    })
+  }, [eventDate, startTime, durationHours])
+
+  React.useEffect(() => {
+    const hasAny = Object.keys(availabilityByEquipmentId).length > 0
+    if (!hasAny) return
+    setQtyById((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const [equipmentId, raw] of Object.entries(next)) {
+        const current = Number(raw)
+        if (!Number.isFinite(current)) continue
+        const max = availabilityByEquipmentId[equipmentId]?.available
+        if (typeof max === "number" && current > max) {
+          next[equipmentId] = String(Math.max(max, 0))
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [availabilityByEquipmentId])
+
   return (
     <form action={action} className="mt-8 grid gap-6 lg:grid-cols-3">
       <input type="hidden" name="ref" value={refCode ?? ""} />
@@ -112,6 +161,10 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
           <div className="mt-4 grid gap-4">
             {equipments.map((eq) => {
               const price = priceByEquipmentId[eq.id]
+              const totalQty = typeof (eq as any)?.quantity_total === "number" ? (eq as any).quantity_total : 1
+              const availability = availabilityByEquipmentId[eq.id]
+              const availableQty = availability ? availability.available : null
+              const qtyMax = typeof availableQty === "number" ? availableQty : totalQty
               return (
                 <div
                   key={eq.id}
@@ -132,6 +185,9 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                       {price
                         ? `${formatBRLFromCents(price.price_per_hour_cents)}/h (mín. ${price.min_hours}h)`
                         : "Preço indisponível"}
+                      {typeof availableQty === "number"
+                        ? ` • Disponível: ${availableQty}/${totalQty}`
+                        : ` • Estoque: ${totalQty}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -139,14 +195,32 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                     <Input
                       type="number"
                       min={0}
+                      max={Math.max(qtyMax, 0)}
                       step={1}
                       value={qtyById[eq.id] ?? ""}
                       placeholder="0"
                       onChange={(e) =>
-                        setQtyById((prev) => ({
-                          ...prev,
-                          [eq.id]: e.target.value
-                        }))
+                        setQtyById((prev) => {
+                          const raw = e.target.value
+                          const parsed = Number(raw)
+                          const clamped =
+                            raw === ""
+                              ? ""
+                              : String(
+                                  Math.max(
+                                    0,
+                                    Math.min(
+                                      Math.trunc(Number.isFinite(parsed) ? parsed : 0),
+                                      Math.max(qtyMax, 0)
+                                    )
+                                  )
+                                )
+                          return { ...prev, [eq.id]: clamped }
+                        })
+                      }
+                      disabled={
+                        isAvailabilityPending ||
+                        (typeof availableQty === "number" ? availableQty <= 0 : false)
                       }
                       className="w-24"
                     />
@@ -154,6 +228,9 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                 </div>
               )
             })}
+            {availabilityError ? (
+              <p className="text-xs text-red-300">{availabilityError}</p>
+            ) : null}
           </div>
         </Card>
 
@@ -219,11 +296,23 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
             </div>
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">Data</label>
-              <Input name="event_date" type="date" required />
+              <Input
+                name="event_date"
+                type="date"
+                required
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm text-zinc-200">Horário</label>
-              <Input name="start_time" type="time" required />
+              <Input
+                name="start_time"
+                type="time"
+                required
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">Local (nome do salão)</label>
