@@ -156,7 +156,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const isEventReady = Boolean(eventDate && startTime)
   const hasAvailabilityData = Object.keys(availabilityByEquipmentId).length > 0
 
-  const filteredEquipments = React.useMemo<Equipment[]>(() => {
+  const filteredEquipments = React.useMemo((): Equipment[] => {
     if (!isEventReady) return []
     if (!hasAvailabilityData) return []
     return equipments.filter((eq) => (availabilityByEquipmentId[eq.id]?.available ?? 0) > 0)
