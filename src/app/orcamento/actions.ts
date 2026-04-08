@@ -121,10 +121,12 @@ export async function getEquipmentAvailability(params: {
   eventDate: string
   startTime: string
   durationHours: number
+  distanceKm: number
 }) {
   const eventDate = typeof params?.eventDate === "string" ? params.eventDate.trim() : ""
   const startTime = typeof params?.startTime === "string" ? params.startTime.trim() : ""
   const durationHours = Number.isFinite(params?.durationHours) ? Math.trunc(params.durationHours) : 0
+  const distanceKm = Number.isFinite(params?.distanceKm) ? Number(params.distanceKm) : 0
 
   if (!eventDate || !startTime || durationHours <= 0) {
     return { availabilityByEquipmentId: {} as Record<string, { total: number; reserved: number; available: number }>, error: null as string | null }
@@ -134,7 +136,8 @@ export async function getEquipmentAvailability(params: {
   const { data, error } = await supabase.rpc("get_equipment_availability", {
     event_date: eventDate,
     start_time: startTime,
-    duration_hours: durationHours
+    duration_hours: durationHours,
+    distance_km: distanceKm
   })
 
   if (error) {
@@ -273,10 +276,18 @@ export async function createReservation(
   if (!addressNumber) return { error: "Informe o número do endereço." }
   if (![4, 5, 6, 7, 8].includes(durationHours)) return { error: "Selecione uma duração entre 4 e 8 horas." }
 
+  const distanceFromForm = Math.max(0, getNumber(formData, "distance_km"))
+  const distanceKm =
+    destinationCep
+      ? (await getDistanceKmFromGoogle({ originCep: "12305800", destinationCep: destinationCep }))
+          .distanceKm ?? distanceFromForm
+      : distanceFromForm
+
   const availabilityRes = await supabase.rpc("get_equipment_availability", {
     event_date: eventDate,
     start_time: startTime,
-    duration_hours: durationHours
+    duration_hours: durationHours,
+    distance_km: distanceKm
   })
 
   if (availabilityRes.error) {
@@ -328,13 +339,6 @@ export async function createReservation(
       .join(" • ")
     return { error: `Equipamentos indisponíveis para esse horário: ${details}` }
   }
-
-  const distanceFromForm = Math.max(0, getNumber(formData, "distance_km"))
-  const distanceKm =
-    destinationCep
-      ? (await getDistanceKmFromGoogle({ originCep: "12305800", destinationCep: destinationCep }))
-          .distanceKm ?? distanceFromForm
-      : distanceFromForm
 
   const { data: pricesData } = await supabase
     .from("equipment_prices")

@@ -121,7 +121,8 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
       const res = await getEquipmentAvailability({
         eventDate,
         startTime,
-        durationHours
+        durationHours,
+        distanceKm
       })
       if (res.error) {
         setAvailabilityByEquipmentId({})
@@ -131,7 +132,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
       setAvailabilityError(null)
       setAvailabilityByEquipmentId(res.availabilityByEquipmentId)
     })
-  }, [eventDate, startTime, durationHours])
+  }, [eventDate, startTime, durationHours, distanceKm])
 
   React.useEffect(() => {
     const hasAny = Object.keys(availabilityByEquipmentId).length > 0
@@ -155,9 +156,9 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const isEventReady = Boolean(eventDate && startTime)
   const hasAvailabilityData = Object.keys(availabilityByEquipmentId).length > 0
 
-  const filteredEquipments = React.useMemo(() => {
-    if (!isEventReady) return [] as Equipment[]
-    if (!hasAvailabilityData) return [] as Equipment[]
+  const filteredEquipments = React.useMemo<Equipment[]>(() => {
+    if (!isEventReady) return []
+    if (!hasAvailabilityData) return []
     return equipments.filter((eq) => (availabilityByEquipmentId[eq.id]?.available ?? 0) > 0)
   }, [equipments, availabilityByEquipmentId, isEventReady, hasAvailabilityData])
 
