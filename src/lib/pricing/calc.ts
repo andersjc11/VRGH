@@ -11,6 +11,64 @@ function clampInt(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.trunc(value)))
 }
 
+function clampPct(value: number, fallback: number) {
+  if (!Number.isFinite(value)) return fallback
+  return Math.max(0, Math.min(100, Math.trunc(value)))
+}
+
+function calcBundleDiscountCents(params: {
+  items: QuoteItemInput[]
+  pricingProfile: "hourly" | "daily" | "day_block"
+  durationHours: number
+  daysCount: number
+  distanceKm: number
+  priceByEquipmentId: Record<string, EquipmentPrice>
+}) {
+  const distance = Math.max(0, Number(params.distanceKm) || 0)
+  if (distance > 30) return 0
+  const eligibleItems = params.items.filter((i) => clampInt(i.quantity, 0, 999) > 0)
+  const distinctCount = eligibleItems.length
+  if (distinctCount < 2) return 0
+
+  const tier = distinctCount >= 3 ? "3" : "2"
+  const baseHoursPerDay = 8
+  const duration = clampInt(params.durationHours, 1, 24 * 7)
+  const days = clampInt(params.daysCount, 1, 366)
+
+  return eligibleItems.reduce((acc, item) => {
+    const price = params.priceByEquipmentId[item.equipmentId]
+    if (!price) return acc
+    const qty = clampInt(item.quantity, 0, 999)
+    if (qty === 0) return acc
+
+    const lineBase =
+      params.pricingProfile === "hourly"
+        ? (() => {
+            const billableHours = Math.max(duration, price.min_hours)
+            return price.price_per_hour_cents * billableHours * qty
+          })()
+        : (() => {
+            const dayCents =
+              params.pricingProfile === "day_block"
+                ? price.price_per_day_block_cents ?? price.price_per_day_cents
+                : price.price_per_day_cents
+            const effectiveDayCents =
+              typeof dayCents === "number" && Number.isFinite(dayCents) && dayCents >= 0
+                ? Math.trunc(dayCents)
+                : price.price_per_hour_cents * baseHoursPerDay
+            return effectiveDayCents * days * qty
+          })()
+
+    const pct =
+      tier === "3"
+        ? clampPct(price.discount_3_items_pct ?? NaN, 25)
+        : clampPct(price.discount_2_items_pct ?? NaN, 15)
+
+    const discount = Math.round((lineBase * pct) / 100)
+    return acc + Math.max(0, Math.min(discount, lineBase))
+  }, 0)
+}
+
 export function calcSubtotalCents(params: {
   items: QuoteItemInput[]
   durationHours: number
@@ -76,28 +134,39 @@ export function calcQuoteBreakdown(params: {
   priceByEquipmentId: Record<string, EquipmentPrice>
   config: PricingConfig
 }): QuoteBreakdown {
+  const pricingProfile = params.pricingProfile ?? "hourly"
+  const daysCount = clampInt(params.daysCount ?? 1, 1, 366)
   const subtotal = calcSubtotalCents({
     items: params.items,
     durationHours: params.durationHours,
-    pricingProfile: params.pricingProfile,
-    daysCount: params.daysCount,
+    pricingProfile,
+    daysCount,
     priceByEquipmentId: params.priceByEquipmentId
   })
   const displacement = calcDisplacementCents({
     distanceKm: params.distanceKm,
     config: params.config.displacement
   })
-  const preDiscount = subtotal + displacement
-  const discount = calcDiscountCents({
+  const bundleDiscount = calcBundleDiscountCents({
+    items: params.items,
+    pricingProfile,
+    durationHours: params.durationHours,
+    daysCount,
+    distanceKm: params.distanceKm,
+    priceByEquipmentId: params.priceByEquipmentId
+  })
+  const prePix = Math.max(0, subtotal - bundleDiscount) + displacement
+  const pixDiscount = calcDiscountCents({
     paymentPlan: params.paymentPlan,
-    subtotalPlusDisplacementCents: preDiscount,
+    subtotalPlusDisplacementCents: prePix,
     discounts: params.config.discounts
   })
+  const discount = Math.min(bundleDiscount + pixDiscount, prePix)
   return {
     subtotal_cents: subtotal,
     displacement_cents: displacement,
     discount_cents: discount,
-    total_cents: Math.max(0, preDiscount - discount)
+    total_cents: Math.max(0, prePix - pixDiscount)
   }
 }
 

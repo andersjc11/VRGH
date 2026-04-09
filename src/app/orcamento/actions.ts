@@ -412,14 +412,18 @@ export async function createReservation(
 
   const pricesResWithProfiles = await supabase
     .from("equipment_prices")
-    .select("equipment_id,price_per_hour_cents,min_hours,price_per_day_cents,price_per_day_block_cents")
+    .select(
+      "equipment_id,price_per_hour_cents,min_hours,price_per_day_cents,price_per_day_block_cents,discount_2_items_pct,discount_3_items_pct"
+    )
     .in(
       "equipment_id",
       items.map((i) => i.equipmentId)
     )
 
   const pricesRes =
-    pricesResWithProfiles.error && isMissingColumnError(pricesResWithProfiles.error, "price_per_day_cents")
+    pricesResWithProfiles.error &&
+    (isMissingColumnError(pricesResWithProfiles.error, "price_per_day_cents") ||
+      isMissingColumnError(pricesResWithProfiles.error, "discount_2_items_pct"))
       ? await supabase
           .from("equipment_prices")
           .select("equipment_id,price_per_hour_cents,min_hours")
@@ -440,7 +444,11 @@ export async function createReservation(
         min_hours: p.min_hours,
         price_per_day_cents: typeof p.price_per_day_cents === "number" ? p.price_per_day_cents : null,
         price_per_day_block_cents:
-          typeof p.price_per_day_block_cents === "number" ? p.price_per_day_block_cents : null
+          typeof p.price_per_day_block_cents === "number" ? p.price_per_day_block_cents : null,
+        discount_2_items_pct:
+          typeof p.discount_2_items_pct === "number" ? p.discount_2_items_pct : null,
+        discount_3_items_pct:
+          typeof p.discount_3_items_pct === "number" ? p.discount_3_items_pct : null
       }
     ])
   )

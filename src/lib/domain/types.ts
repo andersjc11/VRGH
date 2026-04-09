@@ -29,6 +29,8 @@ export type EquipmentPrice = {
   min_hours: number
   price_per_day_cents?: number | null
   price_per_day_block_cents?: number | null
+  discount_2_items_pct?: number | null
+  discount_3_items_pct?: number | null
 }
 
 export type QuoteItemInput = {

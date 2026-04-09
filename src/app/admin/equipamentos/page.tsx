@@ -161,6 +161,10 @@ async function createEquipment(formData: FormData) {
     const dailyPriceCents = dailyPriceRaw ? parseMoneyToCents(dailyPriceRaw) : null
     const dayBlockPriceRaw = getString(formData, "price_per_day_block")
     const dayBlockPriceCents = dayBlockPriceRaw ? parseMoneyToCents(dayBlockPriceRaw) : null
+    const discount2Raw = getString(formData, "discount_2_items_pct")
+    const discount2Pct = discount2Raw ? Number(discount2Raw) : null
+    const discount3Raw = getString(formData, "discount_3_items_pct")
+    const discount3Pct = discount3Raw ? Number(discount3Raw) : null
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
 
@@ -168,6 +172,12 @@ async function createEquipment(formData: FormData) {
     if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
     if (dailyPriceRaw && dailyPriceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20di%C3%A1ria%20inv%C3%A1lido")
     if (dayBlockPriceRaw && dayBlockPriceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20di%C3%A1ria%20%28agenda%20bloqueada%29%20inv%C3%A1lido")
+    if (discount2Raw && (!Number.isFinite(discount2Pct) || discount2Pct < 0 || discount2Pct > 100)) {
+      redirect("/admin/equipamentos?error=Desconto%20%282%20itens%29%20inv%C3%A1lido")
+    }
+    if (discount3Raw && (!Number.isFinite(discount3Pct) || discount3Pct < 0 || discount3Pct > 100)) {
+      redirect("/admin/equipamentos?error=Desconto%20%283%2B%20itens%29%20inv%C3%A1lido")
+    }
 
     const imageUrl =
       imageFile instanceof File && imageFile.size > 0
@@ -222,7 +232,9 @@ async function createEquipment(formData: FormData) {
               price_per_hour_cents: priceCents,
               min_hours: minHours,
               price_per_day_cents: dailyPriceCents,
-              price_per_day_block_cents: dayBlockPriceCents
+              price_per_day_block_cents: dayBlockPriceCents,
+              discount_2_items_pct: discount2Raw ? Math.trunc(discount2Pct as number) : null,
+              discount_3_items_pct: discount3Raw ? Math.trunc(discount3Pct as number) : null
             },
             { onConflict: "equipment_id" }
           )
@@ -230,7 +242,9 @@ async function createEquipment(formData: FormData) {
         if (priceRes.error) {
           if (
             isMissingColumnError(priceRes.error, "price_per_day_cents") ||
-            isMissingColumnError(priceRes.error, "price_per_day_block_cents")
+            isMissingColumnError(priceRes.error, "price_per_day_block_cents") ||
+            isMissingColumnError(priceRes.error, "discount_2_items_pct") ||
+            isMissingColumnError(priceRes.error, "discount_3_items_pct")
           ) {
             const fallbackPriceRes = await supabase
               .from("equipment_prices")
@@ -287,7 +301,9 @@ async function createEquipment(formData: FormData) {
           price_per_hour_cents: priceCents,
           min_hours: minHours,
           price_per_day_cents: dailyPriceCents,
-          price_per_day_block_cents: dayBlockPriceCents
+          price_per_day_block_cents: dayBlockPriceCents,
+          discount_2_items_pct: discount2Raw ? Math.trunc(discount2Pct as number) : null,
+          discount_3_items_pct: discount3Raw ? Math.trunc(discount3Pct as number) : null
         },
         { onConflict: "equipment_id" }
       )
@@ -295,7 +311,9 @@ async function createEquipment(formData: FormData) {
     if (priceRes.error) {
       if (
         isMissingColumnError(priceRes.error, "price_per_day_cents") ||
-        isMissingColumnError(priceRes.error, "price_per_day_block_cents")
+        isMissingColumnError(priceRes.error, "price_per_day_block_cents") ||
+        isMissingColumnError(priceRes.error, "discount_2_items_pct") ||
+        isMissingColumnError(priceRes.error, "discount_3_items_pct")
       ) {
         const fallbackPriceRes = await supabase
           .from("equipment_prices")
@@ -357,6 +375,10 @@ async function updateEquipment(formData: FormData) {
     const dailyPriceCents = dailyPriceRaw ? parseMoneyToCents(dailyPriceRaw) : null
     const dayBlockPriceRaw = getString(formData, "price_per_day_block")
     const dayBlockPriceCents = dayBlockPriceRaw ? parseMoneyToCents(dayBlockPriceRaw) : null
+    const discount2Raw = getString(formData, "discount_2_items_pct")
+    const discount2Pct = discount2Raw ? Number(discount2Raw) : null
+    const discount3Raw = getString(formData, "discount_3_items_pct")
+    const discount3Pct = discount3Raw ? Number(discount3Raw) : null
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
 
@@ -365,6 +387,12 @@ async function updateEquipment(formData: FormData) {
     if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
     if (dailyPriceRaw && dailyPriceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20di%C3%A1ria%20inv%C3%A1lido")
     if (dayBlockPriceRaw && dayBlockPriceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20di%C3%A1ria%20%28agenda%20bloqueada%29%20inv%C3%A1lido")
+    if (discount2Raw && (!Number.isFinite(discount2Pct) || discount2Pct < 0 || discount2Pct > 100)) {
+      redirect("/admin/equipamentos?error=Desconto%20%282%20itens%29%20inv%C3%A1lido")
+    }
+    if (discount3Raw && (!Number.isFinite(discount3Pct) || discount3Pct < 0 || discount3Pct > 100)) {
+      redirect("/admin/equipamentos?error=Desconto%20%283%2B%20itens%29%20inv%C3%A1lido")
+    }
 
     const imageUrl =
       imageFile instanceof File && imageFile.size > 0
@@ -416,7 +444,9 @@ async function updateEquipment(formData: FormData) {
               price_per_hour_cents: priceCents,
               min_hours: minHours,
               price_per_day_cents: dailyPriceCents,
-              price_per_day_block_cents: dayBlockPriceCents
+              price_per_day_block_cents: dayBlockPriceCents,
+              discount_2_items_pct: discount2Raw ? Math.trunc(discount2Pct as number) : null,
+              discount_3_items_pct: discount3Raw ? Math.trunc(discount3Pct as number) : null
             },
             { onConflict: "equipment_id" }
           )
@@ -424,7 +454,9 @@ async function updateEquipment(formData: FormData) {
         if (priceRes.error) {
           if (
             isMissingColumnError(priceRes.error, "price_per_day_cents") ||
-            isMissingColumnError(priceRes.error, "price_per_day_block_cents")
+            isMissingColumnError(priceRes.error, "price_per_day_block_cents") ||
+            isMissingColumnError(priceRes.error, "discount_2_items_pct") ||
+            isMissingColumnError(priceRes.error, "discount_3_items_pct")
           ) {
             const fallbackPriceRes = await supabase
               .from("equipment_prices")
@@ -480,7 +512,9 @@ async function updateEquipment(formData: FormData) {
           price_per_hour_cents: priceCents,
           min_hours: minHours,
           price_per_day_cents: dailyPriceCents,
-          price_per_day_block_cents: dayBlockPriceCents
+          price_per_day_block_cents: dayBlockPriceCents,
+          discount_2_items_pct: discount2Raw ? Math.trunc(discount2Pct as number) : null,
+          discount_3_items_pct: discount3Raw ? Math.trunc(discount3Pct as number) : null
         },
         { onConflict: "equipment_id" }
       )
@@ -488,7 +522,9 @@ async function updateEquipment(formData: FormData) {
     if (priceRes.error) {
       if (
         isMissingColumnError(priceRes.error, "price_per_day_cents") ||
-        isMissingColumnError(priceRes.error, "price_per_day_block_cents")
+        isMissingColumnError(priceRes.error, "price_per_day_block_cents") ||
+        isMissingColumnError(priceRes.error, "discount_2_items_pct") ||
+        isMissingColumnError(priceRes.error, "discount_3_items_pct")
       ) {
         const fallbackPriceRes = await supabase
           .from("equipment_prices")
@@ -619,11 +655,15 @@ export default async function AdminEquipamentosPage({
 
   const pricesResWithProfiles = await supabase
     .from("equipment_prices")
-    .select("equipment_id,price_per_hour_cents,min_hours,price_per_day_cents,price_per_day_block_cents")
+    .select(
+      "equipment_id,price_per_hour_cents,min_hours,price_per_day_cents,price_per_day_block_cents,discount_2_items_pct,discount_3_items_pct"
+    )
     .order("created_at", { ascending: false })
 
   const pricesRes =
-    pricesResWithProfiles.error && isMissingColumnError(pricesResWithProfiles.error, "price_per_day_cents")
+    pricesResWithProfiles.error &&
+    (isMissingColumnError(pricesResWithProfiles.error, "price_per_day_cents") ||
+      isMissingColumnError(pricesResWithProfiles.error, "discount_2_items_pct"))
       ? await supabase
           .from("equipment_prices")
           .select("equipment_id,price_per_hour_cents,min_hours")
@@ -639,7 +679,11 @@ export default async function AdminEquipamentosPage({
         min_hours: p.min_hours,
         price_per_day_cents: typeof p.price_per_day_cents === "number" ? p.price_per_day_cents : null,
         price_per_day_block_cents:
-          typeof p.price_per_day_block_cents === "number" ? p.price_per_day_block_cents : null
+          typeof p.price_per_day_block_cents === "number" ? p.price_per_day_block_cents : null,
+        discount_2_items_pct:
+          typeof p.discount_2_items_pct === "number" ? p.discount_2_items_pct : null,
+        discount_3_items_pct:
+          typeof p.discount_3_items_pct === "number" ? p.discount_3_items_pct : null
       }
     ])
   ) as Record<
@@ -649,6 +693,8 @@ export default async function AdminEquipamentosPage({
       min_hours: number
       price_per_day_cents?: number | null
       price_per_day_block_cents?: number | null
+      discount_2_items_pct?: number | null
+      discount_3_items_pct?: number | null
     }
   >
 
@@ -869,6 +915,34 @@ export default async function AdminEquipamentosPage({
                 />
               </div>
               <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_discount_2">
+                  Desconto (2 itens) (%)
+                </label>
+                <Input
+                  id="new_discount_2"
+                  name="discount_2_items_pct"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  placeholder="15"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_discount_3">
+                  Desconto (3+ itens) (%)
+                </label>
+                <Input
+                  id="new_discount_3"
+                  name="discount_3_items_pct"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  placeholder="25"
+                />
+              </div>
+              <div className="space-y-2">
                 <label className="text-sm text-zinc-200" htmlFor="new_min_hours">
                   Mínimo (horas)
                 </label>
@@ -975,6 +1049,12 @@ export default async function AdminEquipamentosPage({
                           {typeof price?.price_per_day_block_cents === "number"
                             ? ` • R$ ${(price.price_per_day_block_cents / 100).toFixed(2).replace(".", ",")}/diária (agenda)`
                             : ""}
+                          {typeof price?.discount_2_items_pct === "number"
+                            ? ` • Desc(2): ${Math.trunc(price.discount_2_items_pct)}%`
+                            : ""}
+                          {typeof price?.discount_3_items_pct === "number"
+                            ? ` • Desc(3+): ${Math.trunc(price.discount_3_items_pct)}%`
+                            : ""}
                           {` • Estoque: ${qtyTotal}`}
                           {hasImage ? " • Imagem" : ""}
                           {hasVideo ? " • Vídeo" : ""}
@@ -1059,6 +1139,34 @@ export default async function AdminEquipamentosPage({
                                 ? (price.price_per_day_block_cents / 100).toFixed(2).replace(".", ",")
                                 : ""
                             }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`disc2_${e.id}`}>
+                            Desconto (2 itens) (%)
+                          </label>
+                          <Input
+                            id={`disc2_${e.id}`}
+                            name="discount_2_items_pct"
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={1}
+                            defaultValue={typeof price?.discount_2_items_pct === "number" ? price.discount_2_items_pct : ""}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`disc3_${e.id}`}>
+                            Desconto (3+ itens) (%)
+                          </label>
+                          <Input
+                            id={`disc3_${e.id}`}
+                            name="discount_3_items_pct"
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={1}
+                            defaultValue={typeof price?.discount_3_items_pct === "number" ? price.discount_3_items_pct : ""}
                           />
                         </div>
                         <div className="space-y-2">

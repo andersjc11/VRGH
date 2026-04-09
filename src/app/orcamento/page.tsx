@@ -35,7 +35,9 @@ export default async function OrcamentoPage({
         .order("created_at", { ascending: true }),
       supabase
         .from("equipment_prices")
-        .select("equipment_id,price_per_hour_cents,min_hours,price_per_day_cents,price_per_day_block_cents")
+        .select(
+          "equipment_id,price_per_hour_cents,min_hours,price_per_day_cents,price_per_day_block_cents,discount_2_items_pct,discount_3_items_pct"
+        )
         .order("created_at", { ascending: true }),
       supabase
         .from("pricing_settings")
@@ -59,7 +61,9 @@ export default async function OrcamentoPage({
       : equipmentsResWithQty
 
   const pricesResFinal =
-    pricesRes.error && isMissingColumnError(pricesRes.error, "price_per_day_cents")
+    pricesRes.error &&
+    (isMissingColumnError(pricesRes.error, "price_per_day_cents") ||
+      isMissingColumnError(pricesRes.error, "discount_2_items_pct"))
       ? await supabase
           .from("equipment_prices")
           .select("equipment_id,price_per_hour_cents,min_hours")
