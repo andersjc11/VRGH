@@ -39,8 +39,12 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const [distanceKm, setDistanceKm] = React.useState(10)
   const [paymentPlan, setPaymentPlan] = React.useState<PaymentPlanType>("pix")
   const [qtyById, setQtyById] = React.useState<Record<string, string>>({})
+  const [eventDaysMode, setEventDaysMode] = React.useState<"" | "single" | "multi">("")
   const [eventDate, setEventDate] = React.useState("")
+  const [eventEndDate, setEventEndDate] = React.useState("")
   const [startTime, setStartTime] = React.useState("")
+  const [setupDate, setSetupDate] = React.useState("")
+  const [setupTime, setSetupTime] = React.useState("")
   const [postalCode, setPostalCode] = React.useState("")
   const [addressLine1, setAddressLine1] = React.useState("")
   const [addressNumber, setAddressNumber] = React.useState("")
@@ -108,7 +112,14 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
 
   React.useEffect(() => {
-    if (!eventDate || !startTime) {
+    const isReady =
+      eventDaysMode === "single"
+        ? Boolean(eventDate && startTime)
+        : eventDaysMode === "multi"
+          ? Boolean(eventDate && startTime && eventEndDate && setupDate && setupTime)
+          : false
+
+    if (!isReady) {
       setAvailabilityByEquipmentId({})
       setAvailabilityError(null)
       return
@@ -116,8 +127,12 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
 
     startAvailabilityTransition(async () => {
       const res = await getEquipmentAvailability({
+        eventDaysMode,
         eventDate,
+        eventEndDate,
         startTime,
+        setupDate,
+        setupTime,
         durationHours,
         distanceKm
       })
@@ -129,7 +144,15 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
       setAvailabilityError(null)
       setAvailabilityByEquipmentId(res.availabilityByEquipmentId)
     })
-  }, [eventDate, startTime, durationHours, distanceKm])
+  }, [eventDaysMode, eventDate, eventEndDate, startTime, setupDate, setupTime, durationHours, distanceKm])
+
+  React.useEffect(() => {
+    if (eventDaysMode !== "multi") {
+      setEventEndDate("")
+      setSetupDate("")
+      setSetupTime("")
+    }
+  }, [eventDaysMode])
 
   React.useEffect(() => {
     const hasAny = Object.keys(availabilityByEquipmentId).length > 0
@@ -150,7 +173,12 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
     })
   }, [availabilityByEquipmentId])
 
-  const isEventReady = Boolean(eventDate && startTime)
+  const isEventReady =
+    eventDaysMode === "single"
+      ? Boolean(eventDate && startTime)
+      : eventDaysMode === "multi"
+        ? Boolean(eventDate && startTime && eventEndDate && setupDate && setupTime)
+        : false
   const hasAvailabilityData = Object.keys(availabilityByEquipmentId).length > 0
 
   const filteredEquipments =
@@ -166,11 +194,39 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
           <p className="text-sm text-zinc-400">1. Dados do evento</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
+              <p className="text-sm text-zinc-200">O evento tem mais de um dia?</p>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm text-zinc-300">
+                  <input
+                    type="radio"
+                    name="event_days_mode"
+                    value="single"
+                    checked={eventDaysMode === "single"}
+                    onChange={() => setEventDaysMode("single")}
+                    required
+                  />
+                  1 dia
+                </label>
+                <label className="flex items-center gap-2 text-sm text-zinc-300">
+                  <input
+                    type="radio"
+                    name="event_days_mode"
+                    value="multi"
+                    checked={eventDaysMode === "multi"}
+                    onChange={() => setEventDaysMode("multi")}
+                  />
+                  Mais de 1 dia
+                </label>
+              </div>
+            </div>
+            <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">Nome do evento</label>
               <Input name="event_name" placeholder="Ex: Festa de aniversário" required />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-zinc-200">Data</label>
+              <label className="text-sm text-zinc-200">
+                {eventDaysMode === "multi" ? "Data de início" : "Data"}
+              </label>
               <Input
                 name="event_date"
                 type="date"
@@ -179,8 +235,21 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                 onChange={(e) => setEventDate(e.target.value)}
               />
             </div>
+            {eventDaysMode === "multi" ? (
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-200">Data final</label>
+                <Input
+                  name="event_end_date"
+                  type="date"
+                  required
+                  value={eventEndDate}
+                  onChange={(e) => setEventEndDate(e.target.value)}
+                  min={eventDate || undefined}
+                />
+              </div>
+            ) : null}
             <div className="space-y-2">
-              <label className="text-sm text-zinc-200">Horário</label>
+              <label className="text-sm text-zinc-200">Horário de início</label>
               <Input
                 name="start_time"
                 type="time"
@@ -189,6 +258,31 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                 onChange={(e) => setStartTime(e.target.value)}
               />
             </div>
+            {eventDaysMode === "multi" ? (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Data de montagem</label>
+                  <Input
+                    name="setup_date"
+                    type="date"
+                    required
+                    value={setupDate}
+                    onChange={(e) => setSetupDate(e.target.value)}
+                    max={eventEndDate || undefined}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Horário de montagem</label>
+                  <Input
+                    name="setup_time"
+                    type="time"
+                    required
+                    value={setupTime}
+                    onChange={(e) => setSetupTime(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : null}
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">Local (nome do salão)</label>
               <Input name="venue_name" placeholder="Ex: Salão de festas" />
@@ -363,7 +457,9 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
           <div className="mt-4 grid gap-4">
             {!isEventReady ? (
               <p className="text-sm text-zinc-300">
-                Informe a data e o horário do evento para ver os equipamentos disponíveis.
+                {eventDaysMode
+                  ? "Preencha as datas e horários do evento para ver os equipamentos disponíveis."
+                  : "Selecione se o evento é de 1 dia ou mais dias e preencha as datas/horários para ver os equipamentos disponíveis."}
               </p>
             ) : isAvailabilityPending ? (
               <p className="text-sm text-zinc-300">Carregando disponibilidade...</p>

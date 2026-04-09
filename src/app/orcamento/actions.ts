@@ -118,37 +118,58 @@ export async function calcDistanceKmFromCep(destinationCep: string) {
 }
 
 export async function getEquipmentAvailability(params: {
+  eventDaysMode: "single" | "multi" | ""
   eventDate: string
+  eventEndDate: string
   startTime: string
+  setupDate: string
+  setupTime: string
   durationHours: number
   distanceKm: number
 }) {
+  const eventDaysMode =
+    params?.eventDaysMode === "single" || params?.eventDaysMode === "multi"
+      ? params.eventDaysMode
+      : ""
   const eventDate = typeof params?.eventDate === "string" ? params.eventDate.trim() : ""
+  const eventEndDate = typeof params?.eventEndDate === "string" ? params.eventEndDate.trim() : ""
   const startTime = typeof params?.startTime === "string" ? params.startTime.trim() : ""
+  const setupDate = typeof params?.setupDate === "string" ? params.setupDate.trim() : ""
+  const setupTime = typeof params?.setupTime === "string" ? params.setupTime.trim() : ""
   const durationHours = Number.isFinite(params?.durationHours) ? Math.trunc(params.durationHours) : 0
   const distanceKm = Number.isFinite(params?.distanceKm) ? Number(params.distanceKm) : 0
 
-  if (!eventDate || !startTime || durationHours <= 0) {
+  const isMultiDay = eventDaysMode === "multi"
+  const isReady = isMultiDay
+    ? Boolean(eventDate && startTime && eventEndDate && setupDate && setupTime && durationHours > 0)
+    : Boolean(eventDate && startTime && durationHours > 0)
+
+  if (!isReady) {
     return { availabilityByEquipmentId: {} as Record<string, { total: number; reserved: number; available: number }>, error: null as string | null }
   }
 
   const supabase = createSupabaseServerClient()
-  const { data, error } = await supabase.rpc("get_equipment_availability", {
+  const { data, error } = await supabase.rpc("get_equipment_availability_v2", {
     event_date: eventDate,
     start_time: startTime,
     duration_hours: durationHours,
-    distance_km: distanceKm
+    distance_km: distanceKm,
+    is_multi_day: isMultiDay,
+    event_end_date: eventEndDate || null,
+    setup_date: setupDate || null,
+    setup_time: setupTime || null
   })
 
   if (error) {
     const msg = error.message.toLowerCase()
-    if (msg.includes("get_equipment_availability") && msg.includes("does not exist")) {
+    if (msg.includes("get_equipment_availability_v2") && msg.includes("does not exist")) {
       return {
         availabilityByEquipmentId: {} as Record<
           string,
           { total: number; reserved: number; available: number }
         >,
-        error: "Disponibilidade ainda não está configurada no banco. Execute a migration 0014_equipments_inventory_and_availability.sql no Supabase."
+        error:
+          "Disponibilidade ainda não está configurada no banco. Execute as migrations 0014_equipments_inventory_and_availability.sql e 0015_multi_day_quotes_and_availability.sql no Supabase."
       }
     }
     return { availabilityByEquipmentId: {} as Record<string, { total: number; reserved: number; available: number }>, error: error.message }
@@ -265,13 +286,26 @@ export async function createReservation(
   const state = getString(formData, "state")
   const postalCode = getString(formData, "postal_code")
   const notes = getString(formData, "notes")
+  const eventDaysMode = getString(formData, "event_days_mode")
   const eventDate = getString(formData, "event_date") || null
+  const eventEndDate = getString(formData, "event_end_date") || null
   const startTime = getString(formData, "start_time") || null
+  const setupDate = getString(formData, "setup_date") || null
+  const setupTime = getString(formData, "setup_time") || null
 
   const destinationCep = normalizeCep(postalCode)
+  const isMultiDay = eventDaysMode === "multi"
   if (!eventName) return { error: "Informe o nome do evento." }
-  if (!eventDate) return { error: "Informe a data do evento." }
-  if (!startTime) return { error: "Informe o horário do evento." }
+  if (!eventDaysMode) return { error: "Selecione se o evento é de 1 dia ou mais dias." }
+  if (!eventDate) return { error: isMultiDay ? "Informe a data de início do evento." : "Informe a data do evento." }
+  if (!startTime) return { error: "Informe o horário de início do evento." }
+  if (isMultiDay) {
+    if (!eventEndDate) return { error: "Informe a data final do evento." }
+    if (eventEndDate < eventDate) return { error: "A data final não pode ser anterior à data de início." }
+    if (!setupDate) return { error: "Informe a data de montagem." }
+    if (!setupTime) return { error: "Informe o horário de montagem." }
+    if (setupDate > eventEndDate) return { error: "A data de montagem não pode ser após a data final do evento." }
+  }
   if (!destinationCep) return { error: "Informe um CEP válido." }
   if (!addressNumber) return { error: "Informe o número do endereço." }
   if (![4, 5, 6, 7, 8].includes(durationHours)) return { error: "Selecione uma duração entre 4 e 8 horas." }
@@ -283,19 +317,23 @@ export async function createReservation(
           .distanceKm ?? distanceFromForm
       : distanceFromForm
 
-  const availabilityRes = await supabase.rpc("get_equipment_availability", {
+  const availabilityRes = await supabase.rpc("get_equipment_availability_v2", {
     event_date: eventDate,
     start_time: startTime,
     duration_hours: durationHours,
-    distance_km: distanceKm
+    distance_km: distanceKm,
+    is_multi_day: isMultiDay,
+    event_end_date: eventEndDate,
+    setup_date: setupDate,
+    setup_time: setupTime
   })
 
   if (availabilityRes.error) {
     const msg = availabilityRes.error.message.toLowerCase()
-    if (msg.includes("get_equipment_availability") && msg.includes("does not exist")) {
+    if (msg.includes("get_equipment_availability_v2") && msg.includes("does not exist")) {
       return {
         error:
-          "Disponibilidade ainda não está configurada no banco. Execute a migration 0014_equipments_inventory_and_availability.sql no Supabase."
+          "Disponibilidade ainda não está configurada no banco. Execute as migrations 0014_equipments_inventory_and_availability.sql e 0015_multi_day_quotes_and_availability.sql no Supabase."
       }
     }
     return { error: `Falha ao checar disponibilidade: ${availabilityRes.error.message}` }
@@ -398,6 +436,10 @@ export async function createReservation(
     .insert({
       user_id: user.id,
       event_date: eventDate,
+      is_multi_day: isMultiDay,
+      event_end_date: isMultiDay ? eventEndDate : null,
+      setup_date: isMultiDay ? setupDate : null,
+      setup_time: isMultiDay ? setupTime : null,
       start_time: startTime,
       duration_hours: durationHours,
       distance_km: distanceKm,
