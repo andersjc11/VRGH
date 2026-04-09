@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useFormState, useFormStatus } from "react-dom"
 import type { Equipment, EquipmentPrice, PaymentPlanType, PricingConfig, QuoteItemInput } from "@/lib/domain/types"
-import { calcQuoteBreakdown } from "@/lib/pricing/calc"
+import { calcQuoteBreakdown, formatBRLFromCents } from "@/lib/pricing/calc"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
