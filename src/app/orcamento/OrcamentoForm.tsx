@@ -404,7 +404,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                         checked={eventDaysMode === "single"}
                         onChange={() => setEventDaysMode("single")}
                         required
-                        disabled={!lockByCep || isDistancePending || (distanceError && distanceKm <= 0)}
+                        disabled={!lockByCep || isDistancePending || Boolean(distanceError && distanceKm <= 0)}
                       />
                       1 dia/hora
                     </label>
@@ -415,7 +415,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                         value="multi"
                         checked={eventDaysMode === "multi"}
                         onChange={() => setEventDaysMode("multi")}
-                        disabled={!lockByCep || isDistancePending || (distanceError && distanceKm <= 0)}
+                        disabled={!lockByCep || isDistancePending || Boolean(distanceError && distanceKm <= 0)}
                       />
                       Mais de 1 dia
                     </label>
