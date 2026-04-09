@@ -330,7 +330,7 @@ export async function createReservation(
   if (distanceKm > 150) {
     return {
       error:
-        "Para distâncias acima de 150km, o orçamento é personalizado. Fale com a gente no WhatsApp: https://wa.me/5512991568840"
+        "Para eventos fora da nossa localidade, o orçamento é personalizado. Chame no WhatsApp e solicite o seu: https://wa.me/5512991568840"
     }
   }
 

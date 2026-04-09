@@ -61,7 +61,6 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const [availabilityError, setAvailabilityError] = React.useState<string | null>(null)
   const [isAvailabilityPending, startAvailabilityTransition] = React.useTransition()
   const cepAbortRef = React.useRef<AbortController | null>(null)
-  const whatsappOpenedRef = React.useRef(false)
 
   function normalizeCep(value: string) {
     return value.replace(/\D/g, "").slice(0, 8)
@@ -140,17 +139,6 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   )
 
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
-
-  React.useEffect(() => {
-    if (!isTooFar) {
-      whatsappOpenedRef.current = false
-      return
-    }
-    if (whatsappOpenedRef.current) return
-    whatsappOpenedRef.current = true
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer")
-    setEventDaysMode("")
-  }, [isTooFar, whatsappUrl])
 
   React.useEffect(() => {
     const isReady =
@@ -261,7 +249,6 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                   setPostalCode(next)
                   setDistanceError(null)
                   setCepError(null)
-                  whatsappOpenedRef.current = false
                   if (next.length < 8) {
                     setAddressLine1("")
                     setNeighborhood("")
@@ -327,7 +314,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
             {isTooFar ? (
               <div className="sm:col-span-2">
                 <p className="text-sm text-zinc-300">
-                  Para eventos com distância maior que 150km, fazemos um orçamento personalizado via WhatsApp.
+                  Para eventos fora da nossa localidade, o orçamento é personalizado. Chame no WhatsApp e solicite o seu.
                 </p>
                 <div className="mt-3">
                   <a
