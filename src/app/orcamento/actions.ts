@@ -327,6 +327,13 @@ export async function createReservation(
           .distanceKm ?? distanceFromForm
       : distanceFromForm
 
+  if (distanceKm > 150) {
+    return {
+      error:
+        "Para distâncias acima de 150km, o orçamento é personalizado. Fale com a gente no WhatsApp: https://wa.me/5512991568840"
+    }
+  }
+
   const pricingProfile =
     distanceKm > 70
       ? ("day_block" as const)

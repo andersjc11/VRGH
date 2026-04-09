@@ -61,6 +61,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const [availabilityError, setAvailabilityError] = React.useState<string | null>(null)
   const [isAvailabilityPending, startAvailabilityTransition] = React.useTransition()
   const cepAbortRef = React.useRef<AbortController | null>(null)
+  const whatsappOpenedRef = React.useRef(false)
 
   function normalizeCep(value: string) {
     return value.replace(/\D/g, "").slice(0, 8)
@@ -85,6 +86,15 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   }
 
   const lockByCep = postalCode.length === 8 && !cepError
+  const isTooFar = lockByCep && !isDistancePending && distanceKm > 150
+  const whatsappUrl = React.useMemo(() => {
+    const phone = "5512991568840"
+    const distanceText = Number.isFinite(distanceKm) ? `${Math.round(distanceKm)}km` : ""
+    const text = encodeURIComponent(
+      `Olá! Preciso de um orçamento personalizado. CEP do evento: ${postalCode}. Distância aproximada: ${distanceText}.`
+    )
+    return `https://wa.me/${phone}?text=${text}`
+  }, [postalCode, distanceKm])
 
   const items: QuoteItemInput[] = React.useMemo(
     () =>
@@ -130,6 +140,17 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   )
 
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
+
+  React.useEffect(() => {
+    if (!isTooFar) {
+      whatsappOpenedRef.current = false
+      return
+    }
+    if (whatsappOpenedRef.current) return
+    whatsappOpenedRef.current = true
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer")
+    setEventDaysMode("")
+  }, [isTooFar, whatsappUrl])
 
   React.useEffect(() => {
     const isReady =
@@ -231,31 +252,178 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
           <p className="text-sm text-zinc-400">1. Dados do evento</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <p className="text-sm text-zinc-200">Qual o período de locação?</p>
-              <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 text-sm text-zinc-300">
-                  <input
-                    type="radio"
-                    name="event_days_mode"
-                    value="single"
-                    checked={eventDaysMode === "single"}
-                    onChange={() => setEventDaysMode("single")}
+              <label className="text-sm text-zinc-200">CEP do evento</label>
+              <Input
+                name="postal_code"
+                value={postalCode}
+                onChange={(e) => {
+                  const next = normalizeCep(e.target.value)
+                  setPostalCode(next)
+                  setDistanceError(null)
+                  setCepError(null)
+                  whatsappOpenedRef.current = false
+                  if (next.length < 8) {
+                    setAddressLine1("")
+                    setNeighborhood("")
+                    setCity("")
+                    setStateUf("")
+                    setDistanceKm(10)
+                  }
+                  if (next.length === 8) {
+                    startDistanceTransition(async () => {
+                      const res = await calcDistanceKmFromCep(next)
+                      if (res.error) {
+                        setDistanceError(res.error)
+                        setDistanceKm(0)
+                        return
+                      }
+                      if (typeof res.distanceKm === "number") {
+                        setDistanceKm(res.distanceKm)
+                        if (res.distanceKm > 150) setEventDaysMode("")
+                      }
+                    })
+                    ;(async () => {
+                      try {
+                        const addr = await fetchAddressByCep(next)
+                        setAddressLine1(addr.street || "")
+                        setNeighborhood(addr.neighborhood || "")
+                        setCity(addr.city || "")
+                        setStateUf(addr.uf || "")
+                      } catch (err) {
+                        if ((err as any)?.name === "AbortError") return
+                        setCepError(err instanceof Error ? err.message : "Falha ao buscar endereço.")
+                      }
+                    })()
+                  }
+                }}
+                required
+              />
+              {cepError ? <p className="text-xs text-red-300">{cepError}</p> : null}
+              <p className="text-xs text-zinc-400">
+                {isDistancePending
+                  ? "Calculando a distância pelo CEP..."
+                  : distanceError
+                    ? "Não foi possível calcular automaticamente. Informe a distância manualmente."
+                    : lockByCep
+                      ? "Distância calculada automaticamente pelo CEP."
+                      : "Informe o CEP para continuar."}
+              </p>
+              {distanceError && lockByCep && !isDistancePending ? (
+                <div className="mt-2 space-y-2">
+                  <label className="text-sm text-zinc-200">Distância (km)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={distanceKm}
+                    onChange={(e) => setDistanceKm(Number(e.target.value))}
                     required
                   />
-                  1 dia/hora
-                </label>
-                <label className="flex items-center gap-2 text-sm text-zinc-300">
-                  <input
-                    type="radio"
-                    name="event_days_mode"
-                    value="multi"
-                    checked={eventDaysMode === "multi"}
-                    onChange={() => setEventDaysMode("multi")}
-                  />
-                  Mais de 1 dia
-                </label>
-              </div>
+                  <p className="text-xs text-red-300">{distanceError}</p>
+                </div>
+              ) : null}
             </div>
+
+            {isTooFar ? (
+              <div className="sm:col-span-2">
+                <p className="text-sm text-zinc-300">
+                  Para eventos com distância maior que 150km, fazemos um orçamento personalizado via WhatsApp.
+                </p>
+                <div className="mt-3">
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-10 items-center justify-center rounded-lg bg-green-600 px-4 text-sm font-medium text-white hover:bg-green-500"
+                  >
+                    Falar no WhatsApp
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="sm:col-span-2 grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm text-zinc-200">Rua</label>
+                    <Input
+                      name="address_line1"
+                      placeholder="Ex: Avenida Brasil"
+                      value={addressLine1}
+                      onChange={(e) => setAddressLine1(e.target.value)}
+                      readOnly={lockByCep}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-zinc-200">Número</label>
+                    <Input
+                      name="address_number"
+                      inputMode="numeric"
+                      placeholder="Ex: 123"
+                      value={addressNumber}
+                      onChange={(e) => setAddressNumber(e.target.value)}
+                      required={lockByCep}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Bairro</label>
+                  <Input
+                    name="neighborhood"
+                    placeholder="Ex: Centro"
+                    value={neighborhood}
+                    onChange={(e) => setNeighborhood(e.target.value)}
+                    readOnly={lockByCep}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Complemento</label>
+                  <Input name="address_line2" placeholder="Apto, bloco, referência" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Cidade</label>
+                  <Input name="city" value={city} onChange={(e) => setCity(e.target.value)} readOnly={lockByCep} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">UF</label>
+                  <Input
+                    name="state"
+                    maxLength={2}
+                    value={stateUf}
+                    onChange={(e) => setStateUf(e.target.value)}
+                    readOnly={lockByCep}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <p className="text-sm text-zinc-200">Qual o período de locação?</p>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-sm text-zinc-300">
+                      <input
+                        type="radio"
+                        name="event_days_mode"
+                        value="single"
+                        checked={eventDaysMode === "single"}
+                        onChange={() => setEventDaysMode("single")}
+                        required
+                        disabled={!lockByCep || isDistancePending || (distanceError && distanceKm <= 0)}
+                      />
+                      1 dia/hora
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-zinc-300">
+                      <input
+                        type="radio"
+                        name="event_days_mode"
+                        value="multi"
+                        checked={eventDaysMode === "multi"}
+                        onChange={() => setEventDaysMode("multi")}
+                        disabled={!lockByCep || isDistancePending || (distanceError && distanceKm <= 0)}
+                      />
+                      Mais de 1 dia
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
+
             {eventDaysMode ? (
               <>
                 <div className="space-y-2 sm:col-span-2">
@@ -341,107 +509,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                   <label className="text-sm text-zinc-200">Local (nome do salão)</label>
                   <Input name="venue_name" placeholder="Ex: Salão de festas" />
                 </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm text-zinc-200">CEP</label>
-                  <Input
-                    name="postal_code"
-                    value={postalCode}
-                    onChange={(e) => {
-                      const next = normalizeCep(e.target.value)
-                      setPostalCode(next)
-                      setDistanceError(null)
-                      setCepError(null)
-                      if (next.length < 8) {
-                        setAddressLine1("")
-                        setNeighborhood("")
-                        setCity("")
-                        setStateUf("")
-                      }
-                      if (next.length === 8) {
-                        startDistanceTransition(async () => {
-                          const res = await calcDistanceKmFromCep(next)
-                          if (res.error) {
-                            setDistanceError(res.error)
-                            return
-                          }
-                          if (typeof res.distanceKm === "number") {
-                            setDistanceKm(res.distanceKm)
-                          }
-                        })
-                        ;(async () => {
-                          try {
-                            const addr = await fetchAddressByCep(next)
-                            setAddressLine1(addr.street || "")
-                            setNeighborhood(addr.neighborhood || "")
-                            setCity(addr.city || "")
-                            setStateUf(addr.uf || "")
-                          } catch (err) {
-                            if ((err as any)?.name === "AbortError") return
-                            setCepError(err instanceof Error ? err.message : "Falha ao buscar endereço.")
-                          }
-                        })()
-                      }
-                    }}
-                    required
-                  />
-                  {cepError ? <p className="text-xs text-red-300">{cepError}</p> : null}
-                </div>
-                <div className="sm:col-span-2 grid gap-4 sm:grid-cols-3">
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm text-zinc-200">Rua</label>
-                    <Input
-                      name="address_line1"
-                      placeholder="Ex: Avenida Brasil"
-                      value={addressLine1}
-                      onChange={(e) => setAddressLine1(e.target.value)}
-                      readOnly={lockByCep}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-zinc-200">Número</label>
-                    <Input
-                      name="address_number"
-                      inputMode="numeric"
-                      placeholder="Ex: 123"
-                      value={addressNumber}
-                      onChange={(e) => setAddressNumber(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200">Bairro</label>
-                  <Input
-                    name="neighborhood"
-                    placeholder="Ex: Centro"
-                    value={neighborhood}
-                    onChange={(e) => setNeighborhood(e.target.value)}
-                    readOnly={lockByCep}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200">Complemento</label>
-                  <Input name="address_line2" placeholder="Apto, bloco, referência" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200">Cidade</label>
-                  <Input
-                    name="city"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    readOnly={lockByCep}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200">UF</label>
-                  <Input
-                    name="state"
-                    maxLength={2}
-                    value={stateUf}
-                    onChange={(e) => setStateUf(e.target.value)}
-                    readOnly={lockByCep}
-                  />
-                </div>
+
                 <div className="space-y-2 sm:col-span-2">
                   <label className="text-sm text-zinc-200">Observações</label>
                   <textarea
@@ -453,7 +521,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
               </>
             ) : (
               <div className="sm:col-span-2">
-                <p className="text-sm text-zinc-300">Selecione acima para continuar.</p>
+                <p className="text-sm text-zinc-300">Informe o CEP do evento e selecione o período para continuar.</p>
               </div>
             )}
           </div>
