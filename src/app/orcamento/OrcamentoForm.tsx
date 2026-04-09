@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useFormState, useFormStatus } from "react-dom"
 import type { Equipment, EquipmentPrice, PaymentPlanType, PricingConfig, QuoteItemInput } from "@/lib/domain/types"
-import { calcQuoteBreakdown, formatBRLFromCents } from "@/lib/pricing/calc"
+import { calcQuoteBreakdown } from "@/lib/pricing/calc"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
@@ -614,11 +614,6 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                   </p>
                 ) : (
                   filteredEquipments.map((eq) => {
-                    const price = priceByEquipmentId[eq.id]
-                    const totalQty =
-                      typeof (eq as any)?.quantity_total === "number"
-                        ? (eq as any).quantity_total
-                        : 1
                     const availability = availabilityByEquipmentId[eq.id]
                     const availableQty = availability ? availability.available : 0
                     const qtyMax = availableQty
@@ -637,13 +632,6 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                               loading="lazy"
                             />
                           ) : null}
-                          <p className="text-sm text-zinc-400">
-                            {eq.category ?? "Equipamento"} •{" "}
-                            {price
-                              ? `${formatBRLFromCents(price.price_per_hour_cents)}/h (mín. ${price.min_hours}h)`
-                              : "Preço indisponível"}
-                            {` • Disponível: ${availableQty}/${totalQty}`}
-                          </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-sm text-zinc-300">Qtd</label>
