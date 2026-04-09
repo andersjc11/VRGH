@@ -40,6 +40,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const [paymentPlan, setPaymentPlan] = React.useState<PaymentPlanType>("pix")
   const [qtyById, setQtyById] = React.useState<Record<string, string>>({})
   const [eventDaysMode, setEventDaysMode] = React.useState<"" | "single" | "multi">("")
+  const [rentalChargeMode, setRentalChargeMode] = React.useState<"hourly" | "daily">("hourly")
   const [eventDate, setEventDate] = React.useState("")
   const [eventEndDate, setEventEndDate] = React.useState("")
   const [startTime, setStartTime] = React.useState("")
@@ -96,6 +97,23 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
     [qtyById]
   )
 
+  const daysCount = React.useMemo(() => {
+    if (eventDaysMode !== "multi") return 1
+    if (!eventDate || !eventEndDate) return 1
+    const start = new Date(`${eventDate}T00:00:00`)
+    const end = new Date(`${eventEndDate}T00:00:00`)
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return 1
+    const diffDays = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1
+    return Math.max(1, Math.min(366, diffDays))
+  }, [eventDaysMode, eventDate, eventEndDate])
+
+  const pricingProfile = React.useMemo(() => {
+    if (distanceKm > 70) return "day_block" as const
+    if (eventDaysMode === "multi") return "daily" as const
+    if (eventDaysMode === "single" && rentalChargeMode === "daily") return "daily" as const
+    return "hourly" as const
+  }, [distanceKm, eventDaysMode, rentalChargeMode])
+
   const breakdown = React.useMemo(
     () =>
       calcQuoteBreakdown({
@@ -103,10 +121,12 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
         durationHours,
         distanceKm,
         paymentPlan,
+        pricingProfile,
+        daysCount,
         priceByEquipmentId,
         config
       }),
-    [items, durationHours, distanceKm, paymentPlan, priceByEquipmentId, config]
+    [items, durationHours, distanceKm, paymentPlan, pricingProfile, daysCount, priceByEquipmentId, config]
   )
 
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
@@ -153,6 +173,23 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
       setSetupTime("")
     }
   }, [eventDaysMode])
+
+  React.useEffect(() => {
+    if (!eventDaysMode) {
+      setRentalChargeMode("hourly")
+      return
+    }
+    if (eventDaysMode === "multi") {
+      setRentalChargeMode("daily")
+      return
+    }
+  }, [eventDaysMode])
+
+  React.useEffect(() => {
+    if (pricingProfile !== "hourly") {
+      setDurationHours(8)
+    }
+  }, [pricingProfile])
 
   React.useEffect(() => {
     const hasAny = Object.keys(availabilityByEquipmentId).length > 0
@@ -426,11 +463,40 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
             <Card>
               <p className="text-sm text-zinc-400">2. Período e deslocamento</p>
               <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                {eventDaysMode === "single" ? (
+                  <div className="space-y-2 sm:col-span-3">
+                    <label className="text-sm text-zinc-200">Tipo de locação</label>
+                    <div className="flex flex-wrap gap-4">
+                      <label className="flex items-center gap-2 text-sm text-zinc-300">
+                        <input
+                          type="radio"
+                          name="rental_charge_mode_ui"
+                          value="hourly"
+                          checked={rentalChargeMode === "hourly"}
+                          onChange={() => setRentalChargeMode("hourly")}
+                          disabled={pricingProfile === "day_block"}
+                        />
+                        Por hora
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-zinc-300">
+                        <input
+                          type="radio"
+                          name="rental_charge_mode_ui"
+                          value="daily"
+                          checked={rentalChargeMode === "daily" || pricingProfile === "day_block"}
+                          onChange={() => setRentalChargeMode("daily")}
+                        />
+                        Por diária (8h)
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="space-y-2">
                   <label className="text-sm text-zinc-200">Duração (horas)</label>
                   <select
                     value={durationHours}
                     onChange={(e) => setDurationHours(Number(e.target.value))}
+                    disabled={pricingProfile !== "hourly"}
                     className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value={4}>4</option>
@@ -608,6 +674,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
         <input type="hidden" name="duration_hours" value={String(durationHours)} />
         <input type="hidden" name="distance_km" value={String(distanceKm)} />
         <input type="hidden" name="payment_plan" value={paymentPlan} />
+        <input type="hidden" name="rental_charge_mode" value={rentalChargeMode} />
 
         {eventDaysMode ? (
           <>

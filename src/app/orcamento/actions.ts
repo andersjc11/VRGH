@@ -10,6 +10,12 @@ export type CreateReservationState = {
   error?: string
 }
 
+function isMissingColumnError(err: unknown, column: string) {
+  const message = (err as any)?.message
+  if (typeof message !== "string") return false
+  return message.toLowerCase().includes(`column "${column.toLowerCase()}" does not exist`)
+}
+
 function normalizeCep(value: string) {
   const digits = value.replace(/\D/g, "")
   return digits.length === 8 ? digits : ""
@@ -273,7 +279,7 @@ export async function createReservation(
   const items = parseItems(itemsJson)
   if (items.length === 0) return { error: "Selecione pelo menos 1 item." }
 
-  const durationHours = getInt(formData, "duration_hours")
+  let durationHours = getInt(formData, "duration_hours")
   const paymentPlan = getString(formData, "payment_plan") as PaymentPlanType
 
   const eventName = getString(formData, "event_name")
@@ -287,6 +293,11 @@ export async function createReservation(
   const postalCode = getString(formData, "postal_code")
   const notes = getString(formData, "notes")
   const eventDaysMode = getString(formData, "event_days_mode")
+  const rentalChargeModeRaw = getString(formData, "rental_charge_mode")
+  const rentalChargeMode =
+    rentalChargeModeRaw === "daily" || rentalChargeModeRaw === "hourly"
+      ? rentalChargeModeRaw
+      : "hourly"
   const eventDate = getString(formData, "event_date") || null
   const eventEndDate = getString(formData, "event_end_date") || null
   const startTime = getString(formData, "start_time") || null
@@ -308,7 +319,6 @@ export async function createReservation(
   }
   if (!destinationCep) return { error: "Informe um CEP válido." }
   if (!addressNumber) return { error: "Informe o número do endereço." }
-  if (![4, 5, 6, 7, 8].includes(durationHours)) return { error: "Selecione uma duração entre 4 e 8 horas." }
 
   const distanceFromForm = Math.max(0, getNumber(formData, "distance_km"))
   const distanceKm =
@@ -316,6 +326,28 @@ export async function createReservation(
       ? (await getDistanceKmFromGoogle({ originCep: "12305800", destinationCep: destinationCep }))
           .distanceKm ?? distanceFromForm
       : distanceFromForm
+
+  const pricingProfile =
+    distanceKm > 70
+      ? ("day_block" as const)
+      : isMultiDay || rentalChargeMode === "daily"
+        ? ("daily" as const)
+        : ("hourly" as const)
+
+  if (pricingProfile === "hourly") {
+    if (![4, 5, 6, 7, 8].includes(durationHours)) return { error: "Selecione uma duração entre 4 e 8 horas." }
+  } else {
+    durationHours = 8
+  }
+
+  const daysCount = (() => {
+    if (!isMultiDay || !eventDate || !eventEndDate) return 1
+    const start = new Date(`${eventDate}T00:00:00`)
+    const end = new Date(`${eventEndDate}T00:00:00`)
+    if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return 1
+    const diffDays = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1
+    return Math.max(1, Math.min(366, diffDays))
+  })()
 
   const availabilityRes = await supabase.rpc("get_equipment_availability_v2", {
     event_date: eventDate,
@@ -378,13 +410,26 @@ export async function createReservation(
     return { error: `Equipamentos indisponíveis para esse horário: ${details}` }
   }
 
-  const { data: pricesData } = await supabase
+  const pricesResWithProfiles = await supabase
     .from("equipment_prices")
-    .select("equipment_id,price_per_hour_cents,min_hours")
+    .select("equipment_id,price_per_hour_cents,min_hours,price_per_day_cents,price_per_day_block_cents")
     .in(
       "equipment_id",
       items.map((i) => i.equipmentId)
     )
+
+  const pricesRes =
+    pricesResWithProfiles.error && isMissingColumnError(pricesResWithProfiles.error, "price_per_day_cents")
+      ? await supabase
+          .from("equipment_prices")
+          .select("equipment_id,price_per_hour_cents,min_hours")
+          .in(
+            "equipment_id",
+            items.map((i) => i.equipmentId)
+          )
+      : pricesResWithProfiles
+
+  const pricesData = pricesRes.data
 
   const priceByEquipmentId = Object.fromEntries(
     (pricesData ?? []).map((p: any) => [
@@ -392,7 +437,10 @@ export async function createReservation(
       {
         equipment_id: p.equipment_id,
         price_per_hour_cents: p.price_per_hour_cents,
-        min_hours: p.min_hours
+        min_hours: p.min_hours,
+        price_per_day_cents: typeof p.price_per_day_cents === "number" ? p.price_per_day_cents : null,
+        price_per_day_block_cents:
+          typeof p.price_per_day_block_cents === "number" ? p.price_per_day_block_cents : null
       }
     ])
   )
@@ -427,6 +475,8 @@ export async function createReservation(
     durationHours,
     distanceKm,
     paymentPlan,
+    pricingProfile,
+    daysCount,
     priceByEquipmentId,
     config
   })
@@ -457,9 +507,23 @@ export async function createReservation(
 
   const quoteItemsRows = items.map((i) => {
     const price = priceByEquipmentId[i.equipmentId]
-    const unit = price?.price_per_hour_cents ?? 0
+    const baseHoursPerDay = 8
+    const dayCents =
+      pricingProfile === "day_block"
+        ? price?.price_per_day_block_cents ?? price?.price_per_day_cents
+        : pricingProfile === "daily"
+          ? price?.price_per_day_cents
+          : null
+    const effectiveDayCents =
+      typeof dayCents === "number" && Number.isFinite(dayCents) && dayCents >= 0
+        ? Math.trunc(dayCents)
+        : (price?.price_per_hour_cents ?? 0) * baseHoursPerDay
     const billableHours = Math.max(durationHours, price?.min_hours ?? 1)
-    const lineTotal = unit * billableHours * i.quantity
+    const unit = pricingProfile === "hourly" ? (price?.price_per_hour_cents ?? 0) : effectiveDayCents
+    const lineTotal =
+      pricingProfile === "hourly"
+        ? unit * billableHours * i.quantity
+        : unit * daysCount * i.quantity
     return {
       quote_id: quoteId,
       equipment_id: i.equipmentId,

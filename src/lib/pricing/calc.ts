@@ -14,15 +14,32 @@ function clampInt(value: number, min: number, max: number) {
 export function calcSubtotalCents(params: {
   items: QuoteItemInput[]
   durationHours: number
+  pricingProfile?: "hourly" | "daily" | "day_block"
+  daysCount?: number
   priceByEquipmentId: Record<string, EquipmentPrice>
 }) {
   const duration = clampInt(params.durationHours, 1, 24 * 7)
+  const days = clampInt(params.daysCount ?? 1, 1, 366)
+  const baseHoursPerDay = 8
 
   return params.items.reduce((acc, item) => {
     const price = params.priceByEquipmentId[item.equipmentId]
     if (!price) return acc
     const qty = clampInt(item.quantity, 0, 999)
     if (qty === 0) return acc
+    const profile = params.pricingProfile ?? "hourly"
+    if (profile === "daily" || profile === "day_block") {
+      const dayCents =
+        profile === "day_block"
+          ? price.price_per_day_block_cents ?? price.price_per_day_cents
+          : price.price_per_day_cents
+      const effectiveDayCents =
+        typeof dayCents === "number" && Number.isFinite(dayCents) && dayCents >= 0
+          ? Math.trunc(dayCents)
+          : price.price_per_hour_cents * baseHoursPerDay
+      return acc + effectiveDayCents * days * qty
+    }
+
     const billableHours = Math.max(duration, price.min_hours)
     return acc + price.price_per_hour_cents * billableHours * qty
   }, 0)
@@ -54,12 +71,16 @@ export function calcQuoteBreakdown(params: {
   durationHours: number
   distanceKm: number
   paymentPlan: PaymentPlanType
+  pricingProfile?: "hourly" | "daily" | "day_block"
+  daysCount?: number
   priceByEquipmentId: Record<string, EquipmentPrice>
   config: PricingConfig
 }): QuoteBreakdown {
   const subtotal = calcSubtotalCents({
     items: params.items,
     durationHours: params.durationHours,
+    pricingProfile: params.pricingProfile,
+    daysCount: params.daysCount,
     priceByEquipmentId: params.priceByEquipmentId
   })
   const displacement = calcDisplacementCents({
@@ -84,4 +105,3 @@ export function formatBRLFromCents(cents: number) {
   const value = (Number.isFinite(cents) ? cents : 0) / 100
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 }
-

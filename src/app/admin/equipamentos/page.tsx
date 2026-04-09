@@ -157,11 +157,17 @@ async function createEquipment(formData: FormData) {
     const quantityTotalRaw = getInt(formData, "quantity_total", 1)
     const quantityTotal = Math.max(quantityTotalRaw, 0)
     const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
+    const dailyPriceRaw = getString(formData, "price_per_day")
+    const dailyPriceCents = dailyPriceRaw ? parseMoneyToCents(dailyPriceRaw) : null
+    const dayBlockPriceRaw = getString(formData, "price_per_day_block")
+    const dayBlockPriceCents = dayBlockPriceRaw ? parseMoneyToCents(dayBlockPriceRaw) : null
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
 
     if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
     if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
+    if (dailyPriceRaw && dailyPriceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20di%C3%A1ria%20inv%C3%A1lido")
+    if (dayBlockPriceRaw && dayBlockPriceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20di%C3%A1ria%20%28agenda%20bloqueada%29%20inv%C3%A1lido")
 
     const imageUrl =
       imageFile instanceof File && imageFile.size > 0
@@ -214,12 +220,43 @@ async function createEquipment(formData: FormData) {
             {
               equipment_id: equipmentId,
               price_per_hour_cents: priceCents,
-              min_hours: minHours
+              min_hours: minHours,
+              price_per_day_cents: dailyPriceCents,
+              price_per_day_block_cents: dayBlockPriceCents
             },
             { onConflict: "equipment_id" }
           )
 
         if (priceRes.error) {
+          if (
+            isMissingColumnError(priceRes.error, "price_per_day_cents") ||
+            isMissingColumnError(priceRes.error, "price_per_day_block_cents")
+          ) {
+            const fallbackPriceRes = await supabase
+              .from("equipment_prices")
+              .upsert(
+                {
+                  equipment_id: equipmentId,
+                  price_per_hour_cents: priceCents,
+                  min_hours: minHours
+                },
+                { onConflict: "equipment_id" }
+              )
+
+            if (fallbackPriceRes.error) {
+              redirect(
+                `/admin/equipamentos?error=${encodeURIComponent(
+                  `Falha ao salvar preço: ${fallbackPriceRes.error.message}`
+                )}`
+              )
+            }
+
+            redirect(
+              `/admin/equipamentos?ok=created&error=${encodeURIComponent(
+                "Alguns campos de preço ainda não estão disponíveis no banco. Execute as migrations pendentes no Supabase."
+              )}`
+            )
+          }
           redirect(
             `/admin/equipamentos?error=${encodeURIComponent(
               `Falha ao salvar preço: ${priceRes.error.message}`
@@ -248,12 +285,43 @@ async function createEquipment(formData: FormData) {
         {
           equipment_id: equipmentId,
           price_per_hour_cents: priceCents,
-          min_hours: minHours
+          min_hours: minHours,
+          price_per_day_cents: dailyPriceCents,
+          price_per_day_block_cents: dayBlockPriceCents
         },
         { onConflict: "equipment_id" }
       )
 
     if (priceRes.error) {
+      if (
+        isMissingColumnError(priceRes.error, "price_per_day_cents") ||
+        isMissingColumnError(priceRes.error, "price_per_day_block_cents")
+      ) {
+        const fallbackPriceRes = await supabase
+          .from("equipment_prices")
+          .upsert(
+            {
+              equipment_id: equipmentId,
+              price_per_hour_cents: priceCents,
+              min_hours: minHours
+            },
+            { onConflict: "equipment_id" }
+          )
+
+        if (fallbackPriceRes.error) {
+          redirect(
+            `/admin/equipamentos?error=${encodeURIComponent(
+              `Falha ao salvar preço: ${fallbackPriceRes.error.message}`
+            )}`
+          )
+        }
+
+        redirect(
+          `/admin/equipamentos?ok=created&error=${encodeURIComponent(
+            "Alguns campos de preço ainda não estão disponíveis no banco. Execute as migrations pendentes no Supabase."
+          )}`
+        )
+      }
       redirect(
         `/admin/equipamentos?error=${encodeURIComponent(
           `Falha ao salvar preço: ${priceRes.error.message}`
@@ -285,12 +353,18 @@ async function updateEquipment(formData: FormData) {
     const quantityTotalRaw = getInt(formData, "quantity_total", 1)
     const quantityTotal = Math.max(quantityTotalRaw, 0)
     const priceCents = parseMoneyToCents(getString(formData, "price_per_hour"))
+    const dailyPriceRaw = getString(formData, "price_per_day")
+    const dailyPriceCents = dailyPriceRaw ? parseMoneyToCents(dailyPriceRaw) : null
+    const dayBlockPriceRaw = getString(formData, "price_per_day_block")
+    const dayBlockPriceCents = dayBlockPriceRaw ? parseMoneyToCents(dayBlockPriceRaw) : null
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
 
     if (!id) redirect("/admin/equipamentos?error=ID%20inv%C3%A1lido")
     if (!name) redirect("/admin/equipamentos?error=Nome%20%C3%A9%20obrigat%C3%B3rio")
     if (priceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20inv%C3%A1lido")
+    if (dailyPriceRaw && dailyPriceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20di%C3%A1ria%20inv%C3%A1lido")
+    if (dayBlockPriceRaw && dayBlockPriceCents === null) redirect("/admin/equipamentos?error=Pre%C3%A7o%20di%C3%A1ria%20%28agenda%20bloqueada%29%20inv%C3%A1lido")
 
     const imageUrl =
       imageFile instanceof File && imageFile.size > 0
@@ -340,12 +414,43 @@ async function updateEquipment(formData: FormData) {
             {
               equipment_id: id,
               price_per_hour_cents: priceCents,
-              min_hours: minHours
+              min_hours: minHours,
+              price_per_day_cents: dailyPriceCents,
+              price_per_day_block_cents: dayBlockPriceCents
             },
             { onConflict: "equipment_id" }
           )
 
         if (priceRes.error) {
+          if (
+            isMissingColumnError(priceRes.error, "price_per_day_cents") ||
+            isMissingColumnError(priceRes.error, "price_per_day_block_cents")
+          ) {
+            const fallbackPriceRes = await supabase
+              .from("equipment_prices")
+              .upsert(
+                {
+                  equipment_id: id,
+                  price_per_hour_cents: priceCents,
+                  min_hours: minHours
+                },
+                { onConflict: "equipment_id" }
+              )
+
+            if (fallbackPriceRes.error) {
+              redirect(
+                `/admin/equipamentos?error=${encodeURIComponent(
+                  `Falha ao salvar preço: ${fallbackPriceRes.error.message}`
+                )}`
+              )
+            }
+
+            redirect(
+              `/admin/equipamentos?ok=updated&error=${encodeURIComponent(
+                "Alguns campos de preço ainda não estão disponíveis no banco. Execute as migrations pendentes no Supabase."
+              )}`
+            )
+          }
           redirect(
             `/admin/equipamentos?error=${encodeURIComponent(
               `Falha ao salvar preço: ${priceRes.error.message}`
@@ -373,12 +478,43 @@ async function updateEquipment(formData: FormData) {
         {
           equipment_id: id,
           price_per_hour_cents: priceCents,
-          min_hours: minHours
+          min_hours: minHours,
+          price_per_day_cents: dailyPriceCents,
+          price_per_day_block_cents: dayBlockPriceCents
         },
         { onConflict: "equipment_id" }
       )
 
     if (priceRes.error) {
+      if (
+        isMissingColumnError(priceRes.error, "price_per_day_cents") ||
+        isMissingColumnError(priceRes.error, "price_per_day_block_cents")
+      ) {
+        const fallbackPriceRes = await supabase
+          .from("equipment_prices")
+          .upsert(
+            {
+              equipment_id: id,
+              price_per_hour_cents: priceCents,
+              min_hours: minHours
+            },
+            { onConflict: "equipment_id" }
+          )
+
+        if (fallbackPriceRes.error) {
+          redirect(
+            `/admin/equipamentos?error=${encodeURIComponent(
+              `Falha ao salvar preço: ${fallbackPriceRes.error.message}`
+            )}`
+          )
+        }
+
+        redirect(
+          `/admin/equipamentos?ok=updated&error=${encodeURIComponent(
+            "Alguns campos de preço ainda não estão disponíveis no banco. Execute as migrations pendentes no Supabase."
+          )}`
+        )
+      }
       redirect(
         `/admin/equipamentos?error=${encodeURIComponent(
           `Falha ao salvar preço: ${priceRes.error.message}`
@@ -481,10 +617,18 @@ export default async function AdminEquipamentosPage({
           .limit(50)
       : equipmentsResWithVideo
 
-  const pricesRes = await supabase
+  const pricesResWithProfiles = await supabase
     .from("equipment_prices")
-    .select("equipment_id,price_per_hour_cents,min_hours")
+    .select("equipment_id,price_per_hour_cents,min_hours,price_per_day_cents,price_per_day_block_cents")
     .order("created_at", { ascending: false })
+
+  const pricesRes =
+    pricesResWithProfiles.error && isMissingColumnError(pricesResWithProfiles.error, "price_per_day_cents")
+      ? await supabase
+          .from("equipment_prices")
+          .select("equipment_id,price_per_hour_cents,min_hours")
+          .order("created_at", { ascending: false })
+      : pricesResWithProfiles
 
   const priceByEquipmentId = Object.fromEntries(
     (pricesRes.data ?? []).map((p: any) => [
@@ -492,10 +636,21 @@ export default async function AdminEquipamentosPage({
       {
         equipment_id: p.equipment_id,
         price_per_hour_cents: p.price_per_hour_cents,
-        min_hours: p.min_hours
+        min_hours: p.min_hours,
+        price_per_day_cents: typeof p.price_per_day_cents === "number" ? p.price_per_day_cents : null,
+        price_per_day_block_cents:
+          typeof p.price_per_day_block_cents === "number" ? p.price_per_day_block_cents : null
       }
     ])
-  ) as Record<string, { price_per_hour_cents: number; min_hours: number }>
+  ) as Record<
+    string,
+    {
+      price_per_hour_cents: number
+      min_hours: number
+      price_per_day_cents?: number | null
+      price_per_day_block_cents?: number | null
+    }
+  >
 
   const equipments = (equipmentsRes.data ?? []) as any[]
   const ok = searchParams?.ok
@@ -692,6 +847,28 @@ export default async function AdminEquipamentosPage({
                 />
               </div>
               <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_price_day">
+                  Preço por diária (8h) (R$)
+                </label>
+                <Input
+                  id="new_price_day"
+                  name="price_per_day"
+                  type="text"
+                  placeholder="1.200,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-200" htmlFor="new_price_day_block">
+                  Preço diária (agenda bloqueada) (R$)
+                </label>
+                <Input
+                  id="new_price_day_block"
+                  name="price_per_day_block"
+                  type="text"
+                  placeholder="1.500,00"
+                />
+              </div>
+              <div className="space-y-2">
                 <label className="text-sm text-zinc-200" htmlFor="new_min_hours">
                   Mínimo (horas)
                 </label>
@@ -792,6 +969,12 @@ export default async function AdminEquipamentosPage({
                           {typeof price?.price_per_hour_cents === "number"
                             ? ` • R$ ${(price.price_per_hour_cents / 100).toFixed(2).replace(".", ",")}/h`
                             : ""}
+                          {typeof price?.price_per_day_cents === "number"
+                            ? ` • R$ ${(price.price_per_day_cents / 100).toFixed(2).replace(".", ",")}/diária`
+                            : ""}
+                          {typeof price?.price_per_day_block_cents === "number"
+                            ? ` • R$ ${(price.price_per_day_block_cents / 100).toFixed(2).replace(".", ",")}/diária (agenda)`
+                            : ""}
                           {` • Estoque: ${qtyTotal}`}
                           {hasImage ? " • Imagem" : ""}
                           {hasVideo ? " • Vídeo" : ""}
@@ -846,6 +1029,34 @@ export default async function AdminEquipamentosPage({
                             defaultValue={
                               price
                                 ? (price.price_per_hour_cents / 100).toFixed(2).replace(".", ",")
+                                : ""
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`price_day_${e.id}`}>
+                            Preço por diária (8h) (R$)
+                          </label>
+                          <Input
+                            id={`price_day_${e.id}`}
+                            name="price_per_day"
+                            defaultValue={
+                              typeof price?.price_per_day_cents === "number"
+                                ? (price.price_per_day_cents / 100).toFixed(2).replace(".", ",")
+                                : ""
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200" htmlFor={`price_day_block_${e.id}`}>
+                            Preço diária (agenda bloqueada) (R$)
+                          </label>
+                          <Input
+                            id={`price_day_block_${e.id}`}
+                            name="price_per_day_block"
+                            defaultValue={
+                              typeof price?.price_per_day_block_cents === "number"
+                                ? (price.price_per_day_block_cents / 100).toFixed(2).replace(".", ",")
                                 : ""
                             }
                           />

@@ -35,7 +35,7 @@ export default async function OrcamentoPage({
         .order("created_at", { ascending: true }),
       supabase
         .from("equipment_prices")
-        .select("equipment_id,price_per_hour_cents,min_hours")
+        .select("equipment_id,price_per_hour_cents,min_hours,price_per_day_cents,price_per_day_block_cents")
         .order("created_at", { ascending: true }),
       supabase
         .from("pricing_settings")
@@ -58,8 +58,16 @@ export default async function OrcamentoPage({
           .order("created_at", { ascending: true })
       : equipmentsResWithQty
 
+  const pricesResFinal =
+    pricesRes.error && isMissingColumnError(pricesRes.error, "price_per_day_cents")
+      ? await supabase
+          .from("equipment_prices")
+          .select("equipment_id,price_per_hour_cents,min_hours")
+          .order("created_at", { ascending: true })
+      : pricesRes
+
   const equipments = (equipmentsRes.data ?? []) as Equipment[]
-  const prices = (pricesRes.data ?? []) as EquipmentPrice[]
+  const prices = (pricesResFinal.data ?? []) as EquipmentPrice[]
 
   const config: PricingConfig = {
     displacement: {
