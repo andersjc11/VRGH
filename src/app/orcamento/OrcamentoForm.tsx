@@ -194,7 +194,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
           <p className="text-sm text-zinc-400">1. Dados do evento</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <p className="text-sm text-zinc-200">O evento tem mais de um dia?</p>
+              <p className="text-sm text-zinc-200">Qual o período de locação?</p>
               <div className="flex flex-wrap gap-4">
                 <label className="flex items-center gap-2 text-sm text-zinc-300">
                   <input
@@ -205,7 +205,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                     onChange={() => setEventDaysMode("single")}
                     required
                   />
-                  1 dia
+                  1 dia/hora
                 </label>
                 <label className="flex items-center gap-2 text-sm text-zinc-300">
                   <input
