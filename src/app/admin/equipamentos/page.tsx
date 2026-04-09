@@ -162,9 +162,9 @@ async function createEquipment(formData: FormData) {
     const dayBlockPriceRaw = getString(formData, "price_per_day_block")
     const dayBlockPriceCents = dayBlockPriceRaw ? parseMoneyToCents(dayBlockPriceRaw) : null
     const discount2Raw = getString(formData, "discount_2_items_pct")
-    const discount2Pct = discount2Raw ? Number(discount2Raw) : null
+    const discount2Pct = Number(discount2Raw)
     const discount3Raw = getString(formData, "discount_3_items_pct")
-    const discount3Pct = discount3Raw ? Number(discount3Raw) : null
+    const discount3Pct = Number(discount3Raw)
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
 
@@ -376,9 +376,9 @@ async function updateEquipment(formData: FormData) {
     const dayBlockPriceRaw = getString(formData, "price_per_day_block")
     const dayBlockPriceCents = dayBlockPriceRaw ? parseMoneyToCents(dayBlockPriceRaw) : null
     const discount2Raw = getString(formData, "discount_2_items_pct")
-    const discount2Pct = discount2Raw ? Number(discount2Raw) : null
+    const discount2Pct = Number(discount2Raw)
     const discount3Raw = getString(formData, "discount_3_items_pct")
-    const discount3Pct = discount3Raw ? Number(discount3Raw) : null
+    const discount3Pct = Number(discount3Raw)
     const minHoursRaw = Number(getString(formData, "min_hours") || "1")
     const minHours = Number.isFinite(minHoursRaw) ? Math.max(1, Math.trunc(minHoursRaw)) : 1
 
