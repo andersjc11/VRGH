@@ -27,10 +27,10 @@ function calcBundleDiscountCents(params: {
   const distance = Math.max(0, Number(params.distanceKm) || 0)
   if (distance > 30) return 0
   const eligibleItems = params.items.filter((i) => clampInt(i.quantity, 0, 999) > 0)
-  const distinctCount = eligibleItems.length
-  if (distinctCount < 2) return 0
+  const totalQty = eligibleItems.reduce((acc, i) => acc + clampInt(i.quantity, 0, 999), 0)
+  if (totalQty < 2) return 0
 
-  const tier = distinctCount >= 3 ? "3" : "2"
+  const tier = totalQty >= 3 ? "3" : "2"
   const baseHoursPerDay = 8
   const duration = clampInt(params.durationHours, 1, 24 * 7)
   const days = clampInt(params.daysCount, 1, 366)
