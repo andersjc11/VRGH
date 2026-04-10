@@ -1,17 +1,37 @@
 import Link from "next/link"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
 
-export default function HomePage({
+export const dynamic = "force-dynamic"
+
+type EquipmentRow = {
+  id: string
+  name: string
+  description: string | null
+  category: string | null
+  image_url: string | null
+}
+
+export default async function HomePage({
   searchParams
 }: {
   searchParams?: { ref?: string }
 }) {
   const ref = searchParams?.ref
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
+  const equipamentosHref = ref ? `/?ref=${encodeURIComponent(ref)}#equipamentos` : "/#equipamentos"
   const whatsappHref = `https://wa.me/5512991568840?text=${encodeURIComponent(
     "Olá! Quero um orçamento para locação de estrutura gamer."
   )}`
+
+  const supabase = createSupabaseServerClient()
+  const equipmentsRes = await supabase
+    .from("equipments")
+    .select("id,name,description,category,image_url")
+    .eq("active", true)
+    .order("created_at", { ascending: true })
+  const equipments = (equipmentsRes.data ?? []) as EquipmentRow[]
 
   return (
     <div>
@@ -62,7 +82,7 @@ export default function HomePage({
                 size="lg"
                 className="bg-white/10 ring-1 ring-white/15 hover:bg-white/15"
               >
-                <Link href="/equipamentos">Ver equipamentos</Link>
+                <Link href={equipamentosHref}>Ver equipamentos</Link>
               </Button>
             </div>
             </div>
@@ -128,7 +148,7 @@ export default function HomePage({
               </p>
               <div className="pt-4">
                 <Button asChild intent="ghost">
-                  <Link href="/equipamentos">Ver catálogo</Link>
+                  <Link href={equipamentosHref}>Ver catálogo</Link>
                 </Button>
               </div>
             </div>
@@ -158,6 +178,67 @@ export default function HomePage({
                 </p>
               </Card>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="equipamentos" className="border-b border-white/10 scroll-mt-24">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight">Equipamentos</h2>
+            <p className="text-zinc-300">
+              Escolha os itens que mais combinam com seu evento e monte o seu orçamento.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {equipments.length === 0 ? (
+              <>
+                <Card>
+                  <p className="text-sm text-zinc-400">Exemplo</p>
+                  <p className="mt-2 font-semibold">Console + TV 55&quot;</p>
+                  <p className="mt-1 text-sm text-zinc-300">
+                    Ideal para festas e eventos corporativos.
+                  </p>
+                </Card>
+                <Card>
+                  <p className="text-sm text-zinc-400">Exemplo</p>
+                  <p className="mt-2 font-semibold">PC Gamer + Monitor</p>
+                  <p className="mt-1 text-sm text-zinc-300">
+                    Setup completo com periféricos.
+                  </p>
+                </Card>
+                <Card>
+                  <p className="text-sm text-zinc-400">Exemplo</p>
+                  <p className="mt-2 font-semibold">Simulador</p>
+                  <p className="mt-1 text-sm text-zinc-300">
+                    Experiência premium para ativações.
+                  </p>
+                </Card>
+              </>
+            ) : (
+              equipments.map((eq) => (
+                <Card key={eq.id}>
+                  <p className="text-sm text-zinc-400">{eq.category ?? "Equipamento"}</p>
+                  <p className="mt-2 font-semibold">{eq.name}</p>
+                  {eq.image_url ? (
+                    <img
+                      src={eq.image_url}
+                      alt={eq.name}
+                      className="mt-3 h-44 w-full rounded-lg border border-white/10 bg-white/5 object-cover"
+                      loading="lazy"
+                    />
+                  ) : null}
+                  <p className="mt-1 text-sm text-zinc-300">{eq.description ?? "—"}</p>
+                </Card>
+              ))
+            )}
+          </div>
+
+          <div className="mt-10">
+            <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
+              <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
+            </Button>
           </div>
         </div>
       </section>

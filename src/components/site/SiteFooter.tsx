@@ -15,14 +15,11 @@ export function SiteFooter() {
           <div className="space-y-2 text-sm">
             <p className="font-semibold text-zinc-200">Site</p>
             <div className="grid gap-1 text-zinc-300">
-              <Link href="/equipamentos" className="hover:text-white">
-                Equipamentos
-              </Link>
               <Link href="/como-funciona" className="hover:text-white">
                 Como funciona
               </Link>
-              <Link href="/cobertura" className="hover:text-white">
-                Cobertura
+              <Link href="/#equipamentos" className="hover:text-white">
+                Equipamentos
               </Link>
               <Link href="/orcamento" className="hover:text-white">
                 Orçamento

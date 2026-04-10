@@ -42,10 +42,9 @@ export default function ComoFuncionaPage() {
           <Link href="/orcamento">Começar orçamento</Link>
         </Button>
         <Button asChild size="lg" intent="secondary">
-          <Link href="/equipamentos">Ver equipamentos</Link>
+          <Link href="/#equipamentos">Ver equipamentos</Link>
         </Button>
       </div>
     </div>
   )
 }
-

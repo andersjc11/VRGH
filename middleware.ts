@@ -10,6 +10,39 @@ function requireEnv(name: string): string {
 }
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  if (pathname === "/equipamentos" || pathname.startsWith("/equipamentos/")) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/"
+    url.hash = "equipamentos"
+    const response = NextResponse.redirect(url)
+    const ref = request.nextUrl.searchParams.get("ref")
+    if (ref) {
+      response.cookies.set({
+        name: "vrgh_ref",
+        value: ref,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30
+      })
+    }
+    return response
+  }
+  if (pathname === "/cobertura" || pathname.startsWith("/cobertura/")) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/"
+    const response = NextResponse.redirect(url)
+    const ref = request.nextUrl.searchParams.get("ref")
+    if (ref) {
+      response.cookies.set({
+        name: "vrgh_ref",
+        value: ref,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30
+      })
+    }
+    return response
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers

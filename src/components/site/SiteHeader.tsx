@@ -10,6 +10,7 @@ export async function SiteHeader() {
   const orcamentoHref = ref ? `/orcamento${refQuery}` : "/orcamento"
   const loginHref = ref ? `/login${refQuery}` : "/login"
   const cadastroHref = ref ? `/cadastro${refQuery}` : "/cadastro"
+  const equipamentosHref = ref ? `/?ref=${encodeURIComponent(ref)}#equipamentos` : "/#equipamentos"
 
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
@@ -30,13 +31,10 @@ export async function SiteHeader() {
         {!isAdmin ? (
           <nav className="hidden items-center gap-2 md:flex">
             <Button asChild intent="ghost">
-              <Link href="/equipamentos">Equipamentos</Link>
+              <Link href={equipamentosHref}>Equipamentos</Link>
             </Button>
             <Button asChild intent="ghost">
               <Link href="/como-funciona">Como funciona</Link>
-            </Button>
-            <Button asChild intent="ghost">
-              <Link href="/cobertura">Cobertura</Link>
             </Button>
             <Button asChild intent="ghost">
               <Link href={orcamentoHref}>Orçamento</Link>
