@@ -9,6 +9,9 @@ export default function HomePage({
 }) {
   const ref = searchParams?.ref
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
+  const whatsappHref = `https://wa.me/5512991568840?text=${encodeURIComponent(
+    "Olá! Quero um orçamento para locação de estrutura gamer."
+  )}`
 
   return (
     <div>
@@ -67,15 +70,107 @@ export default function HomePage({
         </div>
       </section>
 
-      <section>
+      <section className="border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+            <div className="space-y-3">
+              <h2 className="text-2xl font-semibold tracking-tight">
+                Transforme seu evento em uma experiência gamer inesquecível
+              </h2>
+              <p className="text-zinc-300">
+                Levamos uma estrutura gamer completa até o local do seu evento:
+                casa, salão, escola, empresa ou espaço corporativo. Você não se
+                preocupa com nada: equipamentos, montagem, operação e suporte
+                durante todo o evento.
+              </p>
+              <div className="pt-2">
+                <Button asChild intent="secondary">
+                  <a href={whatsappHref} target="_blank" rel="noreferrer">
+                    Falar no WhatsApp
+                  </a>
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Card>
+                <p className="text-sm text-zinc-400">O que está incluso</p>
+                <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+                  <li>Montagem e desmontagem</li>
+                  <li>Operação e suporte durante o evento</li>
+                  <li>Cabos, extensões e organização do setup</li>
+                  <li>Higienização e checklist de funcionamento</li>
+                </ul>
+              </Card>
+              <Card>
+                <p className="text-sm text-zinc-400">Ideal para</p>
+                <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+                  <li>Festas infantis e aniversários</li>
+                  <li>Confraternizações e eventos corporativos</li>
+                  <li>Escolas e eventos educacionais</li>
+                  <li>Ativações de marca e feiras</li>
+                </ul>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-white/10">
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="space-y-2 lg:col-span-1">
               <h2 className="text-2xl font-semibold tracking-tight">
-                Como funciona
+                Seu evento com os melhores equipamentos
               </h2>
               <p className="text-zinc-300">
-                Um fluxo simples do orçamento até a reserva.
+                Combine consoles, PCs, simuladores e realidade virtual de acordo
+                com o seu público.
+              </p>
+              <div className="pt-4">
+                <Button asChild intent="ghost">
+                  <Link href="/equipamentos">Ver catálogo</Link>
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-4 lg:col-span-2 sm:grid-cols-2">
+              <Card>
+                <p className="mt-2 font-semibold">Consoles</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  Para todas as idades e estilos de jogos.
+                </p>
+              </Card>
+              <Card>
+                <p className="mt-2 font-semibold">Realidade virtual</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  Experiência imersiva com óculos VR.
+                </p>
+              </Card>
+              <Card>
+                <p className="mt-2 font-semibold">PC gamer completo</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  CPU + monitor + periféricos para jogar e competir.
+                </p>
+              </Card>
+              <Card>
+                <p className="mt-2 font-semibold">Simuladores</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  Cockpit de corrida e setups premium para ativações.
+                </p>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="space-y-2 lg:col-span-1">
+              <h2 className="text-2xl font-semibold tracking-tight">
+                Do primeiro contato ao evento: simples, rápido e seguro
+              </h2>
+              <p className="text-zinc-300">
+                Um fluxo prático para você contratar com clareza e previsibilidade.
               </p>
               <div className="pt-4">
                 <Button asChild intent="ghost">
@@ -83,28 +178,68 @@ export default function HomePage({
                 </Button>
               </div>
             </div>
-            <div className="grid gap-4 lg:col-span-2 sm:grid-cols-3">
+            <div className="grid gap-4 lg:col-span-2 sm:grid-cols-2">
               <Card>
                 <p className="text-sm text-zinc-400">1</p>
-                <p className="mt-2 font-semibold">Escolha os itens</p>
+                <p className="mt-2 font-semibold">Monte seu orçamento</p>
                 <p className="mt-1 text-sm text-zinc-300">
-                  Selecione equipamentos e quantidade.
+                  Selecione equipamentos, data, duração e local do evento.
                 </p>
               </Card>
               <Card>
                 <p className="text-sm text-zinc-400">2</p>
-                <p className="mt-2 font-semibold">Informe data e local</p>
+                <p className="mt-2 font-semibold">Envie sua solicitação</p>
                 <p className="mt-1 text-sm text-zinc-300">
-                  Duração e deslocamento entram no cálculo.
+                  Recebemos os dados e confirmamos disponibilidade.
                 </p>
               </Card>
               <Card>
                 <p className="text-sm text-zinc-400">3</p>
-                <p className="mt-2 font-semibold">Envie a solicitação</p>
+                <p className="mt-2 font-semibold">Montagem e operação</p>
                 <p className="mt-1 text-sm text-zinc-300">
-                  Reserva para análise e confirmação.
+                  Equipe no local para montar e operar durante o evento.
                 </p>
               </Card>
+              <Card>
+                <p className="text-sm text-zinc-400">4</p>
+                <p className="mt-2 font-semibold">Suporte e encerramento</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  Suporte durante toda a experiência e desmontagem ao final.
+                </p>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="mx-auto max-w-6xl px-4 py-16">
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-brand-600/20 via-fuchsia-600/10 to-white/5 p-8 md:p-10">
+            <div className="grid gap-8 md:grid-cols-2 md:items-center">
+              <div className="space-y-3">
+                <h2 className="text-2xl font-semibold tracking-tight">
+                  Pronto para levar a experiência gamer para o seu evento?
+                </h2>
+                <p className="text-zinc-300">
+                  Faça um orçamento automático ou chame no WhatsApp para tirar
+                  dúvidas e receber uma proposta personalizada.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
+                  <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  intent="secondary"
+                  className="bg-white/10 ring-1 ring-white/15 hover:bg-white/15"
+                >
+                  <a href={whatsappHref} target="_blank" rel="noreferrer">
+                    Chamar no WhatsApp
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -33,7 +33,7 @@ export function SiteFooter() {
           <div className="space-y-2 text-sm">
             <p className="font-semibold text-zinc-200">Contato</p>
             <div className="grid gap-1 text-zinc-300">
-              <p>WhatsApp: (00) 00000-0000</p>
+              <p>WhatsApp: (12) 99156-8840</p>
               <p>E-mail: contato@vrgh.com.br</p>
             </div>
           </div>
@@ -46,4 +46,3 @@ export function SiteFooter() {
     </footer>
   )
 }
-
