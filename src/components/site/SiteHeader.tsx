@@ -11,6 +11,7 @@ export async function SiteHeader() {
   const loginHref = ref ? `/login${refQuery}` : "/login"
   const cadastroHref = ref ? `/cadastro${refQuery}` : "/cadastro"
   const equipamentosHref = ref ? `/?ref=${encodeURIComponent(ref)}#equipamentos` : "/#equipamentos"
+  const comoFuncionaHref = ref ? `/?ref=${encodeURIComponent(ref)}#como-funciona` : "/#como-funciona"
 
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
@@ -34,7 +35,7 @@ export async function SiteHeader() {
               <Link href={equipamentosHref}>Equipamentos</Link>
             </Button>
             <Button asChild intent="ghost">
-              <Link href="/como-funciona">Como funciona</Link>
+              <Link href={comoFuncionaHref}>Como funciona</Link>
             </Button>
             <Button asChild intent="ghost">
               <Link href={orcamentoHref}>Orçamento</Link>

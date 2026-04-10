@@ -42,6 +42,22 @@ export async function middleware(request: NextRequest) {
     }
     return response
   }
+  if (pathname === "/como-funciona" || pathname.startsWith("/como-funciona/")) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/"
+    url.hash = "como-funciona"
+    const response = NextResponse.redirect(url)
+    const ref = request.nextUrl.searchParams.get("ref")
+    if (ref) {
+      response.cookies.set({
+        name: "vrgh_ref",
+        value: ref,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30
+      })
+    }
+    return response
+  }
 
   let response = NextResponse.next({
     request: {

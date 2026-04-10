@@ -21,6 +21,7 @@ export default async function HomePage({
   const ref = searchParams?.ref
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
   const equipamentosHref = ref ? `/?ref=${encodeURIComponent(ref)}#equipamentos` : "/#equipamentos"
+  const comoFuncionaHref = ref ? `/?ref=${encodeURIComponent(ref)}#como-funciona` : "/#como-funciona"
   const whatsappHref = `https://wa.me/5512991568840?text=${encodeURIComponent(
     "Olá! Quero um orçamento para locação de estrutura gamer."
   )}`
@@ -135,6 +136,56 @@ export default async function HomePage({
         </div>
       </section>
 
+      <section id="como-funciona" className="border-b border-white/10 scroll-mt-24">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="space-y-2 lg:col-span-1">
+              <h2 className="text-2xl font-semibold tracking-tight">
+                Do primeiro contato ao evento: simples, rápido e seguro
+              </h2>
+              <p className="text-zinc-300">
+                Um fluxo prático para você contratar com clareza e previsibilidade.
+              </p>
+              <div className="pt-4">
+                <Button asChild intent="ghost">
+                  <Link href={comoFuncionaHref}>Ver detalhes</Link>
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-4 lg:col-span-2 sm:grid-cols-2">
+              <Card>
+                <p className="text-sm text-zinc-400">1</p>
+                <p className="mt-2 font-semibold">Monte seu orçamento</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  Selecione equipamentos, data, duração e local do evento.
+                </p>
+              </Card>
+              <Card>
+                <p className="text-sm text-zinc-400">2</p>
+                <p className="mt-2 font-semibold">Envie sua solicitação</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  Recebemos os dados e confirmamos disponibilidade.
+                </p>
+              </Card>
+              <Card>
+                <p className="text-sm text-zinc-400">3</p>
+                <p className="mt-2 font-semibold">Montagem e operação</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  Equipe no local para montar e operar durante o evento.
+                </p>
+              </Card>
+              <Card>
+                <p className="text-sm text-zinc-400">4</p>
+                <p className="mt-2 font-semibold">Suporte e encerramento</p>
+                <p className="mt-1 text-sm text-zinc-300">
+                  Suporte durante toda a experiência e desmontagem ao final.
+                </p>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="border-b border-white/10">
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-8 lg:grid-cols-3">
@@ -239,56 +290,6 @@ export default async function HomePage({
             <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
               <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
             </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-white/10">
-        <div className="mx-auto max-w-6xl px-4 py-14">
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div className="space-y-2 lg:col-span-1">
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Do primeiro contato ao evento: simples, rápido e seguro
-              </h2>
-              <p className="text-zinc-300">
-                Um fluxo prático para você contratar com clareza e previsibilidade.
-              </p>
-              <div className="pt-4">
-                <Button asChild intent="ghost">
-                  <Link href="/como-funciona">Ver detalhes</Link>
-                </Button>
-              </div>
-            </div>
-            <div className="grid gap-4 lg:col-span-2 sm:grid-cols-2">
-              <Card>
-                <p className="text-sm text-zinc-400">1</p>
-                <p className="mt-2 font-semibold">Monte seu orçamento</p>
-                <p className="mt-1 text-sm text-zinc-300">
-                  Selecione equipamentos, data, duração e local do evento.
-                </p>
-              </Card>
-              <Card>
-                <p className="text-sm text-zinc-400">2</p>
-                <p className="mt-2 font-semibold">Envie sua solicitação</p>
-                <p className="mt-1 text-sm text-zinc-300">
-                  Recebemos os dados e confirmamos disponibilidade.
-                </p>
-              </Card>
-              <Card>
-                <p className="text-sm text-zinc-400">3</p>
-                <p className="mt-2 font-semibold">Montagem e operação</p>
-                <p className="mt-1 text-sm text-zinc-300">
-                  Equipe no local para montar e operar durante o evento.
-                </p>
-              </Card>
-              <Card>
-                <p className="text-sm text-zinc-400">4</p>
-                <p className="mt-2 font-semibold">Suporte e encerramento</p>
-                <p className="mt-1 text-sm text-zinc-300">
-                  Suporte durante toda a experiência e desmontagem ao final.
-                </p>
-              </Card>
-            </div>
           </div>
         </div>
       </section>
