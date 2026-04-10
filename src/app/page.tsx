@@ -617,7 +617,7 @@ export default async function HomePage({
                     <p className="font-semibold">PC gamer completo</p>
                   </div>
                   <p className="mt-3 text-sm text-zinc-300">
-                    CPU + monitor + periféricos para jogar e competir.
+                    Ryzen 5 5600X, RTX 3060 12GB, 16GB RAM, NVMe 500GB + monitor 144Hz.
                   </p>
                 </div>
               </Card>
@@ -668,7 +668,7 @@ export default async function HomePage({
                     <p className="text-sm text-zinc-400">Exemplo</p>
                     <p className="mt-2 font-semibold">PC Gamer + Monitor</p>
                     <p className="mt-1 text-sm text-zinc-300">
-                      Setup completo com periféricos.
+                      Ryzen 5 5600X, RTX 3060 12GB, 16GB RAM, NVMe 500GB + monitor 144Hz.
                     </p>
                   </div>
                 </Card>
