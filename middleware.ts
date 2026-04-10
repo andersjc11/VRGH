@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = "/"
     url.hash = "equipamentos"
-    const response = NextResponse.redirect(url)
+    const response = NextResponse.redirect(url, 308)
     const ref = request.nextUrl.searchParams.get("ref")
     if (ref) {
       response.cookies.set({
@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/cobertura" || pathname.startsWith("/cobertura/")) {
     const url = request.nextUrl.clone()
     url.pathname = "/"
-    const response = NextResponse.redirect(url)
+    const response = NextResponse.redirect(url, 308)
     const ref = request.nextUrl.searchParams.get("ref")
     if (ref) {
       response.cookies.set({
@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = "/"
     url.hash = "como-funciona"
-    const response = NextResponse.redirect(url)
+    const response = NextResponse.redirect(url, 308)
     const ref = request.nextUrl.searchParams.get("ref")
     if (ref) {
       response.cookies.set({

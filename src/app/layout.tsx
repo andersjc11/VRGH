@@ -16,10 +16,53 @@ const orbitron = Orbitron({
   variable: "--font-gamer"
 })
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.vrgh.com.br"
+
 export const metadata: Metadata = {
-  title: "VRGH | Locação de Estrutura Gamer",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "VRGH | Locação de Estrutura Gamer",
+    template: "%s | VRGH"
+  },
   description:
-    "Estrutura gamer para festas e eventos: consoles, PCs, TVs, monitores e acessórios com orçamento automático e reserva online."
+    "Estrutura gamer para festas e eventos: consoles, PCs, simuladores e realidade virtual, com orçamento automático, valor na hora e reserva online.",
+  applicationName: "VRGH",
+  alternates: {
+    canonical: "/"
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true
+    }
+  },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "VRGH",
+    title: "VRGH | Locação de Estrutura Gamer",
+    description:
+      "Locação de estrutura gamer para festas e eventos com orçamento automático, valor na hora e reserva online.",
+    locale: "pt_BR",
+    images: [
+      {
+        url: "/hero-gamer.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Estrutura gamer para festas e eventos - VRGH"
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VRGH | Locação de Estrutura Gamer",
+    description:
+      "Locação de estrutura gamer para festas e eventos com orçamento automático, valor na hora e reserva online.",
+    images: ["/hero-gamer.jpg"]
+  },
+  category: "event services"
 }
 
 export default function RootLayout({

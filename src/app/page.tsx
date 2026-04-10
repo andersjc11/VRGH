@@ -272,12 +272,28 @@ export default async function HomePage({
 }: {
   searchParams?: { ref?: string }
 }) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.vrgh.com.br"
   const ref = searchParams?.ref
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
   const equipamentosHref = ref ? `/?ref=${encodeURIComponent(ref)}#equipamentos` : "/#equipamentos"
   const whatsappHref = `https://wa.me/5512991568840?text=${encodeURIComponent(
     "Olá! Quero um orçamento para locação de estrutura gamer."
   )}`
+
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "VRGH",
+    url: siteUrl,
+    contactPoint: [
+      {
+        "@type": "ContactPoint",
+        telephone: "+5512991568840",
+        contactType: "customer service",
+        availableLanguage: ["pt-BR"]
+      }
+    ]
+  }
 
   const supabase = createSupabaseServerClient()
   const equipmentsRes = await supabase
@@ -289,6 +305,10 @@ export default async function HomePage({
 
   return (
     <div className="relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.12),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(217,70,239,0.10),transparent_55%)]"
