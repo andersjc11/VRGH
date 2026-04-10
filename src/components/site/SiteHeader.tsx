@@ -25,8 +25,10 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-brand-600" />
-          <span className="font-semibold tracking-tight">VRGH</span>
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand-500 via-fuchsia-500 to-cyan-400 shadow-[0_0_28px_rgba(99,102,241,0.35)] ring-1 ring-white/15" />
+          <span className="bg-gradient-to-r from-white via-brand-100 to-fuchsia-100 bg-clip-text font-semibold tracking-tight text-transparent">
+            VRGH
+          </span>
         </Link>
 
         {!isAdmin ? (
