@@ -631,7 +631,7 @@ export default async function HomePage({
                     <p className="font-semibold">Simuladores</p>
                   </div>
                   <p className="mt-3 text-sm text-zinc-300">
-                    Cockpit de corrida e setups premium para ativações.
+                    Cockpit de corrida, simulador de montanha russa e setups premium para ativações.
                   </p>
                 </div>
               </Card>
