@@ -350,7 +350,7 @@ export default async function HomePage({
 
               <h1 className="mt-7 font-[var(--font-gamer)] text-5xl leading-tight tracking-tight text-white drop-shadow-[0_2px_28px_rgba(0,0,0,0.9)] md:text-6xl">
                 <span className="bg-gradient-to-r from-white via-brand-100 to-fuchsia-100 bg-clip-text text-transparent">
-                  Seu evento gamer completo, sem complicação 🎯
+                  Seu evento gamer completo, sem complicação
                 </span>
               </h1>
               <p className="mt-3 font-[var(--font-gamer)] text-xl text-white/90 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] md:text-2xl">
