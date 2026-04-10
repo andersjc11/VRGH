@@ -164,7 +164,7 @@ export default async function HomePage({
                 <p className="text-sm text-zinc-400">2</p>
                 <p className="mt-2 font-semibold">Envie sua reserva</p>
                 <p className="mt-1 text-sm text-zinc-300">
-                  Você já vê a disponibilidade da data e envia a reserva.
+                  Você já vê disponibilidade e valor da locação (com desconto para pacotes) e envia a reserva.
                 </p>
               </Card>
               <Card>
