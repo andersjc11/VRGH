@@ -265,11 +265,21 @@ export async function createReservation(
 
   const profileRes = await supabase
     .from("profiles")
-    .select("full_name,cpf,address_line1,neighborhood,city,postal_code,whatsapp,phone,referred_by")
+    .select("full_name,cpf,address_line1,address_number,neighborhood,city,postal_code,whatsapp,phone,referred_by")
     .eq("id", user.id)
     .maybeSingle()
 
   const profile = profileRes.data as any
+  const missingClientData =
+    Boolean(profileRes.error) ||
+    !profile?.full_name ||
+    !profile?.cpf ||
+    !profile?.address_line1 ||
+    !profile?.address_number ||
+    !profile?.neighborhood ||
+    !profile?.city ||
+    !profile?.postal_code ||
+    !(profile?.whatsapp || profile?.phone)
 
   const itemsJson = getString(formData, "items_json")
   const items = parseItems(itemsJson)
@@ -611,5 +621,8 @@ export async function createReservation(
   } catch {}
 
   const reservationId = reservationInsert.data.id as string
-  redirect(`/cliente/dados?next=${encodeURIComponent(`/cliente/pedidos/${reservationId}`)}`)
+  if (missingClientData) {
+    redirect(`/cliente/dados?next=${encodeURIComponent(`/cliente/pedidos/${reservationId}`)}`)
+  }
+  redirect(`/cliente/pedidos/${reservationId}`)
 }
