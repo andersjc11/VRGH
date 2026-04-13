@@ -687,8 +687,8 @@ export default async function HomePage({
             <div aria-hidden="true" className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-brand-500/15 blur-3xl" />
             <div aria-hidden="true" className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-fuchsia-500/12 blur-3xl" />
 
-            <div className="relative grid gap-10 lg:grid-cols-3 lg:items-start">
-              <div className="space-y-4 lg:col-span-2">
+            <div className="relative grid gap-10">
+              <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
                     <IconCoins className="h-4 w-4 text-amber-200" />
@@ -738,30 +738,6 @@ export default async function HomePage({
                 </div>
               </div>
 
-              <div className="grid gap-4">
-                <Card className="relative overflow-hidden border-white/10 bg-black/20">
-                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.16),transparent_55%)] opacity-80" />
-                  <div className="relative">
-                    <p className="text-xs text-zinc-400">Espaço para bônus</p>
-                    <p className="mt-2 text-lg font-semibold text-white">Saldo e progresso</p>
-                    <p className="mt-1 text-sm text-zinc-200">
-                      {user
-                        ? "Em breve: visualize saldo, eventos indicados e pagamentos."
-                        : "Entre na sua conta para acompanhar saldo e resultados em tempo real."}
-                    </p>
-                    <div className="mt-4 grid gap-3">
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-xs text-zinc-400">Saldo de bônus</p>
-                        <p className="mt-1 text-xl font-semibold text-white">—</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-xs text-zinc-400">Progresso do mês</p>
-                        <p className="mt-1 text-sm font-semibold text-white">—</p>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </div>
             </div>
           </div>
         </div>
