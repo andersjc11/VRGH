@@ -267,6 +267,103 @@ function IconWheel({ className }: IconProps) {
   )
 }
 
+function IconCoins({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M12 6c4.4 0 8-1.3 8-3s-3.6-3-8-3-8 1.3-8 3 3.6 3 8 3z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 3v6c0 1.7 3.6 3 8 3s8-1.3 8-3V3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 9v6c0 1.7 3.6 3 8 3s8-1.3 8-3V9"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 15v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconUsers({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M16.5 21c0-3-2.9-5.4-6.5-5.4S3.5 18 3.5 21"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 13.2a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M20.5 21c0-2.1-1.6-3.9-3.8-4.8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M16.6 12.5a3.4 3.4 0 1 0 0-6.8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function IconTrendUp({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M3 17l7-7 4 4 7-7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 7h7v7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export default async function HomePage({
   searchParams
 }: {
@@ -276,6 +373,8 @@ export default async function HomePage({
   const ref = searchParams?.ref
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
   const equipamentosHref = ref ? `/?ref=${encodeURIComponent(ref)}#equipamentos` : "/#equipamentos"
+  const cadastroHref = ref ? `/cadastro${refQuery}` : "/cadastro"
+  const loginHref = ref ? `/login${refQuery}` : "/login"
   const whatsappHref = `https://wa.me/5512991568840?text=${encodeURIComponent(
     "Olá! Quero um orçamento para locação de estrutura gamer."
   )}`
@@ -296,6 +395,8 @@ export default async function HomePage({
   }
 
   const supabase = createSupabaseServerClient()
+  const userRes = await supabase.auth.getUser()
+  const user = userRes.data.user
   const equipmentsRes = await supabase
     .from("equipments")
     .select("id,name,description,category,image_url")
@@ -574,6 +675,93 @@ export default async function HomePage({
                   </p>
                 </div>
               </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="programa-de-indicacao" className="border-b border-white/10 scroll-mt-24">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-brand-600/20 via-fuchsia-600/10 to-white/5 p-8 md:p-10">
+            <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(217,70,239,0.20),transparent_55%)]" />
+            <div aria-hidden="true" className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-brand-500/15 blur-3xl" />
+            <div aria-hidden="true" className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-fuchsia-500/12 blur-3xl" />
+
+            <div className="relative grid gap-10 lg:grid-cols-3 lg:items-start">
+              <div className="space-y-4 lg:col-span-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
+                    <IconCoins className="h-4 w-4 text-amber-200" />
+                    Programa de Indicação
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
+                    <IconTrendUp className="h-4 w-4 text-emerald-200" />
+                    Bônus em dinheiro
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
+                    <IconUsers className="h-4 w-4 text-cyan-200" />
+                    Acompanhamento em tempo real
+                  </span>
+                </div>
+
+                <h2 className="font-[var(--font-gamer)] text-3xl font-semibold tracking-tight text-white md:text-4xl">
+                  Programa de Indicação – Quem Indica Ganha
+                </h2>
+
+                <div className="space-y-3 text-zinc-200">
+                  <p>
+                    Há mais de 15 anos crescendo com base na confiança dos nossos clientes, sabemos que uma boa indicação faz toda a diferença. Agora, você também ganha com isso.
+                  </p>
+                  <p className="text-white">
+                    Indicou, fechou evento… você recebe bônus em dinheiro.
+                  </p>
+                  <p>
+                    O valor pode ser usado em novas locações ou transferido para sua conta. E o melhor: tudo é acompanhado em tempo real pela sua área do cliente.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-5 backdrop-blur">
+                  <p className="text-sm font-semibold text-white">
+                    Ganhe dinheiro indicando nossos serviços
+                  </p>
+                  <p className="mt-2 text-sm text-zinc-200">
+                    Compartilhe seu link, acompanhe os resultados e receba bônus a cada evento fechado. Acesse sua área e comece agora.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
+                      <Link href={user ? "/cliente" : cadastroHref}>Começar a indicar</Link>
+                    </Button>
+                    <Button asChild size="lg" intent="secondary" className="bg-white/10 ring-1 ring-white/15 hover:bg-white/15">
+                      <Link href={user ? "/cliente" : loginHref}>Acessar minha conta</Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <Card className="relative overflow-hidden border-white/10 bg-black/20">
+                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.16),transparent_55%)] opacity-80" />
+                  <div className="relative">
+                    <p className="text-xs text-zinc-400">Espaço para bônus</p>
+                    <p className="mt-2 text-lg font-semibold text-white">Saldo e progresso</p>
+                    <p className="mt-1 text-sm text-zinc-200">
+                      {user
+                        ? "Em breve: visualize saldo, eventos indicados e pagamentos."
+                        : "Entre na sua conta para acompanhar saldo e resultados em tempo real."}
+                    </p>
+                    <div className="mt-4 grid gap-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <p className="text-xs text-zinc-400">Saldo de bônus</p>
+                        <p className="mt-1 text-xl font-semibold text-white">—</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <p className="text-xs text-zinc-400">Progresso do mês</p>
+                        <p className="mt-1 text-sm font-semibold text-white">—</p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
