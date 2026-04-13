@@ -122,6 +122,8 @@ export async function signUp(
   const email = getString(formData, "email")
   const password = getString(formData, "password")
   const ref = getString(formData, "ref")
+  const next = getString(formData, "next")
+  const redirectTo = next || "/cliente"
 
   if (!email) return { error: "Digite um e-mail." }
   if (!password) return { error: "Digite uma senha." }
@@ -141,7 +143,7 @@ export async function signUp(
     }
 
     if (data.session) {
-      redirect("/cliente")
+      redirect(redirectTo)
     }
 
     const signInRes = await supabase.auth.signInWithPassword({ email, password })
@@ -157,7 +159,7 @@ export async function signUp(
       return { error: "Conta criada, mas não foi possível entrar. Tente fazer login." }
     }
 
-    redirect("/cliente")
+    redirect(redirectTo)
   } catch (e) {
     if (isNextRedirectError(e)) throw e
     const message = e instanceof Error ? e.message : ""

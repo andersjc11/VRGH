@@ -1,6 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { Equipment, EquipmentPrice, PricingConfig } from "@/lib/domain/types"
-import { redirect } from "next/navigation"
 import { OrcamentoForm } from "./OrcamentoForm"
 
 export const dynamic = "force-dynamic"
@@ -21,10 +20,7 @@ export default async function OrcamentoPage({
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   const user = data.user
-  if (!user) {
-    const next = ref ? `/orcamento?ref=${encodeURIComponent(ref)}` : "/orcamento"
-    redirect(`/login?next=${encodeURIComponent(next)}`)
-  }
+  const isAuthenticated = Boolean(user)
 
   const [equipmentsResWithQty, pricesRes, displacementRes, discountsRes] =
     await Promise.all([
@@ -91,12 +87,17 @@ export default async function OrcamentoPage({
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Orçamento</h1>
         <p className="text-zinc-300">
-          Selecione os itens, informe período e local. Para enviar a reserva, você
-          precisa estar logado.
+          Preencha os dados e monte seu orçamento. Para enviar a solicitação de reserva, faça login no final.
         </p>
       </div>
 
-      <OrcamentoForm equipments={equipments} prices={prices} config={config} refCode={ref || undefined} />
+      <OrcamentoForm
+        equipments={equipments}
+        prices={prices}
+        config={config}
+        refCode={ref || undefined}
+        isAuthenticated={isAuthenticated}
+      />
     </div>
   )
 }

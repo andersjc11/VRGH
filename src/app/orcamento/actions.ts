@@ -247,7 +247,11 @@ export async function createReservation(
   const { data: authData } = await supabase.auth.getUser()
   const user = authData.user
   if (!user) {
-    const next = formRef ? `/orcamento?ref=${encodeURIComponent(formRef)}` : "/orcamento"
+    const usp = new URLSearchParams()
+    if (formRef) usp.set("ref", formRef)
+    usp.set("resume", "1")
+    usp.set("submit", "1")
+    const next = `/orcamento?${usp.toString()}`
     redirect(`/login?next=${encodeURIComponent(next)}`)
   }
   const cookieRef = cookies().get("vrgh_ref")?.value?.trim()

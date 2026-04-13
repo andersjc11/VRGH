@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useFormState, useFormStatus } from "react-dom"
+import { useRouter, useSearchParams } from "next/navigation"
 import type { Equipment, EquipmentPrice, PaymentPlanType, PricingConfig, QuoteItemInput } from "@/lib/domain/types"
 import { calcQuoteBreakdown, formatBRLFromCents } from "@/lib/pricing/calc"
 import { Button } from "@/components/ui/Button"
@@ -14,6 +15,58 @@ type Props = {
   prices: EquipmentPrice[]
   config: PricingConfig
   refCode?: string
+  isAuthenticated: boolean
+}
+
+type QuoteDraftV1 = {
+  version: 1
+  savedAt: string
+  durationHours: number
+  distanceKm: number
+  paymentPlan: PaymentPlanType
+  qtyById: Record<string, string>
+  eventDaysMode: "" | "single" | "multi"
+  rentalChargeMode: "hourly" | "daily"
+  eventDate: string
+  eventEndDate: string
+  startTime: string
+  setupDate: string
+  setupTime: string
+  postalCode: string
+  addressLine1: string
+  addressNumber: string
+  addressLine2: string
+  neighborhood: string
+  city: string
+  stateUf: string
+  eventName: string
+  venueName: string
+  notes: string
+}
+
+type QuoteHistoryEntryV1 = QuoteDraftV1 & { id: string }
+
+const QUOTE_DRAFT_KEY = "vrgh:orcamento:draft:v1"
+const QUOTE_HISTORY_KEY = "vrgh:orcamento:history:v1"
+const QUOTE_HISTORY_LIMIT = 8
+
+function safeParseJson<T>(raw: string | null): T | null {
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return null
+  }
+}
+
+function nowIso() {
+  return new Date().toISOString()
+}
+
+function formatSavedAtPtBR(iso: string) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
 }
 
 function SubmitButton() {
@@ -25,7 +78,12 @@ function SubmitButton() {
   )
 }
 
-export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
+export function OrcamentoForm({ equipments, prices, config, refCode, isAuthenticated }: Props) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const formRef = React.useRef<HTMLFormElement | null>(null)
+  const hasInitializedRef = React.useRef(false)
+
   const priceByEquipmentId = React.useMemo(
     () =>
       Object.fromEntries(prices.map((p) => [p.equipment_id, p])) as Record<
@@ -49,9 +107,15 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   const [postalCode, setPostalCode] = React.useState("")
   const [addressLine1, setAddressLine1] = React.useState("")
   const [addressNumber, setAddressNumber] = React.useState("")
+  const [addressLine2, setAddressLine2] = React.useState("")
   const [neighborhood, setNeighborhood] = React.useState("")
   const [city, setCity] = React.useState("")
   const [stateUf, setStateUf] = React.useState("")
+  const [eventName, setEventName] = React.useState("")
+  const [venueName, setVenueName] = React.useState("")
+  const [notes, setNotes] = React.useState("")
+  const [quoteHistory, setQuoteHistory] = React.useState<QuoteHistoryEntryV1[]>([])
+  const [selectedHistoryId, setSelectedHistoryId] = React.useState("")
   const [distanceError, setDistanceError] = React.useState<string | null>(null)
   const [cepError, setCepError] = React.useState<string | null>(null)
   const [isDistancePending, startDistanceTransition] = React.useTransition()
@@ -139,6 +203,145 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
   )
 
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
+
+  const nextAfterAuth = React.useMemo(() => {
+    const usp = new URLSearchParams()
+    if (refCode) usp.set("ref", refCode)
+    usp.set("resume", "1")
+    usp.set("submit", "1")
+    return `/orcamento?${usp.toString()}`
+  }, [refCode])
+
+  const loginHref = React.useMemo(() => `/login?next=${encodeURIComponent(nextAfterAuth)}`, [nextAfterAuth])
+  const cadastroHref = React.useMemo(() => `/cadastro?next=${encodeURIComponent(nextAfterAuth)}`, [nextAfterAuth])
+
+  const snapshotDraft = React.useCallback((): QuoteDraftV1 => {
+    return {
+      version: 1,
+      savedAt: nowIso(),
+      durationHours,
+      distanceKm,
+      paymentPlan,
+      qtyById,
+      eventDaysMode,
+      rentalChargeMode,
+      eventDate,
+      eventEndDate,
+      startTime,
+      setupDate,
+      setupTime,
+      postalCode,
+      addressLine1,
+      addressNumber,
+      addressLine2,
+      neighborhood,
+      city,
+      stateUf,
+      eventName,
+      venueName,
+      notes
+    }
+  }, [
+    durationHours,
+    distanceKm,
+    paymentPlan,
+    qtyById,
+    eventDaysMode,
+    rentalChargeMode,
+    eventDate,
+    eventEndDate,
+    startTime,
+    setupDate,
+    setupTime,
+    postalCode,
+    addressLine1,
+    addressNumber,
+    addressLine2,
+    neighborhood,
+    city,
+    stateUf,
+    eventName,
+    venueName,
+    notes
+  ])
+
+  const saveDraft = React.useCallback(
+    (opts?: { pushHistory?: boolean }) => {
+      const draft = snapshotDraft()
+      try {
+        localStorage.setItem(QUOTE_DRAFT_KEY, JSON.stringify(draft))
+      } catch {
+      }
+      if (opts?.pushHistory) {
+        try {
+          const existing = safeParseJson<QuoteHistoryEntryV1[]>(localStorage.getItem(QUOTE_HISTORY_KEY)) ?? []
+          const entry: QuoteHistoryEntryV1 = { ...draft, id: `${Date.now()}` }
+          const next = [entry, ...existing].slice(0, QUOTE_HISTORY_LIMIT)
+          localStorage.setItem(QUOTE_HISTORY_KEY, JSON.stringify(next))
+          setQuoteHistory(next)
+        } catch {
+        }
+      }
+    },
+    [snapshotDraft]
+  )
+
+  React.useEffect(() => {
+    if (hasInitializedRef.current) return
+    hasInitializedRef.current = true
+
+    const existing = safeParseJson<QuoteDraftV1>(localStorage.getItem(QUOTE_DRAFT_KEY))
+    if (existing && existing.version === 1) {
+      setDurationHours(existing.durationHours)
+      setDistanceKm(existing.distanceKm)
+      setPaymentPlan(existing.paymentPlan)
+      setQtyById(existing.qtyById ?? {})
+      setEventDaysMode(existing.eventDaysMode)
+      setRentalChargeMode(existing.rentalChargeMode)
+      setEventDate(existing.eventDate)
+      setEventEndDate(existing.eventEndDate)
+      setStartTime(existing.startTime)
+      setSetupDate(existing.setupDate)
+      setSetupTime(existing.setupTime)
+      setPostalCode(existing.postalCode)
+      setAddressLine1(existing.addressLine1)
+      setAddressNumber(existing.addressNumber)
+      setAddressLine2(existing.addressLine2)
+      setNeighborhood(existing.neighborhood)
+      setCity(existing.city)
+      setStateUf(existing.stateUf)
+      setEventName(existing.eventName)
+      setVenueName(existing.venueName)
+      setNotes(existing.notes)
+    }
+
+    const history = safeParseJson<QuoteHistoryEntryV1[]>(localStorage.getItem(QUOTE_HISTORY_KEY)) ?? []
+    setQuoteHistory(Array.isArray(history) ? history : [])
+  }, [searchParams])
+
+  React.useEffect(() => {
+    const handle = setTimeout(() => {
+      try {
+        localStorage.setItem(QUOTE_DRAFT_KEY, JSON.stringify(snapshotDraft()))
+      } catch {
+      }
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [snapshotDraft])
+
+  React.useEffect(() => {
+    const shouldAutoSubmit = searchParams.get("submit") === "1"
+    if (!shouldAutoSubmit) return
+    if (!isAuthenticated) return
+    const shouldResume = searchParams.get("resume") === "1"
+    if (!shouldResume) return
+    const existing = safeParseJson<QuoteDraftV1>(localStorage.getItem(QUOTE_DRAFT_KEY))
+    if (!existing) return
+    const handle = setTimeout(() => {
+      formRef.current?.requestSubmit()
+    }, 0)
+    return () => clearTimeout(handle)
+  }, [isAuthenticated, searchParams])
 
   React.useEffect(() => {
     const isReady =
@@ -232,8 +435,51 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
       ? []
       : equipments.filter((eq) => (availabilityByEquipmentId[eq.id]?.available ?? 0) > 0)
 
+  const hasHistory = quoteHistory.length > 0
+  const selectedHistory = selectedHistoryId ? quoteHistory.find((h) => h.id === selectedHistoryId) : null
+  const selectedHistorySummary = React.useMemo(() => {
+    if (!selectedHistory) return null
+    const entryItems: QuoteItemInput[] = Object.entries(selectedHistory.qtyById ?? {})
+      .map(([equipmentId, quantity]) => ({ equipmentId, quantity: Number(quantity) || 0 }))
+      .filter((x) => x.quantity > 0)
+    return calcQuoteBreakdown({
+      items: entryItems,
+      durationHours: selectedHistory.durationHours,
+      distanceKm: selectedHistory.distanceKm,
+      paymentPlan: selectedHistory.paymentPlan,
+      pricingProfile: (() => {
+        if (selectedHistory.distanceKm > 70) return "day_block" as const
+        if (selectedHistory.eventDaysMode === "multi") return "daily" as const
+        if (selectedHistory.eventDaysMode === "single" && selectedHistory.rentalChargeMode === "daily") return "daily" as const
+        return "hourly" as const
+      })(),
+      daysCount: (() => {
+        if (selectedHistory.eventDaysMode !== "multi") return 1
+        if (!selectedHistory.eventDate || !selectedHistory.eventEndDate) return 1
+        const start = new Date(`${selectedHistory.eventDate}T00:00:00`)
+        const end = new Date(`${selectedHistory.eventEndDate}T00:00:00`)
+        if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return 1
+        const diffDays = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1
+        return Math.max(1, Math.min(366, diffDays))
+      })(),
+      priceByEquipmentId,
+      config
+    })
+  }, [config, priceByEquipmentId, selectedHistory])
+
   return (
-    <form action={action} className="mt-8 grid gap-6 lg:grid-cols-3">
+    <form
+      ref={formRef}
+      action={action}
+      onSubmit={(e) => {
+        saveDraft({ pushHistory: true })
+        if (!isAuthenticated) {
+          e.preventDefault()
+          router.push(loginHref)
+        }
+      }}
+      className="mt-8 grid gap-6 lg:grid-cols-3"
+    >
       <input type="hidden" name="ref" value={refCode ?? ""} />
       <div className="lg:col-span-2 space-y-6">
         <Card>
@@ -254,6 +500,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                     setNeighborhood("")
                     setCity("")
                     setStateUf("")
+                    setAddressLine2("")
                     setDistanceKm(10)
                   }
                   if (next.length === 8) {
@@ -364,7 +611,12 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm text-zinc-200">Complemento</label>
-                  <Input name="address_line2" placeholder="Apto, bloco, referência" />
+                  <Input
+                    name="address_line2"
+                    placeholder="Apto, bloco, referência"
+                    value={addressLine2}
+                    onChange={(e) => setAddressLine2(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm text-zinc-200">Cidade</label>
@@ -415,7 +667,13 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
               <>
                 <div className="space-y-2 sm:col-span-2">
                   <label className="text-sm text-zinc-200">Nome do evento</label>
-                  <Input name="event_name" placeholder="Ex: Festa de aniversário" required />
+                  <Input
+                    name="event_name"
+                    placeholder="Ex: Festa de aniversário"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    required
+                  />
                 </div>
 
                 {eventDaysMode === "single" ? (
@@ -494,7 +752,12 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
 
                 <div className="space-y-2 sm:col-span-2">
                   <label className="text-sm text-zinc-200">Local (nome do salão)</label>
-                  <Input name="venue_name" placeholder="Ex: Salão de festas" />
+                  <Input
+                    name="venue_name"
+                    placeholder="Ex: Salão de festas"
+                    value={venueName}
+                    onChange={(e) => setVenueName(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">
@@ -503,6 +766,8 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
                     name="notes"
                     className="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
                     placeholder="Detalhes do evento, restrições de acesso, etc."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
                   />
                 </div>
               </>
@@ -675,6 +940,89 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
       </div>
 
       <div className="lg:col-span-1 space-y-4">
+        {hasHistory ? (
+          <Card>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-zinc-400">Histórico de orçamentos</p>
+              <Button
+                type="button"
+                intent="ghost"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem(QUOTE_HISTORY_KEY)
+                    setQuoteHistory([])
+                    setSelectedHistoryId("")
+                  } catch {
+                  }
+                }}
+              >
+                Limpar
+              </Button>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              <select
+                className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={selectedHistoryId}
+                onChange={(e) => setSelectedHistoryId(e.target.value)}
+              >
+                <option value="">Selecione um orçamento salvo</option>
+                {quoteHistory.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {formatSavedAtPtBR(h.savedAt)}
+                  </option>
+                ))}
+              </select>
+
+              {selectedHistory ? (
+                <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
+                  <p className="text-zinc-300">{selectedHistory.eventName || "Orçamento salvo"}</p>
+                  <p className="mt-1 text-xs text-zinc-400">{formatSavedAtPtBR(selectedHistory.savedAt)}</p>
+                  {selectedHistorySummary ? (
+                    <p className="mt-2 font-semibold text-white">{formatBRLFromCents(selectedHistorySummary.total_cents)}</p>
+                  ) : null}
+                  <div className="mt-3">
+                    <Button
+                      type="button"
+                      intent="secondary"
+                      className="w-full"
+                      onClick={() => {
+                        setDurationHours(selectedHistory.durationHours)
+                        setDistanceKm(selectedHistory.distanceKm)
+                        setPaymentPlan(selectedHistory.paymentPlan)
+                        setQtyById(selectedHistory.qtyById ?? {})
+                        setEventDaysMode(selectedHistory.eventDaysMode)
+                        setRentalChargeMode(selectedHistory.rentalChargeMode)
+                        setEventDate(selectedHistory.eventDate)
+                        setEventEndDate(selectedHistory.eventEndDate)
+                        setStartTime(selectedHistory.startTime)
+                        setSetupDate(selectedHistory.setupDate)
+                        setSetupTime(selectedHistory.setupTime)
+                        setPostalCode(selectedHistory.postalCode)
+                        setAddressLine1(selectedHistory.addressLine1)
+                        setAddressNumber(selectedHistory.addressNumber)
+                        setAddressLine2(selectedHistory.addressLine2)
+                        setNeighborhood(selectedHistory.neighborhood)
+                        setCity(selectedHistory.city)
+                        setStateUf(selectedHistory.stateUf)
+                        setEventName(selectedHistory.eventName)
+                        setVenueName(selectedHistory.venueName)
+                        setNotes(selectedHistory.notes)
+                        saveDraft()
+                        const usp = new URLSearchParams()
+                        if (refCode) usp.set("ref", refCode)
+                        router.replace(`/orcamento?${usp.toString()}`)
+                      }}
+                    >
+                      Carregar este orçamento
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </Card>
+        ) : null}
+
         {eventDaysMode ? (
           <Card>
             <p className="text-sm text-zinc-400">Resumo</p>
@@ -722,7 +1070,35 @@ export function OrcamentoForm({ equipments, prices, config, refCode }: Props) {
         {eventDaysMode ? (
           <>
             {state.error ? <p className="text-sm text-red-300">{state.error}</p> : null}
-            <SubmitButton />
+            {isAuthenticated ? (
+              <SubmitButton />
+            ) : (
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => {
+                    saveDraft({ pushHistory: true })
+                    router.push(loginHref)
+                  }}
+                >
+                  Entrar para reservar
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  intent="secondary"
+                  className="w-full"
+                  onClick={() => {
+                    saveDraft({ pushHistory: true })
+                    router.push(cadastroHref)
+                  }}
+                >
+                  Criar conta
+                </Button>
+              </div>
+            )}
           </>
         ) : null}
 

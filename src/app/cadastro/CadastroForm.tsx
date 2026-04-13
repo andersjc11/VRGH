@@ -14,12 +14,13 @@ function SubmitButton() {
   )
 }
 
-export function CadastroForm({ refCode }: { refCode?: string }) {
+export function CadastroForm({ refCode, next }: { refCode?: string; next?: string }) {
   const [state, action] = useFormState<AuthActionState, FormData>(signUp, {})
 
   return (
     <form action={action} className="mt-8 space-y-4">
       <input type="hidden" name="ref" value={refCode ?? ""} />
+      <input type="hidden" name="next" value={next ?? ""} />
       <div className="space-y-2">
         <label className="text-sm text-zinc-200" htmlFor="email">
           E-mail

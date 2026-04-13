@@ -20,7 +20,12 @@ export default function LoginPage({
     }
   })()
   const ref = refFromQuery || cookieRef || refFromReferer
-  const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
+  const next = typeof searchParams?.next === "string" ? searchParams.next.trim() : ""
+  const cadastroParams = new URLSearchParams()
+  if (ref) cadastroParams.set("ref", ref)
+  if (next) cadastroParams.set("next", next)
+  const cadastroQuery = cadastroParams.toString()
+  const cadastroHref = cadastroQuery ? `/cadastro?${cadastroQuery}` : "/cadastro"
   return (
     <div className="mx-auto max-w-md px-4 py-12">
       <h1 className="text-3xl font-semibold tracking-tight">
@@ -36,7 +41,7 @@ export default function LoginPage({
       <LoginForm next={searchParams?.next} refCode={ref || undefined} />
       <p className="mt-6 text-sm text-zinc-400">
         Não tem conta?{" "}
-        <Link href={`/cadastro${refQuery}`} className="text-brand-300 hover:text-brand-200">
+        <Link href={cadastroHref} className="text-brand-300 hover:text-brand-200">
           Criar conta
         </Link>
       </p>
