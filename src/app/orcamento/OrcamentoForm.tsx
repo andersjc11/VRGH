@@ -22,6 +22,7 @@ type QuoteSessionV1 = {
   eventDate: string
   eventEndDate: string
   startTime: string
+  endTime: string
   setupDate: string
   setupTime: string
   postalCode: string
@@ -78,6 +79,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
   const [eventDate, setEventDate] = React.useState("")
   const [eventEndDate, setEventEndDate] = React.useState("")
   const [startTime, setStartTime] = React.useState("")
+  const [endTime, setEndTime] = React.useState("")
   const [setupDate, setSetupDate] = React.useState("")
   const [setupTime, setSetupTime] = React.useState("")
   const [postalCode, setPostalCode] = React.useState("")
@@ -161,11 +163,65 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
     return "hourly" as const
   }, [distanceKm, eventDaysMode, rentalChargeMode])
 
+  const needsEndTime = eventDaysMode === "single" && pricingProfile === "hourly"
+  const singleDurationHours = React.useMemo(() => {
+    if (!needsEndTime) return null
+    if (!startTime || !endTime) return null
+    const [sh, sm] = startTime.split(":").map((x) => Number(x))
+    const [eh, em] = endTime.split(":").map((x) => Number(x))
+    if (!Number.isFinite(sh) || !Number.isFinite(sm) || !Number.isFinite(eh) || !Number.isFinite(em)) return null
+    const startMinutes = sh * 60 + sm
+    const endMinutes = eh * 60 + em
+    const diffMinutes = endMinutes - startMinutes
+    if (diffMinutes <= 0) return null
+    return Math.ceil(diffMinutes / 60)
+  }, [endTime, needsEndTime, startTime])
+
+  const singleDurationError = React.useMemo(() => {
+    if (!needsEndTime) return null
+    if (!startTime || !endTime) return null
+    const [sh, sm] = startTime.split(":").map((x) => Number(x))
+    const [eh, em] = endTime.split(":").map((x) => Number(x))
+    if (!Number.isFinite(sh) || !Number.isFinite(sm) || !Number.isFinite(eh) || !Number.isFinite(em)) {
+      return "Informe um horário válido."
+    }
+    const startMinutes = sh * 60 + sm
+    const endMinutes = eh * 60 + em
+    if (endMinutes <= startMinutes) return "O horário de término deve ser após o início."
+    const hours = Math.ceil((endMinutes - startMinutes) / 60)
+    if (hours < 4 || hours > 8) return "A locação por hora deve ter entre 4 e 8 horas."
+    return null
+  }, [endTime, needsEndTime, startTime])
+
+  const effectiveDurationHours = React.useMemo(() => {
+    if (pricingProfile !== "hourly") return 8
+    if (eventDaysMode === "single" && needsEndTime) return singleDurationHours ?? durationHours
+    return durationHours
+  }, [durationHours, eventDaysMode, needsEndTime, pricingProfile, singleDurationHours])
+
+  const isEventReady = React.useMemo(() => {
+    if (eventDaysMode === "single") {
+      if (!eventDate || !startTime) return false
+      if (needsEndTime) {
+        if (!endTime) return false
+        if (!singleDurationHours) return false
+        if (singleDurationHours < 4 || singleDurationHours > 8) return false
+      }
+      return true
+    }
+    if (eventDaysMode === "multi") {
+      return Boolean(eventDate && startTime && eventEndDate && setupDate && setupTime)
+    }
+    return false
+  }, [endTime, eventDate, eventDaysMode, eventEndDate, needsEndTime, setupDate, setupTime, singleDurationHours, startTime])
+
+  const itemsForPricing = isEventReady ? items : []
+
   const breakdown = React.useMemo(
     () =>
       calcQuoteBreakdown({
-        items,
-        durationHours,
+        items: itemsForPricing,
+        durationHours: effectiveDurationHours,
         distanceKm,
         paymentPlan,
         pricingProfile,
@@ -173,7 +229,16 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
         priceByEquipmentId,
         config
       }),
-    [items, durationHours, distanceKm, paymentPlan, pricingProfile, daysCount, priceByEquipmentId, config]
+    [
+      config,
+      daysCount,
+      distanceKm,
+      effectiveDurationHours,
+      itemsForPricing,
+      paymentPlan,
+      priceByEquipmentId,
+      pricingProfile
+    ]
   )
 
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
@@ -191,6 +256,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       eventDate,
       eventEndDate,
       startTime,
+      endTime,
       setupDate,
       setupTime,
       postalCode,
@@ -217,6 +283,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
     city,
     distanceKm,
     durationHours,
+    endTime,
     eventDate,
     eventDaysMode,
     eventEndDate,
@@ -265,6 +332,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       setEventDate(parsed.eventDate)
       setEventEndDate(parsed.eventEndDate)
       setStartTime(parsed.startTime)
+      setEndTime(parsed.endTime ?? "")
       setSetupDate(parsed.setupDate)
       setSetupTime(parsed.setupTime)
       setPostalCode(parsed.postalCode)
@@ -290,14 +358,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
   }, [QUOTE_SESSION_KEY, router, searchParams])
 
   React.useEffect(() => {
-    const isReady =
-      eventDaysMode === "single"
-        ? Boolean(eventDate && startTime)
-        : eventDaysMode === "multi"
-          ? Boolean(eventDate && startTime && eventEndDate && setupDate && setupTime)
-          : false
-
-    if (!isReady) {
+    if (!isEventReady) {
       setAvailabilityByEquipmentId({})
       setAvailabilityError(null)
       return
@@ -311,7 +372,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
         startTime,
         setupDate,
         setupTime,
-        durationHours,
+        durationHours: effectiveDurationHours,
         distanceKm
       })
       if (res.error) {
@@ -322,7 +383,17 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       setAvailabilityError(null)
       setAvailabilityByEquipmentId(res.availabilityByEquipmentId)
     })
-  }, [eventDaysMode, eventDate, eventEndDate, startTime, setupDate, setupTime, durationHours, distanceKm])
+  }, [
+    distanceKm,
+    effectiveDurationHours,
+    eventDate,
+    eventDaysMode,
+    eventEndDate,
+    isEventReady,
+    setupDate,
+    setupTime,
+    startTime
+  ])
 
   React.useEffect(() => {
     if (eventDaysMode !== "multi") {
@@ -331,6 +402,10 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       setSetupTime("")
     }
   }, [eventDaysMode])
+
+  React.useEffect(() => {
+    if (!needsEndTime) setEndTime("")
+  }, [needsEndTime])
 
   React.useEffect(() => {
     if (!eventDaysMode) {
@@ -348,6 +423,12 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       setDurationHours(8)
     }
   }, [pricingProfile])
+
+  React.useEffect(() => {
+    if (!needsEndTime) return
+    if (!singleDurationHours) return
+    if (durationHours !== singleDurationHours) setDurationHours(singleDurationHours)
+  }, [durationHours, needsEndTime, singleDurationHours])
 
   React.useEffect(() => {
     const hasAny = Object.keys(availabilityByEquipmentId).length > 0
@@ -368,12 +449,6 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
     })
   }, [availabilityByEquipmentId])
 
-  const isEventReady =
-    eventDaysMode === "single"
-      ? Boolean(eventDate && startTime)
-      : eventDaysMode === "multi"
-        ? Boolean(eventDate && startTime && eventEndDate && setupDate && setupTime)
-        : false
   const hasAvailabilityData = Object.keys(availabilityByEquipmentId).length > 0
 
   const filteredEquipments =
@@ -386,6 +461,10 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       ref={formRef}
       action={action}
       onSubmit={(e) => {
+        if (!isEventReady) {
+          e.preventDefault()
+          return
+        }
         if (!isAuthenticated) {
           e.preventDefault()
           setReserveMode(true)
@@ -511,7 +590,10 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                         name="event_days_mode"
                         value="single"
                         checked={eventDaysMode === "single"}
-                        onChange={() => setEventDaysMode("single")}
+                        onChange={() => {
+                          setEventDaysMode("single")
+                          setEndTime("")
+                        }}
                         required
                         disabled={!lockByCep || isDistancePending || Boolean(distanceError && distanceKm <= 0)}
                       />
@@ -523,7 +605,10 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                         name="event_days_mode"
                         value="multi"
                         checked={eventDaysMode === "multi"}
-                        onChange={() => setEventDaysMode("multi")}
+                        onChange={() => {
+                          setEventDaysMode("multi")
+                          setEndTime("")
+                        }}
                         disabled={!lockByCep || isDistancePending || Boolean(distanceError && distanceKm <= 0)}
                       />
                       Mais de 1 dia
@@ -536,22 +621,42 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
             {eventDaysMode ? (
               <>
                 {eventDaysMode === "single" ? (
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm text-zinc-200">Dia e hora (início do evento)</label>
-                    <Input
-                      type="datetime-local"
-                      required
-                      value={eventDate && startTime ? `${eventDate}T${startTime}` : ""}
-                      onChange={(e) => {
-                        const raw = e.target.value
-                        const [d, t] = raw.split("T")
-                        setEventDate(d ?? "")
-                        setStartTime(t ?? "")
-                      }}
-                    />
-                    <input type="hidden" name="event_date" value={eventDate} />
-                    <input type="hidden" name="start_time" value={startTime} />
-                  </div>
+                  <>
+                    <div className="space-y-2 sm:col-span-2">
+                      <label className="text-sm text-zinc-200">Dia e hora (início do evento)</label>
+                      <Input
+                        type="datetime-local"
+                        required
+                        value={eventDate && startTime ? `${eventDate}T${startTime}` : ""}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          const [d, t] = raw.split("T")
+                          setEventDate(d ?? "")
+                          setStartTime(t ?? "")
+                        }}
+                      />
+                      <input type="hidden" name="event_date" value={eventDate} />
+                      <input type="hidden" name="start_time" value={startTime} />
+                    </div>
+                    {needsEndTime ? (
+                      <div className="space-y-2 sm:col-span-2">
+                        <label className="text-sm text-zinc-200">Horário de término</label>
+                        <Input
+                          type="time"
+                          required
+                          value={endTime}
+                          min={startTime || undefined}
+                          onChange={(e) => setEndTime(e.target.value)}
+                        />
+                        {singleDurationHours ? (
+                          <p className="text-xs text-zinc-400">Duração: {singleDurationHours}h</p>
+                        ) : null}
+                        {singleDurationError ? (
+                          <p className="text-xs text-red-300">{singleDurationError}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
                 ) : (
                   <>
                     <div className="space-y-2">
@@ -912,7 +1017,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
         )}
 
         <input type="hidden" name="items_json" value={JSON.stringify(items)} />
-        <input type="hidden" name="duration_hours" value={String(durationHours)} />
+        <input type="hidden" name="duration_hours" value={String(effectiveDurationHours)} />
         <input type="hidden" name="distance_km" value={String(distanceKm)} />
         <input type="hidden" name="payment_plan" value={paymentPlan} />
         <input type="hidden" name="rental_charge_mode" value={rentalChargeMode} />
@@ -928,6 +1033,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                   type="button"
                   size="lg"
                   className="w-full"
+                  disabled={!isEventReady}
                   onClick={() => {
                     setReserveMode(true)
                   }}
@@ -941,6 +1047,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                   type="button"
                   size="lg"
                   className="w-full"
+                  disabled={!isEventReady}
                   onClick={() => {
                     setReserveMode(true)
                     snapshotSession()
@@ -954,6 +1061,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                   size="lg"
                   intent="secondary"
                   className="w-full"
+                  disabled={!isEventReady}
                   onClick={() => {
                     setReserveMode(true)
                     snapshotSession()
