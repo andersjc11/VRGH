@@ -77,7 +77,7 @@ async function awardCashbackForReservation(reservationId: string) {
 
   const reservationRes = await admin
     .from("reservations")
-    .select("id,user_id,condominium_id,payment_terms")
+    .select("id,user_id,condominium_id,payment_terms,total_cents")
     .eq("id", reservationId)
     .maybeSingle()
 
@@ -87,6 +87,8 @@ async function awardCashbackForReservation(reservationId: string) {
 
   const referredId = reservation.user_id as string
   const paymentTerms = reservation.payment_terms as any
+  const totalCents = typeof reservation.total_cents === "number" ? reservation.total_cents : 0
+  const desiredCashbackCents = Math.floor(totalCents * 0.05)
 
   const referredProfileRes = await admin
     .from("profiles")
@@ -131,13 +133,31 @@ async function awardCashbackForReservation(reservationId: string) {
   const referrerRole = String(referrerProfileRes.data?.role ?? "")
   const condominiumId = typeof reservation.condominium_id === "string" ? reservation.condominium_id : null
 
+  const existingReferralRes = await admin
+    .from("referrals")
+    .select("id,status,cashback_cents")
+    .eq("referred_id", referredId)
+    .eq("reservation_id", reservationId)
+    .maybeSingle()
+
+  if (existingReferralRes.error) throw new Error(existingReferralRes.error.message)
+
+  const existingReferral = existingReferralRes.data as any
+  const existingReferralStatus = String(existingReferral?.status ?? "")
+  const existingReferralCashback =
+    typeof existingReferral?.cashback_cents === "number" ? existingReferral.cashback_cents : null
+  const cashbackCents =
+    existingReferralStatus === "approved" && typeof existingReferralCashback === "number"
+      ? existingReferralCashback
+      : desiredCashbackCents
+
   const referralUpsertRes = await admin.from("referrals").upsert(
     {
       referrer_id: referrerId,
       referred_id: referredId,
       condominium_id: referrerRole === "sindico" ? condominiumId : null,
       reservation_id: reservationId,
-      cashback_cents: 1000,
+      cashback_cents: cashbackCents,
       status: "approved"
     },
     { onConflict: "referred_id,reservation_id" }
@@ -147,29 +167,45 @@ async function awardCashbackForReservation(reservationId: string) {
 
   const referralRes = await admin
     .from("referrals")
-    .select("id")
+    .select("id,cashback_cents")
     .eq("referred_id", referredId)
     .eq("reservation_id", reservationId)
     .maybeSingle()
   if (referralRes.error) throw new Error(referralRes.error.message)
   const referralId = typeof referralRes.data?.id === "string" ? referralRes.data.id : ""
   if (!referralId) throw new Error("Falha ao localizar referral para gerar cashback.")
+  const effectiveCashbackCents = typeof (referralRes.data as any)?.cashback_cents === "number" ? (referralRes.data as any).cashback_cents : cashbackCents
 
   const shouldCreditCondominium = referrerRole === "sindico" && Boolean(condominiumId)
+
+  const existingCashbackRes = await admin
+    .from("cashback_transactions")
+    .select("id,amount_cents,status")
+    .eq("source_referral_id", referralId)
+    .maybeSingle()
+  if (existingCashbackRes.error) throw new Error(existingCashbackRes.error.message)
+
+  const existingCashback = existingCashbackRes.data as any
+  const existingCashbackStatus = String(existingCashback?.status ?? "")
+  const existingCashbackAmount = typeof existingCashback?.amount_cents === "number" ? existingCashback.amount_cents : null
+  const txAmountCents =
+    existingCashbackStatus === "approved" && typeof existingCashbackAmount === "number"
+      ? existingCashbackAmount
+      : effectiveCashbackCents
 
   const cashbackPayload =
     shouldCreditCondominium
       ? {
           owner_profile_id: null,
           owner_condominium_id: condominiumId,
-          amount_cents: 1000,
+          amount_cents: txAmountCents,
           status: "approved",
           source_referral_id: referralId
         }
       : {
           owner_profile_id: referrerId,
           owner_condominium_id: null,
-          amount_cents: 1000,
+          amount_cents: txAmountCents,
           status: "approved",
           source_referral_id: referralId
         }
