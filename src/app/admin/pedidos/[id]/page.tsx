@@ -239,15 +239,28 @@ function statusLabel(status: string | null | undefined) {
     case "submitted":
       return "Solicitação enviada"
     case "in_review":
-      return "Aguardando confirmação de pagamento"
+      return "Aguardando pagamento"
     case "confirmed":
-      return "Pagamento realizado"
+      return "Pagamento confirmado"
     case "cancelled":
       return "Reserva cancelada"
     case "completed":
       return "Reserva concluída"
     default:
       return status ?? "—"
+  }
+}
+
+function paymentPlanLabel(plan: string | null | undefined) {
+  switch (plan) {
+    case "installments":
+      return "Parcelado"
+    case "deposit":
+      return "Sinal"
+    case "pix":
+      return "Pix"
+    default:
+      return plan ?? "—"
   }
 }
 
@@ -596,7 +609,7 @@ export default async function AdminPedidoDetalhePage({
           <h1 className="text-3xl font-semibold tracking-tight">Pedido</h1>
           <p className="mt-2 text-zinc-300">
             ID: {pedido.id} • Status: {statusLabel(pedido.status)} • Pagamento:{" "}
-            {pedido.payment_plan}
+            {paymentPlanLabel(pedido.payment_plan)}
           </p>
           {isPrint ? (
             <p className="mt-2 text-sm text-zinc-300 print:hidden">

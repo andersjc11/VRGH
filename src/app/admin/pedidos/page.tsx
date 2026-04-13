@@ -5,6 +5,38 @@ import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 
 export default async function AdminPedidosPage() {
+  function reservationStatusLabel(status: string | null | undefined) {
+    switch (status) {
+      case "draft":
+        return "Rascunho"
+      case "submitted":
+        return "Solicitação enviada"
+      case "in_review":
+        return "Aguardando pagamento"
+      case "confirmed":
+        return "Pagamento confirmado"
+      case "cancelled":
+        return "Reserva cancelada"
+      case "completed":
+        return "Reserva concluída"
+      default:
+        return status ?? "—"
+    }
+  }
+
+  function paymentPlanLabel(plan: string | null | undefined) {
+    switch (plan) {
+      case "installments":
+        return "Parcelado"
+      case "deposit":
+        return "Sinal"
+      case "pix":
+        return "Pix"
+      default:
+        return plan ?? "—"
+    }
+  }
+
   function formatDatePtBR(dateValue: string | null | undefined) {
     if (!dateValue) return "—"
     const d = new Date(`${dateValue}T00:00:00`)
@@ -62,7 +94,7 @@ export default async function AdminPedidosPage() {
               <div>
                 <p className="font-semibold">{r.event_name ?? "Evento"}</p>
                 <p className="text-sm text-zinc-400">
-                  Status: {r.status} • Pagamento: {r.payment_plan}
+                  Status: {reservationStatusLabel(r.status)} • Pagamento: {paymentPlanLabel(r.payment_plan)}
                 </p>
                 <p className="mt-1 text-sm text-zinc-400">
                   Contratante: {r.profiles?.full_name ?? r.user_id ?? "—"}
