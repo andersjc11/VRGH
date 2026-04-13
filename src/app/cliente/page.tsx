@@ -534,31 +534,7 @@ export default async function ClientePage({
               </p>
             </div>
             <div className="lg:col-span-2">
-              <p className="text-sm text-zinc-300">Histórico</p>
-              {cashbackTxs.length === 0 ? (
-                <p className="mt-2 text-sm text-zinc-400">Nenhuma transação encontrada.</p>
-              ) : (
-                <div className="mt-3 grid gap-2">
-                  {cashbackTxs.slice(0, 10).map((t) => (
-                    <div
-                      key={t.id}
-                      className="flex flex-col gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-semibold">{formatBRLFromCents(t.amount_cents)}</span>
-                        <span className="text-xs text-zinc-400">
-                          {formatDate(t.created_at)} • {t.status}
-                        </span>
-                      </div>
-                      <span className="text-xs text-zinc-400">
-                        {t.source_referral_id ? `Ref: ${t.source_referral_id}` : ""}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <p className="mt-6 text-sm text-zinc-300">Indicações</p>
+              <p className="text-sm text-zinc-300">Indicações</p>
               {indications.length === 0 ? (
                 <p className="mt-2 text-sm text-zinc-400">Você ainda não tem indicações com contratação.</p>
               ) : (
