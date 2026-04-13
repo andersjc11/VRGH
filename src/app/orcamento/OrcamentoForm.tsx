@@ -83,6 +83,9 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
   const searchParams = useSearchParams()
   const formRef = React.useRef<HTMLFormElement | null>(null)
   const hasInitializedRef = React.useRef(false)
+  const eventSectionRef = React.useRef<HTMLDivElement | null>(null)
+  const periodSectionRef = React.useRef<HTMLDivElement | null>(null)
+  const equipmentSectionRef = React.useRef<HTMLDivElement | null>(null)
 
   const priceByEquipmentId = React.useMemo(
     () =>
@@ -116,6 +119,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
   const [notes, setNotes] = React.useState("")
   const [quoteHistory, setQuoteHistory] = React.useState<QuoteHistoryEntryV1[]>([])
   const [selectedHistoryId, setSelectedHistoryId] = React.useState("")
+  const [isReviewOpen, setIsReviewOpen] = React.useState(false)
   const [distanceError, setDistanceError] = React.useState<string | null>(null)
   const [cepError, setCepError] = React.useState<string | null>(null)
   const [isDistancePending, startDistanceTransition] = React.useTransition()
@@ -467,12 +471,39 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
     })
   }, [config, priceByEquipmentId, selectedHistory])
 
+  function scrollTo(ref: React.RefObject<HTMLElement | null>) {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const equipmentNameById = React.useMemo(() => {
+    return Object.fromEntries(equipments.map((eq) => [eq.id, eq.name])) as Record<string, string>
+  }, [equipments])
+
+  const addressSummary = React.useMemo(() => {
+    const street = [addressLine1, addressNumber].filter(Boolean).join(", ")
+    const rest = [neighborhood, city].filter(Boolean).join(" • ")
+    const statePart = stateUf ? `${city ? "/" : ""}${stateUf}` : ""
+    const cityState = [rest ? `${rest}${statePart}` : [city, stateUf].filter(Boolean).join("/")].filter(Boolean).join("")
+    return [street, cityState].filter(Boolean).join(" • ")
+  }, [addressLine1, addressNumber, neighborhood, city, stateUf])
+
+  const eventDateTimeSummary = React.useMemo(() => {
+    if (!eventDaysMode) return ""
+    if (eventDaysMode === "single") {
+      if (!eventDate || !startTime) return ""
+      return `${eventDate} • ${startTime}`
+    }
+    if (!eventDate || !eventEndDate || !startTime) return ""
+    return `${eventDate} → ${eventEndDate} • ${startTime}`
+  }, [eventDaysMode, eventDate, eventEndDate, startTime])
+
   return (
     <form
       ref={formRef}
       action={action}
       onSubmit={(e) => {
         saveDraft({ pushHistory: true })
+        setIsReviewOpen(false)
         if (!isAuthenticated) {
           e.preventDefault()
           router.push(loginHref)
@@ -482,9 +513,10 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
     >
       <input type="hidden" name="ref" value={refCode ?? ""} />
       <div className="lg:col-span-2 space-y-6">
-        <Card>
-          <p className="text-sm text-zinc-400">1. Dados do evento</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div ref={eventSectionRef}>
+          <Card>
+            <p className="text-sm text-zinc-400">1. Dados do evento</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">CEP do evento</label>
               <Input
@@ -776,13 +808,15 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                 <p className="text-sm text-zinc-300">Informe o CEP do evento e selecione o período para continuar.</p>
               </div>
             )}
-          </div>
-        </Card>
+            </div>
+          </Card>
+        </div>
         {eventDaysMode ? (
           <>
-            <Card>
-              <p className="text-sm text-zinc-400">2. Período e deslocamento</p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div ref={periodSectionRef}>
+              <Card>
+                <p className="text-sm text-zinc-400">2. Período e deslocamento</p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-3">
                 {eventDaysMode === "single" ? (
                   <div className="space-y-2 sm:col-span-3">
                     <label className="text-sm text-zinc-200">Tipo de locação</label>
@@ -859,12 +893,14 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                     <option value="installments">Parcelado</option>
                   </select>
                 </div>
-              </div>
-            </Card>
+                </div>
+              </Card>
+            </div>
 
-            <Card>
-              <p className="text-sm text-zinc-400">3. Equipamentos (disponíveis)</p>
-              <div className="mt-4 grid gap-4">
+            <div ref={equipmentSectionRef}>
+              <Card>
+                <p className="text-sm text-zinc-400">3. Equipamentos (disponíveis)</p>
+                <div className="mt-4 grid gap-4">
                 {!isEventReady ? (
                   <p className="text-sm text-zinc-300">
                     Preencha as datas e horários do evento para ver os equipamentos disponíveis.
@@ -933,13 +969,164 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                     )
                   })
                 )}
-              </div>
-            </Card>
+                </div>
+              </Card>
+            </div>
           </>
         ) : null}
       </div>
 
       <div className="lg:col-span-1 space-y-4">
+        {eventDaysMode ? (
+          <Card>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm text-zinc-400">Evento</p>
+                <p className="mt-1 truncate text-base font-semibold text-white">{eventName || "—"}</p>
+                <p className="mt-1 truncate text-sm text-zinc-300">{venueName || "—"}</p>
+                <p className="mt-3 text-sm text-zinc-300">{addressSummary || "—"}</p>
+                <p className="mt-1 text-xs text-zinc-500">{postalCode || "—"}</p>
+              </div>
+              <div className="flex shrink-0 flex-col gap-2">
+                <Button
+                  type="button"
+                  intent="ghost"
+                  onClick={() => {
+                    setIsReviewOpen((v) => !v)
+                  }}
+                >
+                  {isReviewOpen ? "Fechar" : "Ver tudo"}
+                </Button>
+                <Button
+                  type="button"
+                  intent="secondary"
+                  onClick={() => {
+                    setIsReviewOpen(false)
+                    scrollTo(eventSectionRef)
+                  }}
+                >
+                  Editar
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
+        {isReviewOpen && eventDaysMode ? (
+          <Card>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-zinc-400">Revisão da reserva</p>
+              <Button type="button" intent="ghost" onClick={() => setIsReviewOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+
+            <div className="mt-4 space-y-4 text-sm">
+              <div className="space-y-1">
+                <p className="text-xs text-zinc-500">Evento</p>
+                <p className="font-semibold text-white">{eventName || "—"}</p>
+                <p className="text-zinc-300">{venueName || "—"}</p>
+                <p className="text-zinc-300">{eventDateTimeSummary || "—"}</p>
+                {eventDaysMode === "multi" ? (
+                  <p className="text-zinc-300">
+                    Montagem: {setupDate || "—"} • {setupTime || "—"}
+                  </p>
+                ) : (
+                  <p className="text-zinc-300">Duração: {durationHours}h</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs text-zinc-500">Endereço</p>
+                <p className="text-zinc-300">{addressSummary || "—"}</p>
+                <p className="text-xs text-zinc-500">{postalCode || "—"}</p>
+                {addressLine2 ? <p className="text-zinc-300">Complemento: {addressLine2}</p> : null}
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs text-zinc-500">Pagamento</p>
+                <p className="text-zinc-300">{paymentPlan}</p>
+                <p className="text-zinc-300">Distância: {Number.isFinite(distanceKm) ? `${Math.round(distanceKm)}km` : "—"}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-500">Equipamentos</p>
+                {items.length ? (
+                  <div className="space-y-2">
+                    {items.map((i) => (
+                      <div key={i.equipmentId} className="flex items-center justify-between">
+                        <span className="text-zinc-300">{equipmentNameById[i.equipmentId] ?? i.equipmentId}</span>
+                        <span className="font-semibold text-white">x{i.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-zinc-300">—</p>
+                )}
+              </div>
+
+              {notes ? (
+                <div className="space-y-1">
+                  <p className="text-xs text-zinc-500">Observações</p>
+                  <p className="text-zinc-300 whitespace-pre-wrap">{notes}</p>
+                </div>
+              ) : null}
+
+              <div className="space-y-2 border-t border-white/10 pt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-300">Subtotal</span>
+                  <span className="font-semibold text-white">{formatBRLFromCents(breakdown.subtotal_cents)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-300">Deslocamento</span>
+                  <span className="font-semibold text-white">{formatBRLFromCents(breakdown.displacement_cents)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-300">Desconto</span>
+                  <span className="font-semibold text-green-300">-{formatBRLFromCents(breakdown.discount_cents)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-200">Total</span>
+                  <span className="text-lg font-semibold text-white">{formatBRLFromCents(breakdown.total_cents)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              <Button
+                type="button"
+                intent="secondary"
+                onClick={() => {
+                  setIsReviewOpen(false)
+                  scrollTo(eventSectionRef)
+                }}
+              >
+                Editar dados do evento
+              </Button>
+              <Button
+                type="button"
+                intent="secondary"
+                onClick={() => {
+                  setIsReviewOpen(false)
+                  scrollTo(periodSectionRef)
+                }}
+              >
+                Editar período
+              </Button>
+              <Button
+                type="button"
+                intent="secondary"
+                onClick={() => {
+                  setIsReviewOpen(false)
+                  scrollTo(equipmentSectionRef)
+                }}
+              >
+                Editar equipamentos
+              </Button>
+            </div>
+          </Card>
+        ) : null}
+
         {hasHistory ? (
           <Card>
             <div className="flex items-center justify-between gap-3">
