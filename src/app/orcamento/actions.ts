@@ -614,7 +614,7 @@ export async function createReservation(
           referred_id: user.id,
           condominium_id: null,
           reservation_id: reservationId,
-          cashback_cents: 1000,
+          cashback_cents: Math.floor(breakdown.total_cents * 0.05),
           status: "pending"
         },
         { onConflict: "referred_id,reservation_id" }

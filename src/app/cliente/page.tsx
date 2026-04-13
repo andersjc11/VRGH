@@ -70,6 +70,7 @@ type ReferralReservationRow = {
   status: string
   created_at: string
   event_name: string | null
+  total_cents: number
 }
 
 type ReservationByRefRow = {
@@ -78,6 +79,7 @@ type ReservationByRefRow = {
   status: string
   created_at: string
   event_name: string | null
+  total_cents: number
 }
 
 function formatDate(iso: string) {
@@ -363,7 +365,7 @@ export default async function ClientePage({
 
   const reservationIds = Array.from(new Set(referrals.map((r) => r.reservation_id).filter(Boolean))) as string[]
   const referralReservationsRes = reservationIds.length
-    ? await admin.from("reservations").select("id,status,created_at,event_name").in("id", reservationIds)
+    ? await admin.from("reservations").select("id,status,created_at,event_name,total_cents").in("id", reservationIds)
     : { data: [], error: null as any }
 
   const reservationById = Object.fromEntries((referralReservationsRes.data ?? []).map((r: any) => [r.id, r])) as Record<
@@ -378,7 +380,7 @@ export default async function ClientePage({
   const reservationsByRefRes = referralCode
     ? await admin
         .from("reservations")
-        .select("id,user_id,status,created_at,event_name")
+        .select("id,user_id,status,created_at,event_name,total_cents")
         .contains("payment_terms", { ref: referralCode })
         .order("created_at", { ascending: false })
         .limit(50)
@@ -428,7 +430,9 @@ export default async function ClientePage({
           ? { id: reservation.id, status: reservation.status, created_at: reservation.created_at, event_name: reservation.event_name }
           : null,
         referralStatus: r.status,
-        cashbackCents: typeof r.cashback_cents === "number" ? r.cashback_cents : 1000,
+        cashbackCents: r.status === "pending"
+          ? Math.floor((reservation?.total_cents ?? 20000) * 0.05)
+          : (typeof r.cashback_cents === "number" ? r.cashback_cents : Math.floor((reservation?.total_cents ?? 20000) * 0.05)),
         cashbackStatus: cashbackTx?.status ?? ""
       }
     }),
@@ -440,7 +444,7 @@ export default async function ClientePage({
         referredName: referred?.full_name ? referred.full_name : `Cliente ${res.user_id.slice(0, 6)}`,
         reservation: { id: res.id, status: res.status, created_at: res.created_at, event_name: res.event_name },
         referralStatus: "pending",
-        cashbackCents: 1000,
+        cashbackCents: Math.floor((res.total_cents ?? 0) * 0.05),
         cashbackStatus: ""
       }
     })
@@ -510,7 +514,7 @@ export default async function ClientePage({
           <p className="mt-2 font-semibold">Seu link exclusivo</p>
           <ReferralLink url={referralLink} />
           <p className="mt-2 text-xs text-zinc-400">
-            Ao concluir uma reserva via seu link, você recebe R$10,00 de cashback.
+            Ao concluir uma reserva via seu link, você recebe 5% do valor em cashback.
           </p>
         </Card>
 
