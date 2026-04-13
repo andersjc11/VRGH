@@ -51,6 +51,27 @@ type CashbackWithdrawalRow = {
   paid_at: string | null
 }
 
+type ReferralRow = {
+  id: string
+  reservation_id: string | null
+  referred_id: string
+  referrer_id: string
+  status: string | null
+  cashback_cents: number | null
+}
+
+type ReferredProfileRow = {
+  id: string
+  full_name: string | null
+}
+
+type ReferralReservationRow = {
+  id: string
+  status: string
+  created_at: string
+  event_name: string | null
+}
+
 function formatDate(iso: string) {
   const date = new Date(iso)
   return date.toLocaleDateString("pt-BR")
@@ -92,6 +113,30 @@ function safeDecodeURIComponent(value: string) {
 function isNextRedirectError(err: unknown) {
   const digest = (err as any)?.digest
   return typeof digest === "string" && digest.includes("NEXT_REDIRECT")
+}
+
+function reservationStatusLabel(status: string | null | undefined) {
+  switch (status) {
+    case "submitted":
+      return "Solicitação enviada"
+    case "in_review":
+      return "Aguardando confirmação de pagamento"
+    case "confirmed":
+      return "Pagamento realizado"
+    case "cancelled":
+      return "Reserva cancelada"
+    case "completed":
+      return "Reserva concluída"
+    default:
+      return status ?? "—"
+  }
+}
+
+function referralStatusLabel(status: string | null | undefined) {
+  if (status === "approved") return "Aprovada"
+  if (status === "pending") return "Pendente"
+  if (status === "cancelled") return "Cancelada"
+  return status ?? "—"
 }
 
 const CASHBACK_RECEIPTS_BUCKET = "cashback-receipts"
@@ -293,6 +338,44 @@ export default async function ClientePage({
     ? `${baseUrl || ""}/?ref=${encodeURIComponent(referralCode)}`
     : ""
 
+  const admin = createSupabaseAdminClient()
+  const referralsRes = await admin
+    .from("referrals")
+    .select("id,reservation_id,referred_id,referrer_id,status,cashback_cents")
+    .eq("referrer_id", user.id)
+    .limit(50)
+
+  const referrals = (referralsRes.data ?? []) as ReferralRow[]
+  const referredIds = Array.from(new Set(referrals.map((r) => r.referred_id).filter(Boolean))) as string[]
+  const referredProfilesRes = referredIds.length
+    ? await admin.from("profiles").select("id,full_name").in("id", referredIds)
+    : { data: [], error: null as any }
+
+  const referredProfileById = Object.fromEntries((referredProfilesRes.data ?? []).map((p: any) => [p.id, p])) as Record<
+    string,
+    ReferredProfileRow
+  >
+
+  const reservationIds = Array.from(new Set(referrals.map((r) => r.reservation_id).filter(Boolean))) as string[]
+  const referralReservationsRes = reservationIds.length
+    ? await admin.from("reservations").select("id,status,created_at,event_name").in("id", reservationIds)
+    : { data: [], error: null as any }
+
+  const reservationById = Object.fromEntries((referralReservationsRes.data ?? []).map((r: any) => [r.id, r])) as Record<
+    string,
+    ReferralReservationRow
+  >
+
+  const cashbackByReferralId = Object.fromEntries(
+    cashbackTxs.filter((t) => t.source_referral_id).map((t) => [t.source_referral_id as string, t])
+  ) as Record<string, CashbackTxRow>
+
+  const referralsSorted = [...referrals].sort((a, b) => {
+    const aCreated = a.reservation_id ? reservationById[a.reservation_id]?.created_at : ""
+    const bCreated = b.reservation_id ? reservationById[b.reservation_id]?.created_at : ""
+    return String(bCreated).localeCompare(String(aCreated))
+  })
+
   const ok = searchParams?.ok
   const error = searchParams?.error
 
@@ -398,6 +481,46 @@ export default async function ClientePage({
                       </span>
                     </div>
                   ))}
+                </div>
+              )}
+
+              <p className="mt-6 text-sm text-zinc-300">Indicações</p>
+              {referralsSorted.length === 0 ? (
+                <p className="mt-2 text-sm text-zinc-400">Você ainda não tem indicações com contratação.</p>
+              ) : (
+                <div className="mt-3 grid gap-2">
+                  {referralsSorted.slice(0, 10).map((r) => {
+                    const referred = referredProfileById[r.referred_id]
+                    const reservation = r.reservation_id ? reservationById[r.reservation_id] : null
+                    const cashbackTx = cashbackByReferralId[r.id]
+                    return (
+                      <div
+                        key={r.id}
+                        className="flex flex-col gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-white">
+                            {referred?.full_name ? referred.full_name : `Cliente ${r.referred_id.slice(0, 6)}`}
+                          </span>
+                          <span className="text-xs text-zinc-400">
+                            {reservation?.event_name ? `${reservation.event_name} • ` : ""}
+                            {reservation?.created_at ? `${formatDate(reservation.created_at)} • ` : ""}
+                            Status: {reservationStatusLabel(reservation?.status)} • Indicação:{" "}
+                            {referralStatusLabel(r.status)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-zinc-400">
+                            Cashback:{" "}
+                            {typeof r.cashback_cents === "number"
+                              ? formatBRLFromCents(r.cashback_cents)
+                              : formatBRLFromCents(1000)}
+                            {cashbackTx?.status ? ` • ${cashbackTx.status}` : ""}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>
