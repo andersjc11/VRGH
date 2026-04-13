@@ -19,6 +19,7 @@ type Props = {
     whatsapp: string | null
     phone: string | null
   }
+  next?: string | null
 }
 
 function SubmitButton() {
@@ -30,7 +31,7 @@ function SubmitButton() {
   )
 }
 
-export function DadosClienteForm({ initial }: Props) {
+export function DadosClienteForm({ initial, next }: Props) {
   const [state, action] = useFormState<UpdateClientDataState, FormData>(
     updateClientData,
     {}
@@ -87,6 +88,7 @@ export function DadosClienteForm({ initial }: Props) {
 
   return (
     <form action={action} className="mt-8 space-y-4">
+      <input type="hidden" name="next" value={next ?? ""} />
       <div className="space-y-2">
         <label className="text-sm text-zinc-200" htmlFor="full_name">
           Nome

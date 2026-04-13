@@ -26,6 +26,10 @@ export async function updateClientData(
   const user = data.user
   if (!user) redirect("/login?next=/cliente/dados")
 
+  const nextRaw = getString(formData, "next")
+  const next =
+    nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : ""
+
   const fullName = getString(formData, "full_name")
   const cpfRaw = getString(formData, "cpf")
   const addressLine1 = getString(formData, "address_line1")
@@ -66,6 +70,7 @@ export async function updateClientData(
 
   if (error) return { error: "Não foi possível salvar seus dados. Tente novamente." }
 
+  if (next) redirect(next)
   return { message: "Dados salvos com sucesso." }
 }
 

@@ -249,8 +249,7 @@ export async function createReservation(
   if (!user) {
     const usp = new URLSearchParams()
     if (formRef) usp.set("ref", formRef)
-    usp.set("resume", "1")
-    usp.set("submit", "1")
+    usp.set("restore", "1")
     const next = `/orcamento?${usp.toString()}`
     redirect(`/login?next=${encodeURIComponent(next)}`)
   }
@@ -271,21 +270,6 @@ export async function createReservation(
     .maybeSingle()
 
   const profile = profileRes.data as any
-  const missingClientData =
-    !profile?.full_name ||
-    !profile?.cpf ||
-    !profile?.address_line1 ||
-    !profile?.neighborhood ||
-    !profile?.city ||
-    !profile?.postal_code ||
-    !(profile?.whatsapp || profile?.phone)
-
-  if (missingClientData) {
-    return {
-      error:
-        "Antes de enviar a reserva, preencha seus Dados do Cliente em /cliente/dados."
-    }
-  }
 
   const itemsJson = getString(formData, "items_json")
   const items = parseItems(itemsJson)
@@ -626,5 +610,6 @@ export async function createReservation(
     }
   } catch {}
 
-  redirect(`/cliente/pedidos/${reservationInsert.data.id}`)
+  const reservationId = reservationInsert.data.id as string
+  redirect(`/cliente/dados?next=${encodeURIComponent(`/cliente/pedidos/${reservationId}`)}`)
 }

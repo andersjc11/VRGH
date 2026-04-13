@@ -5,11 +5,22 @@ import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { DadosClienteForm } from "./DadosClienteForm"
 
-export default async function DadosClientePage() {
+export default async function DadosClientePage({
+  searchParams
+}: {
+  searchParams?: Record<string, string | string[] | undefined>
+}) {
+  const rawNext = searchParams?.next
+  const next =
+    typeof rawNext === "string" && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : ""
+
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   const user = data.user
-  if (!user) redirect("/login?next=/cliente/dados")
+  if (!user) {
+    const nextParam = next ? `/cliente/dados?next=${encodeURIComponent(next)}` : "/cliente/dados"
+    redirect(`/login?next=${encodeURIComponent(nextParam)}`)
+  }
 
   const profileRes = await supabase
     .from("profiles")
@@ -50,6 +61,7 @@ export default async function DadosClientePage() {
             whatsapp: profile?.whatsapp ?? null,
             phone: profile?.phone ?? null
           }}
+          next={next || null}
         />
       </Card>
     </div>
