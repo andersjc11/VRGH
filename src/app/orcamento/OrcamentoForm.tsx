@@ -574,42 +574,38 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                         onChange={(e) => setStartTime(e.target.value)}
                       />
                     </div>
-                    {reserveMode ? (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-sm text-zinc-200">Data final</label>
-                          <Input
-                            name="event_end_date"
-                            type="date"
-                            required
-                            value={eventEndDate}
-                            onChange={(e) => setEventEndDate(e.target.value)}
-                            min={eventDate || undefined}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm text-zinc-200">Data de montagem</label>
-                          <Input
-                            name="setup_date"
-                            type="date"
-                            required
-                            value={setupDate}
-                            onChange={(e) => setSetupDate(e.target.value)}
-                            max={eventEndDate || undefined}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm text-zinc-200">Horário de montagem</label>
-                          <Input
-                            name="setup_time"
-                            type="time"
-                            required
-                            value={setupTime}
-                            onChange={(e) => setSetupTime(e.target.value)}
-                          />
-                        </div>
-                      </>
-                    ) : null}
+                    <div className="space-y-2">
+                      <label className="text-sm text-zinc-200">Data final</label>
+                      <Input
+                        name="event_end_date"
+                        type="date"
+                        required
+                        value={eventEndDate}
+                        onChange={(e) => setEventEndDate(e.target.value)}
+                        min={eventDate || undefined}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-zinc-200">Data de montagem</label>
+                      <Input
+                        name="setup_date"
+                        type="date"
+                        required
+                        value={setupDate}
+                        onChange={(e) => setSetupDate(e.target.value)}
+                        max={eventEndDate || undefined}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-zinc-200">Horário de montagem</label>
+                      <Input
+                        name="setup_time"
+                        type="time"
+                        required
+                        value={setupTime}
+                        onChange={(e) => setSetupTime(e.target.value)}
+                      />
+                    </div>
                   </>
                 )}
 
