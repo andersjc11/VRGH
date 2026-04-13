@@ -622,40 +622,46 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
               <>
                 {eventDaysMode === "single" ? (
                   <>
-                    <div className="space-y-2 sm:col-span-2">
-                      <label className="text-sm text-zinc-200">Dia e hora (início do evento)</label>
-                      <Input
-                        type="datetime-local"
-                        required
-                        value={eventDate && startTime ? `${eventDate}T${startTime}` : ""}
-                        onChange={(e) => {
-                          const raw = e.target.value
-                          const [d, t] = raw.split("T")
-                          setEventDate(d ?? "")
-                          setStartTime(t ?? "")
-                        }}
-                      />
-                      <input type="hidden" name="event_date" value={eventDate} />
-                      <input type="hidden" name="start_time" value={startTime} />
-                    </div>
-                    {needsEndTime ? (
-                      <div className="space-y-2 sm:col-span-2">
-                        <label className="text-sm text-zinc-200">Horário de término</label>
+                    <div className="sm:col-span-2 grid gap-4 sm:grid-cols-3">
+                      <div className="space-y-2">
+                        <label className="text-sm text-zinc-200">Dia do evento</label>
                         <Input
+                          name="event_date"
+                          type="date"
+                          required
+                          value={eventDate}
+                          onChange={(e) => setEventDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm text-zinc-200">Horário de início</label>
+                        <Input
+                          name="start_time"
                           type="time"
                           required
-                          value={endTime}
-                          min={startTime || undefined}
-                          onChange={(e) => setEndTime(e.target.value)}
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
                         />
-                        {singleDurationHours ? (
-                          <p className="text-xs text-zinc-400">Duração: {singleDurationHours}h</p>
-                        ) : null}
-                        {singleDurationError ? (
-                          <p className="text-xs text-red-300">{singleDurationError}</p>
-                        ) : null}
                       </div>
-                    ) : null}
+                      {needsEndTime ? (
+                        <div className="space-y-2">
+                          <label className="text-sm text-zinc-200">Horário de término</label>
+                          <Input
+                            type="time"
+                            required
+                            value={endTime}
+                            min={startTime || undefined}
+                            onChange={(e) => setEndTime(e.target.value)}
+                          />
+                          {singleDurationHours ? (
+                            <p className="text-xs text-zinc-400">Duração: {singleDurationHours}h</p>
+                          ) : null}
+                          {singleDurationError ? (
+                            <p className="text-xs text-red-300">{singleDurationError}</p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
                   </>
                 ) : (
                   <>
