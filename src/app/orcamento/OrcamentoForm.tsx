@@ -59,6 +59,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
   const searchParams = useSearchParams()
   const formRef = React.useRef<HTMLFormElement | null>(null)
   const QUOTE_SESSION_KEY = "vrgh:quote_session_v1"
+  const isRestoring = searchParams.get("restore") === "1"
 
   const priceByEquipmentId = React.useMemo(
     () =>
@@ -243,10 +244,10 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
 
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
 
-  const snapshotSession = React.useCallback(() => {
+  const snapshotSession = React.useCallback((nextReserveMode?: boolean) => {
     const payload: QuoteSessionV1 = {
       v: 1,
-      reserveMode,
+      reserveMode: typeof nextReserveMode === "boolean" ? nextReserveMode : reserveMode,
       durationHours,
       distanceKm,
       paymentPlan,
@@ -404,8 +405,9 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
   }, [eventDaysMode])
 
   React.useEffect(() => {
-    if (!needsEndTime) setEndTime("")
-  }, [needsEndTime])
+    if (isRestoring) return
+    if (eventDaysMode !== "single" || !needsEndTime) setEndTime("")
+  }, [eventDaysMode, isRestoring, needsEndTime])
 
   React.useEffect(() => {
     if (!eventDaysMode) {
@@ -468,7 +470,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
         if (!isAuthenticated) {
           e.preventDefault()
           setReserveMode(true)
-          snapshotSession()
+          snapshotSession(true)
           router.push(loginHref)
           return
         }
@@ -1056,7 +1058,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                   disabled={!isEventReady}
                   onClick={() => {
                     setReserveMode(true)
-                    snapshotSession()
+                    snapshotSession(true)
                     router.push(loginHref)
                   }}
                 >
@@ -1070,7 +1072,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                   disabled={!isEventReady}
                   onClick={() => {
                     setReserveMode(true)
-                    snapshotSession()
+                    snapshotSession(true)
                     router.push(cadastroHref)
                   }}
                 >
