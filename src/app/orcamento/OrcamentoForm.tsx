@@ -923,9 +923,9 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
               </div>
             </Card>
 
-            {items.length > 0 ? (
+            {reserveMode && items.length > 0 ? (
               <Card>
-                <p className="text-sm text-zinc-400">{reserveMode ? "4" : "3"}. Endereço do evento</p>
+                <p className="text-sm text-zinc-400">4. Endereço do evento</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2 sm:col-span-2">
                     <label className="text-sm text-zinc-200">Rua</label>
