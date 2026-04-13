@@ -2,13 +2,38 @@
 
 import * as React from "react"
 import { useFormState, useFormStatus } from "react-dom"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import type { Equipment, EquipmentPrice, PaymentPlanType, PricingConfig, QuoteItemInput } from "@/lib/domain/types"
 import { calcQuoteBreakdown, formatBRLFromCents } from "@/lib/pricing/calc"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import { calcDistanceKmFromCep, createReservation, getEquipmentAvailability, type CreateReservationState } from "./actions"
+
+type QuoteSessionV1 = {
+  v: 1
+  durationHours: number
+  distanceKm: number
+  paymentPlan: PaymentPlanType
+  qtyById: Record<string, string>
+  eventDaysMode: "" | "single" | "multi"
+  rentalChargeMode: "hourly" | "daily"
+  eventDate: string
+  eventEndDate: string
+  startTime: string
+  setupDate: string
+  setupTime: string
+  postalCode: string
+  addressLine1: string
+  addressNumber: string
+  addressLine2: string
+  neighborhood: string
+  city: string
+  stateUf: string
+  eventName: string
+  venueName: string
+  notes: string
+}
 
 type Props = {
   equipments: Equipment[]
@@ -29,7 +54,9 @@ function SubmitButton() {
 
 export function OrcamentoForm({ equipments, prices, config, refCode, isAuthenticated }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const formRef = React.useRef<HTMLFormElement | null>(null)
+  const QUOTE_SESSION_KEY = "vrgh:quote_session_v1"
 
   const priceByEquipmentId = React.useMemo(
     () =>
@@ -149,14 +176,113 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
 
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
 
+  const snapshotSession = React.useCallback(() => {
+    const payload: QuoteSessionV1 = {
+      v: 1,
+      durationHours,
+      distanceKm,
+      paymentPlan,
+      qtyById,
+      eventDaysMode,
+      rentalChargeMode,
+      eventDate,
+      eventEndDate,
+      startTime,
+      setupDate,
+      setupTime,
+      postalCode,
+      addressLine1,
+      addressNumber,
+      addressLine2,
+      neighborhood,
+      city,
+      stateUf,
+      eventName,
+      venueName,
+      notes
+    }
+
+    try {
+      sessionStorage.setItem(QUOTE_SESSION_KEY, JSON.stringify(payload))
+    } catch {
+    }
+  }, [
+    QUOTE_SESSION_KEY,
+    addressLine1,
+    addressLine2,
+    addressNumber,
+    city,
+    distanceKm,
+    durationHours,
+    eventDate,
+    eventDaysMode,
+    eventEndDate,
+    eventName,
+    neighborhood,
+    notes,
+    paymentPlan,
+    postalCode,
+    qtyById,
+    rentalChargeMode,
+    setupDate,
+    setupTime,
+    startTime,
+    stateUf,
+    venueName
+  ])
+
   const nextAfterAuth = React.useMemo(() => {
     const usp = new URLSearchParams()
     if (refCode) usp.set("ref", refCode)
+    usp.set("restore", "1")
     return `/orcamento?${usp.toString()}`
   }, [refCode])
 
   const loginHref = React.useMemo(() => `/login?next=${encodeURIComponent(nextAfterAuth)}`, [nextAfterAuth])
   const cadastroHref = React.useMemo(() => `/cadastro?next=${encodeURIComponent(nextAfterAuth)}`, [nextAfterAuth])
+
+  React.useEffect(() => {
+    const shouldRestore = searchParams.get("restore") === "1"
+    if (!shouldRestore) return
+
+    try {
+      const raw = sessionStorage.getItem(QUOTE_SESSION_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw) as QuoteSessionV1
+      if (!parsed || parsed.v !== 1) return
+
+      setDurationHours(parsed.durationHours)
+      setDistanceKm(parsed.distanceKm)
+      setPaymentPlan(parsed.paymentPlan)
+      setQtyById(parsed.qtyById ?? {})
+      setEventDaysMode(parsed.eventDaysMode)
+      setRentalChargeMode(parsed.rentalChargeMode)
+      setEventDate(parsed.eventDate)
+      setEventEndDate(parsed.eventEndDate)
+      setStartTime(parsed.startTime)
+      setSetupDate(parsed.setupDate)
+      setSetupTime(parsed.setupTime)
+      setPostalCode(parsed.postalCode)
+      setAddressLine1(parsed.addressLine1)
+      setAddressNumber(parsed.addressNumber)
+      setAddressLine2(parsed.addressLine2)
+      setNeighborhood(parsed.neighborhood)
+      setCity(parsed.city)
+      setStateUf(parsed.stateUf)
+      setEventName(parsed.eventName)
+      setVenueName(parsed.venueName)
+      setNotes(parsed.notes)
+    } catch {
+    } finally {
+      try {
+        sessionStorage.removeItem(QUOTE_SESSION_KEY)
+      } catch {
+      }
+      const usp = new URLSearchParams(searchParams.toString())
+      usp.delete("restore")
+      router.replace(usp.toString() ? `/orcamento?${usp.toString()}` : "/orcamento")
+    }
+  }, [QUOTE_SESSION_KEY, router, searchParams])
 
   React.useEffect(() => {
     const isReady =
@@ -257,6 +383,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       onSubmit={(e) => {
         if (!isAuthenticated) {
           e.preventDefault()
+          snapshotSession()
           router.push(loginHref)
         }
       }}
@@ -778,6 +905,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                   size="lg"
                   className="w-full"
                   onClick={() => {
+                    snapshotSession()
                     router.push(loginHref)
                   }}
                 >
@@ -789,6 +917,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                   intent="secondary"
                   className="w-full"
                   onClick={() => {
+                    snapshotSession()
                     router.push(cadastroHref)
                   }}
                 >
