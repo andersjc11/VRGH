@@ -28,6 +28,38 @@ function statusAllowsEdit(status: string) {
   return status === "submitted" || status === "in_review"
 }
 
+function reservationStatusLabel(status: string | null | undefined) {
+  switch (status) {
+    case "draft":
+      return "Rascunho"
+    case "submitted":
+      return "Solicitação enviada"
+    case "in_review":
+      return "Aguardando pagamento"
+    case "confirmed":
+      return "Pagamento confirmado"
+    case "cancelled":
+      return "Reserva cancelada"
+    case "completed":
+      return "Reserva concluída"
+    default:
+      return status ?? "—"
+  }
+}
+
+function paymentPlanLabel(plan: string | null | undefined) {
+  switch (plan) {
+    case "installments":
+      return "Parcelado"
+    case "deposit":
+      return "Sinal"
+    case "pix":
+      return "Pix"
+    default:
+      return plan ?? "—"
+  }
+}
+
 async function updatePedido(formData: FormData) {
   "use server"
 
@@ -146,7 +178,7 @@ export default async function PedidoDetalhePage({
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Detalhes do pedido</h1>
           <p className="mt-2 text-zinc-300">
-            Status: {pedido.status} • Pagamento: {pedido.payment_plan}
+            Status: {reservationStatusLabel(pedido.status)} • Pagamento: {paymentPlanLabel(pedido.payment_plan)}
           </p>
           {quote?.created_at ? (
             <p className="mt-1 text-sm text-zinc-500">Enviado em {formatDatePtBR(quote.created_at)}</p>
