@@ -514,7 +514,7 @@ export default async function ClientePage({
           <p className="mt-2 font-semibold">Seu link exclusivo</p>
           <ReferralLink url={referralLink} />
           <p className="mt-2 text-xs text-zinc-400">
-            Ao concluir uma reserva via seu link, você recebe 5% do valor em cashback.
+            Compartilhe seu link e ganhe 5% de cashback em cada reserva confirmada.
           </p>
         </Card>
 
