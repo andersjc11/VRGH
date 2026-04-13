@@ -509,7 +509,7 @@ export default async function ClientePage({
               <p className="text-xs text-zinc-500">
                 {!clientDataComplete && "Necessário para formalizar a reserva e gerar o termo."}
               </p>
-              <Button asChild intent={clientDataComplete ? "secondary" : "primary"} size="sm">
+              <Button asChild intent={clientDataComplete ? "secondary" : "primary"}>
                 <Link href="/cliente/dados">
                   {clientDataComplete ? "Editar perfil" : "Preencher agora"}
                 </Link>
