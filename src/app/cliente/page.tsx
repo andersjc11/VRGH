@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { ReferralLink } from "./ReferralLink"
 
+export const dynamic = "force-dynamic"
+
 type ProfileRow = {
   id: string
   full_name: string | null
@@ -130,7 +132,7 @@ function reservationStatusLabel(status: string | null | undefined) {
     case "submitted":
       return "Solicitação enviada"
     case "in_review":
-      return "Aguardando confirmação de pagamento"
+      return "Aguardando pagamento"
     case "confirmed":
       return "Pagamento realizado"
     case "cancelled":
@@ -139,6 +141,19 @@ function reservationStatusLabel(status: string | null | undefined) {
       return "Reserva concluída"
     default:
       return status ?? "—"
+  }
+}
+
+function paymentPlanLabel(plan: string | null | undefined) {
+  switch (plan) {
+    case "installments":
+      return "Parcelado"
+    case "deposit":
+      return "Entrada"
+    case "pix":
+      return "PIX"
+    default:
+      return plan ?? "—"
   }
 }
 
@@ -663,7 +678,7 @@ export default async function ClientePage({
                     </span>
                   </p>
                   <p className="text-sm text-zinc-300">
-                    Status: {r.status} • Pagamento: {r.payment_plan}
+                    Status: {reservationStatusLabel(r.status)} • Pagamento: {paymentPlanLabel(r.payment_plan)}
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-4 sm:justify-end">
