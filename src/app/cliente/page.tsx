@@ -482,33 +482,38 @@ export default async function ClientePage({
 
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div>
-              <p className="text-sm text-zinc-400">Perfil</p>
-              <p className="mt-2 font-semibold">
-                {profile?.full_name ?? user.email ?? "Cliente"}
-              </p>
-              <p className="mt-1 text-sm text-zinc-300">
-                {profile?.whatsapp ?? profile?.phone ?? "—"}
-              </p>
-              <p className="mt-1 text-sm text-zinc-400">Tipo: {profile?.role ?? "client"}</p>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Dados do Cliente</h2>
+              {clientDataComplete ? (
+                <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/20">
+                  Perfil Completo
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-400 border border-amber-500/20">
+                  Perfil Pendente
+                </span>
+              )}
             </div>
 
-            <div>
-              <p className="text-sm text-zinc-400">Dados do cliente</p>
-              <p className="mt-2 font-semibold">
-                {clientDataComplete ? "Completo" : "Pendente"}
+            <div className="flex flex-col gap-1">
+              <p className="text-base font-medium text-zinc-200">
+                {profile?.full_name ?? user.email ?? "Cliente"}
               </p>
-              <p className="mt-1 text-sm text-zinc-300">
-                Necessário para formalizar a reserva e gerar o termo.
+              <p className="text-sm text-zinc-400">
+                {profile?.whatsapp ?? profile?.phone ?? "—"}
               </p>
-              <div className="mt-4">
-                <Button asChild intent={clientDataComplete ? "secondary" : "primary"}>
-                  <Link href="/cliente/dados">
-                    {clientDataComplete ? "Ver/editar dados" : "Preencher agora"}
-                  </Link>
-                </Button>
-              </div>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-zinc-500">
+                {!clientDataComplete && "Necessário para formalizar a reserva e gerar o termo."}
+              </p>
+              <Button asChild intent={clientDataComplete ? "secondary" : "primary"} size="sm">
+                <Link href="/cliente/dados">
+                  {clientDataComplete ? "Editar perfil" : "Preencher agora"}
+                </Link>
+              </Button>
             </div>
           </div>
         </Card>
