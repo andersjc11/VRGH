@@ -320,9 +320,6 @@ export default async function ClientePage({
   const cashbackApprovedCents = cashbackTxs
     .filter((t) => t.status === "approved")
     .reduce((acc, t) => acc + (typeof t.amount_cents === "number" ? t.amount_cents : 0), 0)
-  const cashbackPendingCents = cashbackTxs
-    .filter((t) => t.status === "pending")
-    .reduce((acc, t) => acc + (typeof t.amount_cents === "number" ? t.amount_cents : 0), 0)
 
   const withdrawalsRes = await supabase
     .from("cashback_withdrawals")
@@ -448,6 +445,10 @@ export default async function ClientePage({
       }
     })
   ].sort((a, b) => String(b.reservation?.created_at ?? "").localeCompare(String(a.reservation?.created_at ?? "")))
+
+  const cashbackPendingCents = indications
+    .filter((ind) => ind.referralStatus === "pending")
+    .reduce((acc, ind) => acc + ind.cashbackCents, 0)
 
   const ok = searchParams?.ok
   const error = searchParams?.error
