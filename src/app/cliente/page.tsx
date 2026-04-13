@@ -481,31 +481,35 @@ export default async function ClientePage({
       ) : null}
 
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <p className="text-sm text-zinc-400">Perfil</p>
-          <p className="mt-2 font-semibold">
-            {profile?.full_name ?? user.email ?? "Cliente"}
-          </p>
-          <p className="mt-1 text-sm text-zinc-300">
-            {profile?.whatsapp ?? profile?.phone ?? "—"}
-          </p>
-          <p className="mt-1 text-sm text-zinc-400">Tipo: {profile?.role ?? "client"}</p>
-        </Card>
+        <Card className="lg:col-span-2">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <p className="text-sm text-zinc-400">Perfil</p>
+              <p className="mt-2 font-semibold">
+                {profile?.full_name ?? user.email ?? "Cliente"}
+              </p>
+              <p className="mt-1 text-sm text-zinc-300">
+                {profile?.whatsapp ?? profile?.phone ?? "—"}
+              </p>
+              <p className="mt-1 text-sm text-zinc-400">Tipo: {profile?.role ?? "client"}</p>
+            </div>
 
-        <Card className="lg:col-span-1">
-          <p className="text-sm text-zinc-400">Dados do cliente</p>
-          <p className="mt-2 font-semibold">
-            {clientDataComplete ? "Completo" : "Pendente"}
-          </p>
-          <p className="mt-1 text-sm text-zinc-300">
-            Necessário para formalizar a reserva e gerar o termo.
-          </p>
-          <div className="mt-4">
-            <Button asChild intent={clientDataComplete ? "secondary" : "primary"}>
-              <Link href="/cliente/dados">
-                {clientDataComplete ? "Ver/editar dados" : "Preencher agora"}
-              </Link>
-            </Button>
+            <div>
+              <p className="text-sm text-zinc-400">Dados do cliente</p>
+              <p className="mt-2 font-semibold">
+                {clientDataComplete ? "Completo" : "Pendente"}
+              </p>
+              <p className="mt-1 text-sm text-zinc-300">
+                Necessário para formalizar a reserva e gerar o termo.
+              </p>
+              <div className="mt-4">
+                <Button asChild intent={clientDataComplete ? "secondary" : "primary"}>
+                  <Link href="/cliente/dados">
+                    {clientDataComplete ? "Ver/editar dados" : "Preencher agora"}
+                  </Link>
+                </Button>
+              </div>
+            </div>
           </div>
         </Card>
 
