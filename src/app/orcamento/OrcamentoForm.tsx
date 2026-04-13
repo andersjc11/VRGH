@@ -390,6 +390,12 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       className="mt-8 grid gap-6 lg:grid-cols-3"
     >
       <input type="hidden" name="ref" value={refCode ?? ""} />
+      <input type="hidden" name="address_line1" value={addressLine1} />
+      <input type="hidden" name="address_number" value={addressNumber} />
+      <input type="hidden" name="address_line2" value={addressLine2} />
+      <input type="hidden" name="neighborhood" value={neighborhood} />
+      <input type="hidden" name="city" value={city} />
+      <input type="hidden" name="state" value={stateUf} />
       <div className="lg:col-span-2 space-y-6">
         <Card>
           <p className="text-sm text-zinc-400">1. Dados do evento</p>
@@ -485,62 +491,6 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
               </div>
             ) : (
               <>
-                <div className="sm:col-span-2 grid gap-4 sm:grid-cols-3">
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm text-zinc-200">Rua</label>
-                    <Input
-                      name="address_line1"
-                      placeholder="Ex: Avenida Brasil"
-                      value={addressLine1}
-                      onChange={(e) => setAddressLine1(e.target.value)}
-                      readOnly={lockByCep}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-zinc-200">Número</label>
-                    <Input
-                      name="address_number"
-                      inputMode="numeric"
-                      placeholder="Ex: 123"
-                      value={addressNumber}
-                      onChange={(e) => setAddressNumber(e.target.value)}
-                      required={lockByCep}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200">Bairro</label>
-                  <Input
-                    name="neighborhood"
-                    placeholder="Ex: Centro"
-                    value={neighborhood}
-                    onChange={(e) => setNeighborhood(e.target.value)}
-                    readOnly={lockByCep}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200">Complemento</label>
-                  <Input
-                    name="address_line2"
-                    placeholder="Apto, bloco, referência"
-                    value={addressLine2}
-                    onChange={(e) => setAddressLine2(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200">Cidade</label>
-                  <Input name="city" value={city} onChange={(e) => setCity(e.target.value)} readOnly={lockByCep} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-200">UF</label>
-                  <Input
-                    name="state"
-                    maxLength={2}
-                    value={stateUf}
-                    onChange={(e) => setStateUf(e.target.value)}
-                    readOnly={lockByCep}
-                  />
-                </div>
                 <div className="space-y-2 sm:col-span-2">
                   <p className="text-sm text-zinc-200">Qual o período de locação?</p>
                   <div className="flex flex-wrap gap-4">
@@ -844,6 +794,63 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                 )}
               </div>
             </Card>
+
+            {items.length > 0 ? (
+              <Card>
+                <p className="text-sm text-zinc-400">4. Endereço do evento</p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm text-zinc-200">Rua</label>
+                    <Input
+                      placeholder="Ex: Avenida Brasil"
+                      value={addressLine1}
+                      onChange={(e) => setAddressLine1(e.target.value)}
+                      readOnly={lockByCep}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-zinc-200">Número</label>
+                    <Input
+                      inputMode="numeric"
+                      placeholder="Ex: 123"
+                      value={addressNumber}
+                      onChange={(e) => setAddressNumber(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm text-zinc-200">Bairro</label>
+                    <Input
+                      placeholder="Ex: Centro"
+                      value={neighborhood}
+                      onChange={(e) => setNeighborhood(e.target.value)}
+                      readOnly={lockByCep}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-zinc-200">Complemento</label>
+                    <Input
+                      placeholder="Apto, bloco, referência"
+                      value={addressLine2}
+                      onChange={(e) => setAddressLine2(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm text-zinc-200">Cidade</label>
+                    <Input value={city} onChange={(e) => setCity(e.target.value)} readOnly={lockByCep} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-zinc-200">UF</label>
+                    <Input
+                      maxLength={2}
+                      value={stateUf}
+                      onChange={(e) => setStateUf(e.target.value)}
+                      readOnly={lockByCep}
+                    />
+                  </div>
+                </div>
+              </Card>
+            ) : null}
           </>
         ) : null}
       </div>
