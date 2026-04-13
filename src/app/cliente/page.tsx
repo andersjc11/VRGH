@@ -72,6 +72,14 @@ type ReferralReservationRow = {
   event_name: string | null
 }
 
+type ReservationByRefRow = {
+  id: string
+  user_id: string
+  status: string
+  created_at: string
+  event_name: string | null
+}
+
 function formatDate(iso: string) {
   const date = new Date(iso)
   return date.toLocaleDateString("pt-BR")
@@ -370,11 +378,76 @@ export default async function ClientePage({
     cashbackTxs.filter((t) => t.source_referral_id).map((t) => [t.source_referral_id as string, t])
   ) as Record<string, CashbackTxRow>
 
+  const reservationsByRefRes = referralCode
+    ? await admin
+        .from("reservations")
+        .select("id,user_id,status,created_at,event_name")
+        .contains("payment_terms", { ref: referralCode })
+        .order("created_at", { ascending: false })
+        .limit(50)
+    : { data: [], error: null as any }
+
+  const reservationsByRef = (reservationsByRefRes.data ?? []) as ReservationByRefRow[]
+
+  const reservationIdsWithReferral = new Set(
+    referrals
+      .map((r) => r.reservation_id)
+      .filter((id): id is string => typeof id === "string" && Boolean(id))
+  )
+
+  const derivedReservations = reservationsByRef
+    .filter((r) => r.user_id !== user.id)
+    .filter((r) => !reservationIdsWithReferral.has(r.id))
+
+  const missingProfileIds = Array.from(
+    new Set(derivedReservations.map((r) => r.user_id).filter((id) => id && !referredProfileById[id]))
+  )
+
+  const missingProfilesRes = missingProfileIds.length
+    ? await admin.from("profiles").select("id,full_name").in("id", missingProfileIds)
+    : { data: [], error: null as any }
+
+  for (const p of missingProfilesRes.data ?? []) {
+    if (p?.id) referredProfileById[p.id] = p
+  }
+
   const referralsSorted = [...referrals].sort((a, b) => {
     const aCreated = a.reservation_id ? reservationById[a.reservation_id]?.created_at : ""
     const bCreated = b.reservation_id ? reservationById[b.reservation_id]?.created_at : ""
     return String(bCreated).localeCompare(String(aCreated))
   })
+
+  const indications = [
+    ...referralsSorted.map((r) => {
+      const reservation = r.reservation_id ? reservationById[r.reservation_id] : null
+      const referred = referredProfileById[r.referred_id]
+      const cashbackTx = cashbackByReferralId[r.id]
+      const createdAt = reservation?.created_at ?? ""
+      return {
+        key: r.id,
+        referredId: r.referred_id,
+        referredName: referred?.full_name ? referred.full_name : `Cliente ${r.referred_id.slice(0, 6)}`,
+        reservation: reservation
+          ? { id: reservation.id, status: reservation.status, created_at: reservation.created_at, event_name: reservation.event_name }
+          : null,
+        referralStatus: r.status,
+        cashbackCents: typeof r.cashback_cents === "number" ? r.cashback_cents : 1000,
+        cashbackStatus: cashbackTx?.status ?? ""
+      }
+    }),
+    ...derivedReservations.map((res) => {
+      const referred = referredProfileById[res.user_id]
+      return {
+        key: `res:${res.id}`,
+        referredId: res.user_id,
+        referredName: referred?.full_name ? referred.full_name : `Cliente ${res.user_id.slice(0, 6)}`,
+        reservation: { id: res.id, status: res.status, created_at: res.created_at, event_name: res.event_name },
+        referralStatus: "pending",
+        cashbackCents: 1000,
+        cashbackStatus: ""
+      }
+    })
+  ].sort((a, b) => String(b.reservation?.created_at ?? "").localeCompare(String(a.reservation?.created_at ?? "")))
 
   const ok = searchParams?.ok
   const error = searchParams?.error
@@ -485,37 +558,36 @@ export default async function ClientePage({
               )}
 
               <p className="mt-6 text-sm text-zinc-300">Indicações</p>
-              {referralsSorted.length === 0 ? (
+              {indications.length === 0 ? (
                 <p className="mt-2 text-sm text-zinc-400">Você ainda não tem indicações com contratação.</p>
               ) : (
                 <div className="mt-3 grid gap-2">
-                  {referralsSorted.slice(0, 10).map((r) => {
-                    const referred = referredProfileById[r.referred_id]
-                    const reservation = r.reservation_id ? reservationById[r.reservation_id] : null
-                    const cashbackTx = cashbackByReferralId[r.id]
+                  {indications.slice(0, 10).map((row) => {
+                    const reservation = row.reservation
+                    const isComplete = reservation?.status === "completed"
                     return (
                       <div
-                        key={r.id}
-                        className="flex flex-col gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300 sm:flex-row sm:items-center sm:justify-between"
+                        key={row.key}
+                        className={`flex flex-col gap-2 rounded-lg border px-3 py-2 text-sm text-zinc-300 sm:flex-row sm:items-center sm:justify-between ${
+                          isComplete ? "border-blue-400/25 bg-blue-500/10" : "border-white/10 bg-white/5"
+                        }`}
                       >
                         <div className="flex flex-col">
                           <span className="font-semibold text-white">
-                            {referred?.full_name ? referred.full_name : `Cliente ${r.referred_id.slice(0, 6)}`}
+                            {row.referredName}
                           </span>
                           <span className="text-xs text-zinc-400">
                             {reservation?.event_name ? `${reservation.event_name} • ` : ""}
                             {reservation?.created_at ? `${formatDate(reservation.created_at)} • ` : ""}
                             Status: {reservationStatusLabel(reservation?.status)} • Indicação:{" "}
-                            {referralStatusLabel(r.status)}
+                            {referralStatusLabel(row.referralStatus)}
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-zinc-400">
                             Cashback:{" "}
-                            {typeof r.cashback_cents === "number"
-                              ? formatBRLFromCents(r.cashback_cents)
-                              : formatBRLFromCents(1000)}
-                            {cashbackTx?.status ? ` • ${cashbackTx.status}` : ""}
+                            {formatBRLFromCents(row.cashbackCents)}
+                            {row.cashbackStatus ? ` • ${row.cashbackStatus}` : ""}
                           </span>
                         </div>
                       </div>

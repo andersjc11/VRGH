@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
+import { createClient } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { requireEnv } from "@/lib/env"
 import type { PaymentPlanType, QuoteItemInput } from "@/lib/domain/types"
 import { calcQuoteBreakdown } from "@/lib/pricing/calc"
 
@@ -230,6 +232,12 @@ function parseItems(json: string): QuoteItemInput[] {
   }
 }
 
+function createSupabaseAdminClient() {
+  return createClient(requireEnv("NEXT_PUBLIC_SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), {
+    auth: { persistSession: false }
+  })
+}
+
 export async function createReservation(
   _prevState: CreateReservationState,
   formData: FormData
@@ -254,7 +262,7 @@ export async function createReservation(
 
   const profileRes = await supabase
     .from("profiles")
-    .select("full_name,cpf,address_line1,neighborhood,city,postal_code,whatsapp,phone")
+    .select("full_name,cpf,address_line1,neighborhood,city,postal_code,whatsapp,phone,referred_by")
     .eq("id", user.id)
     .maybeSingle()
 
@@ -584,6 +592,35 @@ export async function createReservation(
     .single()
 
   if (reservationInsert.error) return { error: "Falha ao enviar solicitação de reserva." }
+
+  try {
+    const reservationId = reservationInsert.data.id as string
+    const profileRow = profileRes.data as any
+    const referredById = typeof profileRow?.referred_by === "string" ? profileRow.referred_by : ""
+
+    const admin = createSupabaseAdminClient()
+    const refCodeUpper = typeof refCode === "string" ? refCode.trim().toUpperCase() : ""
+
+    let referrerId = referredById
+    if (!referrerId && refCodeUpper) {
+      const referrerRes = await admin.from("profiles").select("id").eq("referral_code", refCodeUpper).maybeSingle()
+      referrerId = typeof (referrerRes.data as any)?.id === "string" ? (referrerRes.data as any).id : ""
+    }
+
+    if (referrerId && referrerId !== user.id) {
+      await admin.from("referrals").upsert(
+        {
+          referrer_id: referrerId,
+          referred_id: user.id,
+          condominium_id: null,
+          reservation_id: reservationId,
+          cashback_cents: 1000,
+          status: "pending"
+        },
+        { onConflict: "referred_id,reservation_id" }
+      )
+    }
+  } catch {}
 
   redirect(`/cliente/pedidos/${reservationInsert.data.id}`)
 }
