@@ -294,10 +294,15 @@ export function OrcamentoForm({
 
     const totalBase = baseLines.reduce((acc, l) => acc + l.base_cents, 0)
     const displacement = Math.max(0, Math.trunc(breakdown.displacement_cents))
+    const totalWithoutDiscount = Math.max(
+      0,
+      Math.trunc(Math.trunc(breakdown.subtotal_cents) + displacement)
+    )
 
     if (baseLines.length === 0 || totalBase <= 0) {
       return {
         lines: [],
+        total_without_discount_cents: totalWithoutDiscount,
         discount_cents: Math.max(0, Math.trunc(breakdown.discount_cents)),
         total_cents: Math.max(0, Math.trunc(breakdown.total_cents))
       }
@@ -329,12 +334,14 @@ export function OrcamentoForm({
 
     return {
       lines,
+      total_without_discount_cents: totalWithoutDiscount,
       discount_cents: Math.max(0, Math.trunc(breakdown.discount_cents)),
       total_cents: Math.max(0, Math.trunc(breakdown.total_cents))
     }
   }, [
     breakdown.discount_cents,
     breakdown.displacement_cents,
+    breakdown.subtotal_cents,
     breakdown.total_cents,
     daysCount,
     effectiveDurationHours,
@@ -948,7 +955,7 @@ export function OrcamentoForm({
                       onChange={(e) => setPaymentPlan(e.target.value as PaymentPlanType)}
                       className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                     >
-                      <option value="pix">Pix (desconto)</option>
+                      <option value="pix">PIX</option>
                       <option value="deposit">Sinal + restante</option>
                       <option value="installments">Parcelado</option>
                     </select>
@@ -1121,11 +1128,19 @@ export function OrcamentoForm({
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
-                    <span className="text-zinc-300">Desconto</span>
-                    <span className="font-semibold text-green-300">
-                      -{formatBRLFromCents(summary.discount_cents)}
-                    </span>
+                  <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-300">Total sem desconto</span>
+                      <span className="font-semibold">
+                        {formatBRLFromCents(summary.total_without_discount_cents)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-300">Desconto</span>
+                      <span className="font-semibold text-green-300">
+                        -{formatBRLFromCents(summary.discount_cents)}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-zinc-200">Total</span>

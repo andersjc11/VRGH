@@ -589,7 +589,7 @@ export async function createReservation(
 
   const paymentTerms =
     paymentPlan === "pix"
-      ? { pix_discount_pct: config.discounts.pix_discount_pct }
+      ? {}
       : paymentPlan === "deposit"
         ? { deposit_pct: config.discounts.deposit_pct }
         : { max_installments: config.discounts.max_installments }

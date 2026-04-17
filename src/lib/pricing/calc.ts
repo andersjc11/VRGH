@@ -159,18 +159,13 @@ export function calcQuoteBreakdown(params: {
   const preCondo = Math.max(0, subtotal - bundleDiscount) + displacement
   const condoPct = clampPct(params.condoDiscountPct ?? 0, 0)
   const condoDiscount = Math.round((preCondo * condoPct) / 100)
-  const prePix = Math.max(0, preCondo - condoDiscount)
-  const pixDiscount = calcDiscountCents({
-    paymentPlan: params.paymentPlan,
-    subtotalPlusDisplacementCents: prePix,
-    discounts: params.config.discounts
-  })
-  const discount = Math.min(bundleDiscount + condoDiscount + pixDiscount, preCondo)
+  const totalAfterDiscounts = Math.max(0, preCondo - condoDiscount)
+  const discount = Math.min(bundleDiscount + condoDiscount, preCondo)
   return {
     subtotal_cents: subtotal,
     displacement_cents: displacement,
     discount_cents: discount,
-    total_cents: Math.max(0, prePix - pixDiscount)
+    total_cents: totalAfterDiscounts
   }
 }
 
