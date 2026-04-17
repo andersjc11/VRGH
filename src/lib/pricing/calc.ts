@@ -148,7 +148,8 @@ export function calcQuoteBreakdown(params: {
     distanceKm: params.distanceKm,
     config: params.config.displacement
   })
-  const bundleDiscount = calcBundleDiscountCents({
+  const condoPct = clampPct(params.condoDiscountPct ?? 0, 0)
+  const rawBundleDiscount = calcBundleDiscountCents({
     items: params.items,
     pricingProfile,
     durationHours: params.durationHours,
@@ -156,8 +157,8 @@ export function calcQuoteBreakdown(params: {
     distanceKm: params.distanceKm,
     priceByEquipmentId: params.priceByEquipmentId
   })
+  const bundleDiscount = condoPct > 0 ? 0 : rawBundleDiscount
   const preCondo = Math.max(0, subtotal - bundleDiscount) + displacement
-  const condoPct = clampPct(params.condoDiscountPct ?? 0, 0)
   const condoDiscount = Math.round((preCondo * condoPct) / 100)
   const totalAfterDiscounts = Math.max(0, preCondo - condoDiscount)
   const discount = Math.min(bundleDiscount + condoDiscount, preCondo)
