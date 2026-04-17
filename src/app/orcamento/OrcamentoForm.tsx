@@ -967,6 +967,11 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                       >
                         <div>
                           <p className="font-semibold">{eq.name}</p>
+                          {eq.description ? (
+                            <p className="mt-1 text-sm text-zinc-300 whitespace-pre-wrap">
+                              {eq.description}
+                            </p>
+                          ) : null}
                           {eq.image_url ? (
                             <img
                               src={eq.image_url}
