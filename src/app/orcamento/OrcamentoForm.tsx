@@ -242,6 +242,95 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
     ]
   )
 
+  const summary = React.useMemo(() => {
+    const equipmentNameById = Object.fromEntries(equipments.map((e) => [e.id, e.name]))
+    const baseLines = itemsForPricing
+      .map((item) => {
+        const price = priceByEquipmentId[item.equipmentId]
+        if (!price) return null
+        const qty = Math.max(0, Math.trunc(Number(item.quantity) || 0))
+        if (qty === 0) return null
+
+        const baseCents =
+          pricingProfile === "hourly"
+            ? (() => {
+                const billableHours = Math.max(Math.trunc(effectiveDurationHours), price.min_hours)
+                return price.price_per_hour_cents * billableHours * qty
+              })()
+            : (() => {
+                const baseHoursPerDay = 8
+                const dayCents =
+                  pricingProfile === "day_block"
+                    ? price.price_per_day_block_cents ?? price.price_per_day_cents
+                    : price.price_per_day_cents
+                const effectiveDayCents =
+                  typeof dayCents === "number" && Number.isFinite(dayCents) && dayCents >= 0
+                    ? Math.trunc(dayCents)
+                    : price.price_per_hour_cents * baseHoursPerDay
+                return effectiveDayCents * Math.max(1, Math.trunc(daysCount)) * qty
+              })()
+
+        return {
+          equipmentId: item.equipmentId,
+          name: (equipmentNameById[item.equipmentId] as string | undefined) ?? item.equipmentId,
+          quantity: qty,
+          base_cents: Math.max(0, Math.trunc(baseCents))
+        }
+      })
+      .filter(Boolean) as Array<{ equipmentId: string; name: string; quantity: number; base_cents: number }>
+
+    const totalBase = baseLines.reduce((acc, l) => acc + l.base_cents, 0)
+    const displacement = Math.max(0, Math.trunc(breakdown.displacement_cents))
+
+    if (baseLines.length === 0 || totalBase <= 0) {
+      return {
+        lines: [],
+        discount_cents: Math.max(0, Math.trunc(breakdown.discount_cents)),
+        total_cents: Math.max(0, Math.trunc(breakdown.total_cents))
+      }
+    }
+
+    const shares = baseLines.map((l, idx) => {
+      const raw = (displacement * l.base_cents) / totalBase
+      const floored = Math.floor(raw)
+      return { idx, floored, remainder: raw - floored }
+    })
+    const flooredByIdx = shares.reduce((acc, s) => {
+      acc[s.idx] = s.floored
+      return acc
+    }, new Array<number>(baseLines.length).fill(0))
+    const flooredSum = shares.reduce((acc, s) => acc + s.floored, 0)
+    let remaining = Math.max(0, displacement - flooredSum)
+
+    shares.sort((a, b) => b.remainder - a.remainder)
+    const extraByIdx = new Array(baseLines.length).fill(0)
+    for (let i = 0; i < shares.length && remaining > 0; i += 1) {
+      extraByIdx[shares[i].idx] += 1
+      remaining -= 1
+    }
+
+    const lines = baseLines.map((l, idx) => ({
+      ...l,
+      total_cents: l.base_cents + flooredByIdx[idx] + extraByIdx[idx]
+    }))
+
+    return {
+      lines,
+      discount_cents: Math.max(0, Math.trunc(breakdown.discount_cents)),
+      total_cents: Math.max(0, Math.trunc(breakdown.total_cents))
+    }
+  }, [
+    breakdown.discount_cents,
+    breakdown.displacement_cents,
+    breakdown.total_cents,
+    daysCount,
+    effectiveDurationHours,
+    equipments,
+    itemsForPricing,
+    priceByEquipmentId,
+    pricingProfile
+  ])
+
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
 
   const snapshotSession = React.useCallback((nextReserveMode?: boolean) => {
@@ -990,30 +1079,38 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
           <Card>
             <p className="text-sm text-zinc-400">Resumo</p>
             <div className="mt-4 space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-300">Subtotal</span>
-                <span className="font-semibold">
-                  {formatBRLFromCents(breakdown.subtotal_cents)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-300">Deslocamento</span>
-                <span className="font-semibold">
-                  {formatBRLFromCents(breakdown.displacement_cents)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-300">Desconto</span>
-                <span className="font-semibold text-green-300">
-                  -{formatBRLFromCents(breakdown.discount_cents)}
-                </span>
-              </div>
-              <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
-                <span className="text-zinc-200">Total</span>
-                <span className="text-lg font-semibold">
-                  {formatBRLFromCents(breakdown.total_cents)}
-                </span>
-              </div>
+              {!isEventReady ? (
+                <p className="text-sm text-zinc-300">
+                  Preencha datas e horários do evento para ver os valores.
+                </p>
+              ) : summary.lines.length === 0 ? (
+                <p className="text-sm text-zinc-300">
+                  Selecione os equipamentos para ver o resumo.
+                </p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {summary.lines.map((l) => (
+                      <div key={l.equipmentId} className="flex items-center justify-between">
+                        <span className="text-zinc-300">
+                          {l.name} × {l.quantity}
+                        </span>
+                        <span className="font-semibold">{formatBRLFromCents(l.total_cents)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
+                    <span className="text-zinc-300">Desconto</span>
+                    <span className="font-semibold text-green-300">
+                      -{formatBRLFromCents(summary.discount_cents)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-200">Total</span>
+                    <span className="text-lg font-semibold">{formatBRLFromCents(summary.total_cents)}</span>
+                  </div>
+                </>
+              )}
             </div>
           </Card>
         ) : (
