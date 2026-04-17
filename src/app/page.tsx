@@ -512,6 +512,86 @@ export default async function HomePage({
         </div>
       </section>
 
+      <section id="equipamentos" className="border-b border-white/10 scroll-mt-24">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight">Equipamentos</h2>
+            <p className="text-zinc-300">
+              Escolha os itens que mais combinam com seu evento e monte o seu orçamento.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {equipments.length === 0 ? (
+              <>
+                <Card className="group relative overflow-hidden transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07]">
+                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_55%)] opacity-80" />
+                  <div className="relative">
+                    <p className="text-sm text-zinc-400">Exemplo</p>
+                    <p className="mt-2 font-semibold">Console + TV 55&quot;</p>
+                    <p className="mt-1 text-sm text-zinc-300">
+                      Ideal para festas e eventos corporativos.
+                    </p>
+                  </div>
+                </Card>
+                <Card className="group relative overflow-hidden transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07]">
+                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.16),transparent_55%)] opacity-80" />
+                  <div className="relative">
+                    <p className="text-sm text-zinc-400">Exemplo</p>
+                    <p className="mt-2 font-semibold">PC Gamer + Monitor</p>
+                    <p className="mt-1 text-sm text-zinc-300">
+                      Ryzen 5 5600X, RTX 3060 12GB, 16GB RAM, NVMe 500GB + monitor 144Hz.
+                    </p>
+                  </div>
+                </Card>
+                <Card className="group relative overflow-hidden transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07]">
+                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.14),transparent_55%)] opacity-80" />
+                  <div className="relative">
+                    <p className="text-sm text-zinc-400">Exemplo</p>
+                    <p className="mt-2 font-semibold">Simulador</p>
+                    <p className="mt-1 text-sm text-zinc-300">Experiência premium para ativações.</p>
+                  </div>
+                </Card>
+              </>
+            ) : (
+              equipments.map((eq) => (
+                <Card
+                  key={eq.id}
+                  className="group relative overflow-hidden transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07]"
+                >
+                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.14),transparent_55%)] opacity-80" />
+                  <div className="relative">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
+                        {eq.category ?? "Equipamento"}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-base font-semibold">{eq.name}</p>
+                    {eq.image_url ? (
+                      <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                        <img
+                          src={eq.image_url}
+                          alt={eq.name}
+                          className="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : null}
+                    <p className="mt-2 text-sm text-zinc-300">{eq.description ?? "—"}</p>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+
+          <div className="mt-10">
+            <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
+              <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <section className="border-b border-white/10">
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
@@ -825,88 +905,6 @@ export default async function HomePage({
                 </div>
               </Card>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="equipamentos" className="border-b border-white/10 scroll-mt-24">
-        <div className="mx-auto max-w-6xl px-4 py-14">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold tracking-tight">Equipamentos</h2>
-            <p className="text-zinc-300">
-              Escolha os itens que mais combinam com seu evento e monte o seu orçamento.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {equipments.length === 0 ? (
-              <>
-                <Card className="group relative overflow-hidden transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07]">
-                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_55%)] opacity-80" />
-                  <div className="relative">
-                    <p className="text-sm text-zinc-400">Exemplo</p>
-                    <p className="mt-2 font-semibold">Console + TV 55&quot;</p>
-                    <p className="mt-1 text-sm text-zinc-300">
-                      Ideal para festas e eventos corporativos.
-                    </p>
-                  </div>
-                </Card>
-                <Card className="group relative overflow-hidden transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07]">
-                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.16),transparent_55%)] opacity-80" />
-                  <div className="relative">
-                    <p className="text-sm text-zinc-400">Exemplo</p>
-                    <p className="mt-2 font-semibold">PC Gamer + Monitor</p>
-                    <p className="mt-1 text-sm text-zinc-300">
-                      Ryzen 5 5600X, RTX 3060 12GB, 16GB RAM, NVMe 500GB + monitor 144Hz.
-                    </p>
-                  </div>
-                </Card>
-                <Card className="group relative overflow-hidden transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07]">
-                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.14),transparent_55%)] opacity-80" />
-                  <div className="relative">
-                    <p className="text-sm text-zinc-400">Exemplo</p>
-                    <p className="mt-2 font-semibold">Simulador</p>
-                    <p className="mt-1 text-sm text-zinc-300">
-                      Experiência premium para ativações.
-                    </p>
-                  </div>
-                </Card>
-              </>
-            ) : (
-              equipments.map((eq) => (
-                <Card
-                  key={eq.id}
-                  className="group relative overflow-hidden transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07]"
-                >
-                  <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.14),transparent_55%)] opacity-80" />
-                  <div className="relative">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
-                        {eq.category ?? "Equipamento"}
-                      </span>
-                    </div>
-                    <p className="mt-3 text-base font-semibold">{eq.name}</p>
-                    {eq.image_url ? (
-                      <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/20">
-                        <img
-                          src={eq.image_url}
-                          alt={eq.name}
-                          className="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                          loading="lazy"
-                        />
-                      </div>
-                    ) : null}
-                    <p className="mt-2 text-sm text-zinc-300">{eq.description ?? "—"}</p>
-                  </div>
-                </Card>
-              ))
-            )}
-          </div>
-
-          <div className="mt-10">
-            <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
-              <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
-            </Button>
           </div>
         </div>
       </section>
