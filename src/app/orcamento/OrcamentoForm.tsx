@@ -298,11 +298,15 @@ export function OrcamentoForm({
       0,
       Math.trunc(Math.trunc(breakdown.subtotal_cents) + displacement)
     )
+    const bundleDiscount = Math.max(0, Math.trunc(breakdown.bundle_discount_cents))
+    const condoDiscount = Math.max(0, Math.trunc(breakdown.condo_discount_cents))
 
     if (baseLines.length === 0 || totalBase <= 0) {
       return {
         lines: [],
         total_without_discount_cents: totalWithoutDiscount,
+        bundle_discount_cents: bundleDiscount,
+        condo_discount_cents: condoDiscount,
         discount_cents: Math.max(0, Math.trunc(breakdown.discount_cents)),
         total_cents: Math.max(0, Math.trunc(breakdown.total_cents))
       }
@@ -335,10 +339,14 @@ export function OrcamentoForm({
     return {
       lines,
       total_without_discount_cents: totalWithoutDiscount,
+      bundle_discount_cents: bundleDiscount,
+      condo_discount_cents: condoDiscount,
       discount_cents: Math.max(0, Math.trunc(breakdown.discount_cents)),
       total_cents: Math.max(0, Math.trunc(breakdown.total_cents))
     }
   }, [
+    breakdown.bundle_discount_cents,
+    breakdown.condo_discount_cents,
     breakdown.discount_cents,
     breakdown.displacement_cents,
     breakdown.subtotal_cents,
@@ -1135,8 +1143,24 @@ export function OrcamentoForm({
                         {formatBRLFromCents(summary.total_without_discount_cents)}
                       </span>
                     </div>
+                    {summary.bundle_discount_cents > 0 ? (
+                      <div className="flex items-center justify-between">
+                        <span className="text-zinc-300">Desconto combo</span>
+                        <span className="font-semibold text-green-300">
+                          -{formatBRLFromCents(summary.bundle_discount_cents)}
+                        </span>
+                      </div>
+                    ) : null}
+                    {summary.condo_discount_cents > 0 ? (
+                      <div className="flex items-center justify-between">
+                        <span className="text-zinc-300">Desconto condomínio</span>
+                        <span className="font-semibold text-green-300">
+                          -{formatBRLFromCents(summary.condo_discount_cents)}
+                        </span>
+                      </div>
+                    ) : null}
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-300">Desconto</span>
+                      <span className="text-zinc-300">Desconto total</span>
                       <span className="font-semibold text-green-300">
                         -{formatBRLFromCents(summary.discount_cents)}
                       </span>

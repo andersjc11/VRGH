@@ -164,6 +164,8 @@ export function calcQuoteBreakdown(params: {
   return {
     subtotal_cents: subtotal,
     displacement_cents: displacement,
+    bundle_discount_cents: Math.max(0, Math.min(bundleDiscount, subtotal)),
+    condo_discount_cents: Math.max(0, Math.min(condoDiscount, preCondo)),
     discount_cents: discount,
     total_cents: totalAfterDiscounts
   }

@@ -54,6 +54,8 @@ export type PricingConfig = {
 export type QuoteBreakdown = {
   subtotal_cents: number
   displacement_cents: number
+  bundle_discount_cents: number
+  condo_discount_cents: number
   discount_cents: number
   total_cents: number
 }
