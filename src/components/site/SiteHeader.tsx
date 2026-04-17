@@ -42,16 +42,13 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
       <div className="mx-auto max-w-6xl px-4 py-4">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center md:hidden">
-          <div />
-          <div className="justify-self-center">
-            <SiteLogo
-              containerClassName="relative h-12 w-52 sm:h-14 sm:w-64"
-              sizes="(max-width: 640px) 208px, 256px"
-            />
-          </div>
+        <div className="flex items-center justify-between gap-3 md:hidden">
+          <SiteLogo
+            containerClassName="relative h-14 w-60 sm:h-16 sm:w-72"
+            sizes="(max-width: 640px) 240px, 288px"
+          />
           {user ? (
-            <div className="justify-self-end">
+            <div>
               <Button asChild intent="secondary" className="h-9 px-4 text-sm ring-1 ring-white/15">
                 <Link href={isAdmin ? "/admin" : "/cliente"}>
                   {isAdmin ? "Área do admin" : "Área do cliente"}
@@ -59,7 +56,7 @@ export async function SiteHeader() {
               </Button>
             </div>
           ) : (
-            <div className="justify-self-end">
+            <div>
               <Button
                 asChild
                 intent="primary"
