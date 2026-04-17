@@ -976,7 +976,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
                             <img
                               src={eq.image_url}
                               alt={eq.name}
-                              className="mt-3 h-40 w-full max-w-lg rounded-lg border border-white/10 bg-white/5 object-cover"
+                              className="mt-3 h-40 sm:h-80 w-full max-w-lg rounded-lg border border-white/10 bg-white/5 object-cover"
                               loading="lazy"
                             />
                           ) : null}
