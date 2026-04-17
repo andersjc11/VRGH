@@ -13,6 +13,7 @@ import { calcDistanceKmFromCep, createReservation, getEquipmentAvailability, typ
 type QuoteSessionV1 = {
   v: 1
   reserveMode?: boolean
+  condoCode?: string
   durationHours: number
   distanceKm: number
   paymentPlan: PaymentPlanType
@@ -42,6 +43,8 @@ type Props = {
   prices: EquipmentPrice[]
   config: PricingConfig
   refCode?: string
+  condoCode?: string
+  condoDiscountPct?: number
   isAuthenticated: boolean
 }
 
@@ -54,7 +57,15 @@ function SubmitButton() {
   )
 }
 
-export function OrcamentoForm({ equipments, prices, config, refCode, isAuthenticated }: Props) {
+export function OrcamentoForm({
+  equipments,
+  prices,
+  config,
+  refCode,
+  condoCode,
+  condoDiscountPct,
+  isAuthenticated
+}: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const formRef = React.useRef<HTMLFormElement | null>(null)
@@ -225,6 +236,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
         durationHours: effectiveDurationHours,
         distanceKm,
         paymentPlan,
+        condoDiscountPct,
         pricingProfile,
         daysCount,
         priceByEquipmentId,
@@ -237,6 +249,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       effectiveDurationHours,
       itemsForPricing,
       paymentPlan,
+      condoDiscountPct,
       priceByEquipmentId,
       pricingProfile
     ]
@@ -337,6 +350,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
     const payload: QuoteSessionV1 = {
       v: 1,
       reserveMode: typeof nextReserveMode === "boolean" ? nextReserveMode : reserveMode,
+      condoCode,
       durationHours,
       distanceKm,
       paymentPlan,
@@ -389,15 +403,17 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
     reserveMode,
     startTime,
     stateUf,
-    venueName
+    venueName,
+    condoCode
   ])
 
   const nextAfterAuth = React.useMemo(() => {
     const usp = new URLSearchParams()
     if (refCode) usp.set("ref", refCode)
+    if (condoCode) usp.set("condo", condoCode)
     usp.set("restore", "1")
     return `/orcamento?${usp.toString()}`
-  }, [refCode])
+  }, [condoCode, refCode])
 
   const loginHref = React.useMemo(() => `/login?next=${encodeURIComponent(nextAfterAuth)}`, [nextAfterAuth])
   const cadastroHref = React.useMemo(() => `/cadastro?next=${encodeURIComponent(nextAfterAuth)}`, [nextAfterAuth])
@@ -571,6 +587,7 @@ export function OrcamentoForm({ equipments, prices, config, refCode, isAuthentic
       className="mt-8 grid gap-6 lg:grid-cols-3"
     >
       <input type="hidden" name="ref" value={refCode ?? ""} />
+      <input type="hidden" name="condo_code" value={condoCode ?? ""} />
       <input type="hidden" name="address_line1" value={addressLine1} />
       <input type="hidden" name="address_number" value={addressNumber} />
       <input type="hidden" name="address_line2" value={addressLine2} />

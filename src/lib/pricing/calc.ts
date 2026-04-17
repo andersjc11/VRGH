@@ -129,6 +129,7 @@ export function calcQuoteBreakdown(params: {
   durationHours: number
   distanceKm: number
   paymentPlan: PaymentPlanType
+  condoDiscountPct?: number
   pricingProfile?: "hourly" | "daily" | "day_block"
   daysCount?: number
   priceByEquipmentId: Record<string, EquipmentPrice>
@@ -155,13 +156,16 @@ export function calcQuoteBreakdown(params: {
     distanceKm: params.distanceKm,
     priceByEquipmentId: params.priceByEquipmentId
   })
-  const prePix = Math.max(0, subtotal - bundleDiscount) + displacement
+  const preCondo = Math.max(0, subtotal - bundleDiscount) + displacement
+  const condoPct = clampPct(params.condoDiscountPct ?? 0, 0)
+  const condoDiscount = Math.round((preCondo * condoPct) / 100)
+  const prePix = Math.max(0, preCondo - condoDiscount)
   const pixDiscount = calcDiscountCents({
     paymentPlan: params.paymentPlan,
     subtotalPlusDisplacementCents: prePix,
     discounts: params.config.discounts
   })
-  const discount = Math.min(bundleDiscount + pixDiscount, prePix)
+  const discount = Math.min(bundleDiscount + condoDiscount + pixDiscount, preCondo)
   return {
     subtotal_cents: subtotal,
     displacement_cents: displacement,

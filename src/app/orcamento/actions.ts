@@ -217,6 +217,25 @@ function getNumber(formData: FormData, key: string) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function normalizeCondoCode(value: string) {
+  return value.trim().toUpperCase()
+}
+
+function readCondoDiscountPct(valueJson: any, condoCode: string) {
+  if (!condoCode) return 0
+  const list = Array.isArray(valueJson) ? valueJson : Array.isArray(valueJson?.items) ? valueJson.items : []
+  for (const row of list) {
+    const code = normalizeCondoCode(typeof row?.code === "string" ? row.code : "")
+    const active = row?.active
+    const pct = Number(row?.discount_pct)
+    if (code && code === condoCode && active !== false) {
+      if (Number.isFinite(pct) && pct > 0) return Math.max(0, Math.min(100, Math.trunc(pct)))
+      return 0
+    }
+  }
+  return 0
+}
+
 function parseItems(json: string): QuoteItemInput[] {
   try {
     const parsed = JSON.parse(json)
@@ -243,12 +262,14 @@ export async function createReservation(
   formData: FormData
 ): Promise<CreateReservationState> {
   const formRef = getString(formData, "ref").trim()
+  const formCondoCode = normalizeCondoCode(getString(formData, "condo_code"))
   const supabase = createSupabaseServerClient()
   const { data: authData } = await supabase.auth.getUser()
   const user = authData.user
   if (!user) {
     const usp = new URLSearchParams()
     if (formRef) usp.set("ref", formRef)
+    if (formCondoCode) usp.set("condo", formCondoCode)
     usp.set("restore", "1")
     const next = `/orcamento?${usp.toString()}`
     redirect(`/login?next=${encodeURIComponent(next)}`)
@@ -478,6 +499,12 @@ export async function createReservation(
     .eq("key", "discounts")
     .maybeSingle()
 
+  const { data: condominiumsSetting } = await supabase
+    .from("pricing_settings")
+    .select("value_json")
+    .eq("key", "condominiums")
+    .maybeSingle()
+
   const config = {
     displacement: {
       base_fee_cents: displacementSetting?.value_json?.base_fee_cents ?? 0,
@@ -491,11 +518,14 @@ export async function createReservation(
     }
   }
 
+  const condoDiscountPct = readCondoDiscountPct(condominiumsSetting?.value_json, formCondoCode)
+
   const breakdown = calcQuoteBreakdown({
     items,
     durationHours,
     distanceKm,
     paymentPlan,
+    condoDiscountPct,
     pricingProfile,
     daysCount,
     priceByEquipmentId,
@@ -565,6 +595,9 @@ export async function createReservation(
         : { max_installments: config.discounts.max_installments }
 
   const paymentTermsWithRef = refCode ? { ...paymentTerms, ref: refCode } : paymentTerms
+  const paymentTermsFinal = formCondoCode
+    ? { ...paymentTermsWithRef, condo: formCondoCode, condo_discount_pct: condoDiscountPct }
+    : paymentTermsWithRef
 
   const reservationInsert = await supabase
     .from("reservations")
@@ -583,7 +616,7 @@ export async function createReservation(
       postal_code: postalCode,
       notes,
       payment_plan: paymentPlan,
-      payment_terms: paymentTermsWithRef,
+      payment_terms: paymentTermsFinal,
       total_cents: breakdown.total_cents
     })
     .select("id")

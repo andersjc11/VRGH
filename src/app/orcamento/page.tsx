@@ -10,6 +10,25 @@ function isMissingColumnError(err: unknown, column: string) {
   return message.toLowerCase().includes(`column "${column.toLowerCase()}" does not exist`)
 }
 
+function normalizeCondoCode(value: unknown) {
+  return typeof value === "string" ? value.trim().toUpperCase() : ""
+}
+
+function readCondoDiscountPct(valueJson: any, condoCode: string) {
+  if (!condoCode) return 0
+  const list = Array.isArray(valueJson) ? valueJson : Array.isArray(valueJson?.items) ? valueJson.items : []
+  for (const row of list) {
+    const code = normalizeCondoCode(row?.code)
+    const active = row?.active
+    const pct = Number(row?.discount_pct)
+    if (code && code === condoCode && active !== false) {
+      if (Number.isFinite(pct) && pct > 0) return Math.max(0, Math.min(100, Math.trunc(pct)))
+      return 0
+    }
+  }
+  return 0
+}
+
 export default async function OrcamentoPage({
   searchParams
 }: {
@@ -17,12 +36,13 @@ export default async function OrcamentoPage({
 }) {
   const rawRef = searchParams?.ref
   const ref = typeof rawRef === "string" ? rawRef.trim() : ""
+  const condoCode = normalizeCondoCode(searchParams?.condo)
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
   const user = data.user
   const isAuthenticated = Boolean(user)
 
-  const [equipmentsResWithQty, pricesRes, displacementRes, discountsRes] =
+  const [equipmentsResWithQty, pricesRes, displacementRes, discountsRes, condominiumsRes] =
     await Promise.all([
       supabase
         .from("equipments")
@@ -44,6 +64,11 @@ export default async function OrcamentoPage({
         .from("pricing_settings")
         .select("value_json")
         .eq("key", "discounts")
+        .maybeSingle(),
+      supabase
+        .from("pricing_settings")
+        .select("value_json")
+        .eq("key", "condominiums")
         .maybeSingle()
     ])
 
@@ -82,6 +107,8 @@ export default async function OrcamentoPage({
     }
   }
 
+  const condoDiscountPct = readCondoDiscountPct(condominiumsRes.data?.value_json, condoCode)
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       <div className="space-y-2">
@@ -96,6 +123,8 @@ export default async function OrcamentoPage({
         prices={prices}
         config={config}
         refCode={ref || undefined}
+        condoCode={condoCode || undefined}
+        condoDiscountPct={condoDiscountPct}
         isAuthenticated={isAuthenticated}
       />
     </div>
