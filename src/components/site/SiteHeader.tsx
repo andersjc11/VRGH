@@ -71,7 +71,7 @@ export async function SiteHeader() {
               <Button asChild intent="ghost">
                 <Link href={loginHref}>Entrar</Link>
               </Button>
-              <Button asChild>
+              <Button asChild className="hidden md:inline-flex">
                 <Link href={cadastroHref}>Criar conta</Link>
               </Button>
             </>
