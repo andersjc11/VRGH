@@ -42,21 +42,32 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
       <div className="mx-auto max-w-6xl px-4 py-4">
-        <div className="flex items-center justify-center gap-3 md:hidden">
-          <SiteLogo
-            containerClassName="relative h-10 w-44 sm:h-12 sm:w-56"
-            sizes="224px"
-          />
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center md:hidden">
+          <div />
+          <div className="justify-self-center">
+            <SiteLogo
+              containerClassName="relative h-12 w-52 sm:h-14 sm:w-64"
+              sizes="(max-width: 640px) 208px, 256px"
+            />
+          </div>
           {user ? (
-            <Button asChild intent="ghost">
-              <Link href={isAdmin ? "/admin" : "/cliente"}>
-                {isAdmin ? "Área do admin" : "Área do cliente"}
-              </Link>
-            </Button>
+            <div className="justify-self-end">
+              <Button asChild intent="secondary" className="h-9 px-4 text-sm ring-1 ring-white/15">
+                <Link href={isAdmin ? "/admin" : "/cliente"}>
+                  {isAdmin ? "Área do admin" : "Área do cliente"}
+                </Link>
+              </Button>
+            </div>
           ) : (
-            <Button asChild intent="ghost">
-              <Link href={loginHref}>Entrar</Link>
-            </Button>
+            <div className="justify-self-end">
+              <Button
+                asChild
+                intent="primary"
+                className="h-9 px-4 text-sm shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40"
+              >
+                <Link href={loginHref}>Entrar</Link>
+              </Button>
+            </div>
           )}
         </div>
 
