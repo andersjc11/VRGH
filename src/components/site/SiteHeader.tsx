@@ -26,12 +26,12 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
         <Link href="/" className="flex items-center">
-          <div className="relative h-8 w-40">
+          <div className="relative h-32 w-[640px] max-w-full">
             <Image
               src="/vrgh.png"
               alt="VRInfinity"
               fill
-              sizes="160px"
+              sizes="(max-width: 768px) 100vw, 640px"
               className="object-contain"
               priority
             />
