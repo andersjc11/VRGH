@@ -5,6 +5,23 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/Button"
 import { signOut } from "@/app/(auth)/actions"
 
+function SiteLogo(props: { containerClassName: string; sizes: string }) {
+  return (
+    <Link href="/" className="flex items-center">
+      <div className={props.containerClassName}>
+        <Image
+          src="/vrgh.png"
+          alt="VRInfinity"
+          fill
+          sizes={props.sizes}
+          className="object-contain"
+          priority
+        />
+      </div>
+    </Link>
+  )
+}
+
 export async function SiteHeader() {
   const ref = cookies().get("vrgh_ref")?.value?.trim()
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
@@ -24,58 +41,70 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
-        <Link href="/" className="flex items-center">
-          <div className="relative h-24 w-[480px] max-w-full">
-            <Image
-              src="/vrgh.png"
-              alt="VRInfinity"
-              fill
-              sizes="(max-width: 768px) 100vw, 480px"
-              className="object-contain"
-              priority
-            />
-          </div>
-        </Link>
-
-        {!isAdmin ? (
-          <nav className="hidden items-center gap-2 md:flex">
-            <Button asChild intent="ghost">
-              <Link href={equipamentosHref}>Equipamentos</Link>
-            </Button>
-            <Button asChild intent="ghost">
-              <Link href={comoFuncionaHref}>Como funciona</Link>
-            </Button>
-            <Button asChild intent="ghost">
-              <Link href={orcamentoHref}>Orçamento</Link>
-            </Button>
-          </nav>
-        ) : null}
-
-        <div className="flex items-center gap-2">
+      <div className="mx-auto max-w-6xl px-4 py-4">
+        <div className="flex items-center justify-center gap-3 md:hidden">
+          <SiteLogo
+            containerClassName="relative h-10 w-44 sm:h-12 sm:w-56"
+            sizes="224px"
+          />
           {user ? (
-            <>
-              <Button asChild intent="secondary">
-                <Link href={isAdmin ? "/admin" : "/cliente"}>
-                  {isAdmin ? "Área do admin" : "Área do cliente"}
-                </Link>
-              </Button>
-              <form action={signOut}>
-                <Button type="submit" intent="ghost">
-                  Sair
-                </Button>
-              </form>
-            </>
+            <Button asChild intent="ghost">
+              <Link href={isAdmin ? "/admin" : "/cliente"}>
+                {isAdmin ? "Área do admin" : "Área do cliente"}
+              </Link>
+            </Button>
           ) : (
-            <>
-              <Button asChild intent="ghost">
-                <Link href={loginHref}>Entrar</Link>
-              </Button>
-              <Button asChild className="hidden md:inline-flex">
-                <Link href={cadastroHref}>Criar conta</Link>
-              </Button>
-            </>
+            <Button asChild intent="ghost">
+              <Link href={loginHref}>Entrar</Link>
+            </Button>
           )}
+        </div>
+
+        <div className="hidden items-center justify-between gap-4 md:flex">
+          <SiteLogo
+            containerClassName="relative h-24 w-[480px] max-w-full"
+            sizes="480px"
+          />
+
+          {!isAdmin ? (
+            <nav className="hidden items-center gap-2 md:flex">
+              <Button asChild intent="ghost">
+                <Link href={equipamentosHref}>Equipamentos</Link>
+              </Button>
+              <Button asChild intent="ghost">
+                <Link href={comoFuncionaHref}>Como funciona</Link>
+              </Button>
+              <Button asChild intent="ghost">
+                <Link href={orcamentoHref}>Orçamento</Link>
+              </Button>
+            </nav>
+          ) : null}
+
+          <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                <Button asChild intent="secondary">
+                  <Link href={isAdmin ? "/admin" : "/cliente"}>
+                    {isAdmin ? "Área do admin" : "Área do cliente"}
+                  </Link>
+                </Button>
+                <form action={signOut}>
+                  <Button type="submit" intent="ghost">
+                    Sair
+                  </Button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Button asChild intent="ghost">
+                  <Link href={loginHref}>Entrar</Link>
+                </Button>
+                <Button asChild>
+                  <Link href={cadastroHref}>Criar conta</Link>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>
