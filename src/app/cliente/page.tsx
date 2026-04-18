@@ -478,7 +478,7 @@ export default async function ClientePage({
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">Área do cliente</h1>
           <p className="text-zinc-300">
-            Perfil, pedidos, status e cashback de indicações.
+            Perfil, pedidos e seu programa de indicação com cashback.
           </p>
         </div>
         <Button asChild>
@@ -533,13 +533,76 @@ export default async function ClientePage({
           </div>
         </Card>
 
-        <Card className="lg:col-span-1">
-          <p className="text-sm text-zinc-400">Indicação</p>
-          <p className="mt-2 font-semibold">Seu link exclusivo</p>
-          <ReferralLink url={referralLink} />
-          <p className="mt-2 text-xs text-zinc-400">
-            Compartilhe seu link e ganhe 5% de cashback em cada reserva confirmada.
-          </p>
+        <Card className="lg:col-span-3">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-brand-600/20 via-fuchsia-600/10 to-white/5 p-5">
+            <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(217,70,239,0.20),transparent_55%)]" />
+            <div aria-hidden="true" className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-brand-500/12 blur-3xl" />
+            <div aria-hidden="true" className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-fuchsia-500/10 blur-3xl" />
+
+            <div className="relative grid gap-6 lg:grid-cols-2 lg:items-start">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
+                    Programa de indicação
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
+                    5% de cashback
+                  </span>
+                </div>
+                <h2 className="text-xl font-semibold tracking-tight text-white">
+                  Indique e ganhe bônus em dinheiro
+                </h2>
+                <p className="text-sm text-zinc-200">
+                  Compartilhe seu link. Quando a pessoa indicada contratar e a reserva for confirmada, você ganha cashback.
+                </p>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur">
+                  <p className="text-sm font-semibold text-white">Seu link exclusivo</p>
+                  <ReferralLink url={referralLink} />
+                  <p className="mt-2 text-xs text-zinc-300">
+                    Dica: envie no WhatsApp e em grupos do condomínio/empresa para aumentar as chances.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-white">Como funciona</p>
+                <div className="grid gap-2">
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                    <p className="text-xs text-zinc-400">Passo 1</p>
+                    <p className="mt-1 text-sm text-zinc-200">Compartilhe seu link com seus amigos e contatos.</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                    <p className="text-xs text-zinc-400">Passo 2</p>
+                    <p className="mt-1 text-sm text-zinc-200">
+                      A pessoa indicada faz um orçamento e envia a reserva usando o seu link.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                    <p className="text-xs text-zinc-400">Passo 3</p>
+                    <p className="mt-1 text-sm text-zinc-200">
+                      Após a reserva ser confirmada, o cashback aparece como aprovado no seu saldo.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                    <p className="text-xs text-zinc-400">Passo 4</p>
+                    <p className="mt-1 text-sm text-zinc-200">
+                      Solicite o resgate via Pix quando houver valor disponível.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-xs text-zinc-200 backdrop-blur">
+                  <p className="font-semibold text-white">Regras rápidas</p>
+                  <ul className="mt-2 space-y-1 text-zinc-200">
+                    <li>Cashback: 5% do total da reserva.</li>
+                    <li>Status pendente: quando existe indicação, mas ainda não está aprovada.</li>
+                    <li>Status aprovado: quando a reserva foi confirmada e liberou o bônus.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </Card>
 
         <Card className="lg:col-span-3">
