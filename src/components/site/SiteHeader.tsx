@@ -74,16 +74,40 @@ export async function SiteHeader() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-3 md:hidden">
-            <SiteLogo
-              containerClassName="relative h-14 w-60 sm:h-16 sm:w-72"
-              sizes="(max-width: 640px) 240px, 288px"
-            />
-            <div>
+          <div className="md:hidden">
+            <div className="flex justify-center">
+              <SiteLogo
+                containerClassName="relative h-14 w-60 sm:h-16 sm:w-72"
+                sizes="(max-width: 640px) 240px, 288px"
+              />
+            </div>
+
+            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
+              <Button
+                asChild
+                intent="ghost"
+                className="h-9 px-2 text-xs whitespace-nowrap ring-1 ring-white/15 sm:px-3 sm:text-sm"
+              >
+                <Link href={equipamentosHref}>Equipamentos</Link>
+              </Button>
+              <Button
+                asChild
+                intent="ghost"
+                className="h-9 px-2 text-xs whitespace-nowrap ring-1 ring-white/15 sm:px-3 sm:text-sm"
+              >
+                <Link href={comoFuncionaHref}>Como funciona</Link>
+              </Button>
+              <Button
+                asChild
+                intent="ghost"
+                className="h-9 px-2 text-xs whitespace-nowrap ring-1 ring-white/15 sm:px-3 sm:text-sm"
+              >
+                <Link href={orcamentoHref}>Orçamento</Link>
+              </Button>
               <Button
                 asChild
                 intent="primary"
-                className="h-9 px-4 text-sm shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40"
+                className="h-9 px-2 text-xs whitespace-nowrap shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40 sm:px-3 sm:text-sm"
               >
                 <Link href={loginHref}>Entrar</Link>
               </Button>
