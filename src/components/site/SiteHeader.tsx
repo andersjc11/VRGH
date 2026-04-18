@@ -43,15 +43,15 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
       <div className="mx-auto max-w-6xl px-4 py-4">
         {user ? (
-          <div className="relative flex items-center md:hidden">
-            <div className="flex min-w-0 flex-1">
+          <div className="md:hidden">
+            <div className="flex justify-center">
               <SiteLogo
-                containerClassName="relative h-12 w-40 max-w-[45vw] sm:h-14 sm:w-60"
-                sizes="(max-width: 640px) 160px, 240px"
+                containerClassName="relative h-14 w-60 sm:h-16 sm:w-72"
+                sizes="(max-width: 640px) 240px, 288px"
               />
             </div>
 
-            <div className="absolute left-1/2 -translate-x-1/2">
+            <div className="mt-3 flex items-center justify-between gap-2">
               <Button
                 asChild
                 intent="secondary"
@@ -62,9 +62,6 @@ export async function SiteHeader() {
                   <span className="hidden sm:inline">{isAdmin ? "Área do admin" : "Área do cliente"}</span>
                 </Link>
               </Button>
-            </div>
-
-            <div className="flex flex-1 justify-end">
               <form action={signOut}>
                 <Button
                   type="submit"
