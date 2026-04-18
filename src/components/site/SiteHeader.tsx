@@ -43,25 +43,38 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
       <div className="mx-auto max-w-6xl px-4 py-4">
         {user ? (
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 md:hidden">
-            <SiteLogo
-              containerClassName="relative h-14 w-60 sm:h-16 sm:w-72"
-              sizes="(max-width: 640px) 240px, 288px"
-            />
-            <Button
-              asChild
-              intent="secondary"
-              className="h-9 justify-self-center px-4 text-sm ring-1 ring-white/15"
-            >
-              <Link href={isAdmin ? "/admin" : "/cliente"}>
-                {isAdmin ? "Área do admin" : "Área do cliente"}
-              </Link>
-            </Button>
-            <form action={signOut} className="justify-self-end">
-              <Button type="submit" intent="ghost" className="h-9 px-3 text-sm ring-1 ring-white/15">
-                Sair
+          <div className="relative flex items-center md:hidden">
+            <div className="flex min-w-0 flex-1">
+              <SiteLogo
+                containerClassName="relative h-12 w-40 max-w-[45vw] sm:h-14 sm:w-60"
+                sizes="(max-width: 640px) 160px, 240px"
+              />
+            </div>
+
+            <div className="absolute left-1/2 -translate-x-1/2">
+              <Button
+                asChild
+                intent="secondary"
+                className="h-9 px-3 text-sm whitespace-nowrap ring-1 ring-white/15"
+              >
+                <Link href={isAdmin ? "/admin" : "/cliente"}>
+                  <span className="sm:hidden">{isAdmin ? "Admin" : "Cliente"}</span>
+                  <span className="hidden sm:inline">{isAdmin ? "Área do admin" : "Área do cliente"}</span>
+                </Link>
               </Button>
-            </form>
+            </div>
+
+            <div className="flex flex-1 justify-end">
+              <form action={signOut}>
+                <Button
+                  type="submit"
+                  intent="ghost"
+                  className="h-9 px-3 text-sm whitespace-nowrap ring-1 ring-white/15"
+                >
+                  Sair
+                </Button>
+              </form>
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-3 md:hidden">
