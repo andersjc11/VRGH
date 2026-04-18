@@ -42,29 +42,33 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
       <div className="mx-auto max-w-6xl px-4 py-4">
-        <div className="flex items-center justify-between gap-3 md:hidden">
-          <SiteLogo
-            containerClassName="relative h-14 w-60 sm:h-16 sm:w-72"
-            sizes="(max-width: 640px) 240px, 288px"
-          />
-          {user ? (
-            <div className="flex items-center gap-2">
-              <Button asChild intent="secondary" className="h-9 px-4 text-sm ring-1 ring-white/15">
-                <Link href={isAdmin ? "/admin" : "/cliente"}>
-                  {isAdmin ? "Área do admin" : "Área do cliente"}
-                </Link>
+        {user ? (
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 md:hidden">
+            <SiteLogo
+              containerClassName="relative h-14 w-60 sm:h-16 sm:w-72"
+              sizes="(max-width: 640px) 240px, 288px"
+            />
+            <Button
+              asChild
+              intent="secondary"
+              className="h-9 justify-self-center px-4 text-sm ring-1 ring-white/15"
+            >
+              <Link href={isAdmin ? "/admin" : "/cliente"}>
+                {isAdmin ? "Área do admin" : "Área do cliente"}
+              </Link>
+            </Button>
+            <form action={signOut} className="justify-self-end">
+              <Button type="submit" intent="ghost" className="h-9 px-3 text-sm ring-1 ring-white/15">
+                Sair
               </Button>
-              <form action={signOut}>
-                <Button
-                  type="submit"
-                  intent="ghost"
-                  className="h-9 px-3 text-sm ring-1 ring-white/15"
-                >
-                  Sair
-                </Button>
-              </form>
-            </div>
-          ) : (
+            </form>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-3 md:hidden">
+            <SiteLogo
+              containerClassName="relative h-14 w-60 sm:h-16 sm:w-72"
+              sizes="(max-width: 640px) 240px, 288px"
+            />
             <div>
               <Button
                 asChild
@@ -74,8 +78,8 @@ export async function SiteHeader() {
                 <Link href={loginHref}>Entrar</Link>
               </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="hidden items-center justify-between gap-4 md:flex">
           <SiteLogo
