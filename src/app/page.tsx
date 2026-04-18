@@ -767,69 +767,6 @@ export default async function HomePage({
         </div>
       </section>
 
-      <section id="programa-de-indicacao" className="border-b border-white/10 scroll-mt-24">
-        <div className="mx-auto max-w-6xl px-4 py-14">
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-brand-600/20 via-fuchsia-600/10 to-white/5 p-8 md:p-10">
-            <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(217,70,239,0.20),transparent_55%)]" />
-            <div aria-hidden="true" className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-brand-500/15 blur-3xl" />
-            <div aria-hidden="true" className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-fuchsia-500/12 blur-3xl" />
-
-            <div className="relative grid gap-10">
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
-                    <IconCoins className="h-4 w-4 text-amber-200" />
-                    Programa de Indicação
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
-                    <IconTrendUp className="h-4 w-4 text-emerald-200" />
-                    Bônus em dinheiro
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-zinc-200">
-                    <IconUsers className="h-4 w-4 text-cyan-200" />
-                    Acompanhamento em tempo real
-                  </span>
-                </div>
-
-                <h2 className="font-[var(--font-gamer)] text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                  Programa de Indicação – Quem Indica Ganha
-                </h2>
-
-                <div className="space-y-3 text-zinc-200">
-                  <p>
-                    Há mais de 15 anos crescendo com base na confiança dos nossos clientes, sabemos que uma boa indicação faz toda a diferença. Agora, você também ganha com isso.
-                  </p>
-                  <p className="text-white">
-                    Indicou, fechou evento… você recebe bônus em dinheiro.
-                  </p>
-                  <p>
-                    O valor pode ser usado em novas locações ou transferido para sua conta. E o melhor: tudo é acompanhado em tempo real pela sua área do cliente.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-5 backdrop-blur">
-                  <p className="text-sm font-semibold text-white">
-                    Ganhe dinheiro indicando nossos serviços
-                  </p>
-                  <p className="mt-2 text-sm text-zinc-200">
-                    Compartilhe seu link, acompanhe os resultados e receba bônus a cada evento fechado. Acesse sua área e comece agora.
-                  </p>
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                    <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
-                      <Link href={user ? "/cliente" : cadastroHref}>Começar a indicar</Link>
-                    </Button>
-                    <Button asChild size="lg" intent="secondary" className="bg-white/10 ring-1 ring-white/15 hover:bg-white/15">
-                      <Link href={user ? "/cliente" : loginHref}>Acessar minha conta</Link>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="border-b border-white/10">
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="grid gap-8 lg:grid-cols-3">
