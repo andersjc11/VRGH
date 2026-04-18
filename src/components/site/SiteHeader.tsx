@@ -22,6 +22,24 @@ function SiteLogo(props: { containerClassName: string; sizes: string }) {
   )
 }
 
+function IconMenu({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M4 7h16M4 12h16M4 17h16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 export async function SiteHeader() {
   const ref = cookies().get("vrgh_ref")?.value?.trim()
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
@@ -82,28 +100,39 @@ export async function SiteHeader() {
               />
             </div>
 
-            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
-              <Button
-                asChild
-                intent="ghost"
-                className="h-9 px-2 text-xs whitespace-nowrap ring-1 ring-white/15 sm:px-3 sm:text-sm"
-              >
-                <Link href={equipamentosHref}>Equipamentos</Link>
-              </Button>
-              <Button
-                asChild
-                intent="ghost"
-                className="h-9 px-2 text-xs whitespace-nowrap ring-1 ring-white/15 sm:px-3 sm:text-sm"
-              >
-                <Link href={comoFuncionaHref}>Como funciona</Link>
-              </Button>
-              <Button
-                asChild
-                intent="ghost"
-                className="h-9 px-2 text-xs whitespace-nowrap ring-1 ring-white/15 sm:px-3 sm:text-sm"
-              >
-                <Link href={orcamentoHref}>Orçamento</Link>
-              </Button>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <details className="group relative">
+                <summary
+                  aria-label="Abrir menu"
+                  className="flex h-9 w-9 list-none items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10 active:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 [&::-webkit-details-marker]:hidden"
+                >
+                  <IconMenu className="h-5 w-5" />
+                </summary>
+
+                <div className="absolute left-0 top-[calc(100%+0.5rem)] z-50 hidden w-56 rounded-xl border border-white/10 bg-zinc-950/95 p-2 shadow-lg backdrop-blur group-open:block">
+                  <div className="space-y-1">
+                    <Link
+                      href={equipamentosHref}
+                      className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                    >
+                      Equipamentos
+                    </Link>
+                    <Link
+                      href={comoFuncionaHref}
+                      className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                    >
+                      Como funciona
+                    </Link>
+                    <Link
+                      href={orcamentoHref}
+                      className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                    >
+                      Orçamento
+                    </Link>
+                  </div>
+                </div>
+              </details>
+
               <Button
                 asChild
                 intent="primary"
