@@ -196,7 +196,7 @@ async function clearDatabase(formData: FormData) {
     ] as const
 
     for (const table of deleteOrder) {
-      const res = await admin.from(table).delete().neq("id", "__never__")
+      const res = await admin.from(table).delete().not("id", "is", null)
       if (res.error) {
         redirect(
           `/admin/sistema?error=${encodeURIComponent(
@@ -207,7 +207,7 @@ async function clearDatabase(formData: FormData) {
     }
 
     if (deleteSettings) {
-      const res = await admin.from("pricing_settings").delete().neq("key", "__never__")
+      const res = await admin.from("pricing_settings").delete().not("key", "is", null)
       if (res.error) {
         redirect(
           `/admin/sistema?error=${encodeURIComponent(
@@ -218,7 +218,7 @@ async function clearDatabase(formData: FormData) {
     }
 
     if (deleteEquipments) {
-      const pricesRes = await admin.from("equipment_prices").delete().neq("equipment_id", "__never__")
+      const pricesRes = await admin.from("equipment_prices").delete().not("equipment_id", "is", null)
       if (pricesRes.error) {
         redirect(
           `/admin/sistema?error=${encodeURIComponent(
@@ -226,7 +226,7 @@ async function clearDatabase(formData: FormData) {
           )}`
         )
       }
-      const eqRes = await admin.from("equipments").delete().neq("id", "__never__")
+      const eqRes = await admin.from("equipments").delete().not("id", "is", null)
       if (eqRes.error) {
         redirect(
           `/admin/sistema?error=${encodeURIComponent(
@@ -308,10 +308,10 @@ async function restoreBackup(formData: FormData) {
     for (const table of clearOrder) {
       const res =
         table === "pricing_settings"
-          ? await admin.from(table).delete().neq("key", "__never__")
+          ? await admin.from(table).delete().not("key", "is", null)
           : table === "equipment_prices"
-            ? await admin.from(table).delete().neq("equipment_id", "__never__")
-            : await admin.from(table).delete().neq("id", "__never__")
+            ? await admin.from(table).delete().not("equipment_id", "is", null)
+            : await admin.from(table).delete().not("id", "is", null)
       if (res.error) {
         redirect(
           `/admin/sistema?error=${encodeURIComponent(
