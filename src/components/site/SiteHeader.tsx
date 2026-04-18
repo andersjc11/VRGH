@@ -54,11 +54,11 @@ export async function SiteHeader() {
             <div className="mt-3 flex items-center justify-between gap-2">
               <Button
                 asChild
-                intent="secondary"
-                className="h-9 px-3 text-sm whitespace-nowrap ring-1 ring-white/15"
+                intent="primary"
+                className="h-9 px-2 text-xs whitespace-nowrap shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40 sm:px-3 sm:text-sm"
               >
                 <Link href={isAdmin ? "/admin" : "/cliente"}>
-                  <span className="sm:hidden">{isAdmin ? "Admin" : "Cliente"}</span>
+                  <span className="sm:hidden">{isAdmin ? "Área do Admin" : "Área do Cliente"}</span>
                   <span className="hidden sm:inline">{isAdmin ? "Área do admin" : "Área do cliente"}</span>
                 </Link>
               </Button>
@@ -66,7 +66,7 @@ export async function SiteHeader() {
                 <Button
                   type="submit"
                   intent="ghost"
-                  className="h-9 px-3 text-sm whitespace-nowrap ring-1 ring-white/15"
+                  className="h-9 px-2 text-xs whitespace-nowrap ring-1 ring-white/15 sm:px-3 sm:text-sm"
                 >
                   Sair
                 </Button>
