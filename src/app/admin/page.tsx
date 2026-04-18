@@ -109,6 +109,18 @@ export default async function AdminHomePage() {
             </Button>
           </div>
         </Card>
+        <Card>
+          <p className="text-sm text-zinc-400">Sistema</p>
+          <p className="mt-2 font-semibold">Banco de dados</p>
+          <p className="mt-1 text-sm text-zinc-300">
+            Limpar dados, gerar backup e restaurar.
+          </p>
+          <div className="mt-4">
+            <Button asChild intent="secondary">
+              <Link href="/admin/sistema">Abrir</Link>
+            </Button>
+          </div>
+        </Card>
       </div>
     </div>
   )
