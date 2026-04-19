@@ -257,6 +257,144 @@ function createSupabaseAdminClient() {
   })
 }
 
+function formatDateBR(value: string | null) {
+  if (!value) return "—"
+  const [y, m, d] = value.split("-")
+  if (!y || !m || !d) return value
+  return `${d}/${m}/${y}`
+}
+
+function formatBRLFromCents(cents: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  }).format((Number.isFinite(cents) ? cents : 0) / 100)
+}
+
+function paymentPlanLabel(plan: PaymentPlanType) {
+  if (plan === "pix") return "Pix"
+  if (plan === "deposit") return "Sinal + saldo"
+  if (plan === "installments") return "Parcelado"
+  return plan
+}
+
+async function sendReservationWhatsAppNotification(params: {
+  reservationId: string
+  quoteId: string
+  userEmail: string
+  clientName: string
+  clientWhatsapp: string
+  eventName: string
+  eventDate: string | null
+  startTime: string | null
+  isMultiDay: boolean
+  eventEndDate: string | null
+  setupDate: string | null
+  setupTime: string | null
+  venueName: string
+  addressLine1: string
+  addressNumber: string
+  addressLine2: string
+  neighborhood: string
+  city: string
+  state: string
+  postalCode: string
+  distanceKm: number
+  daysCount: number
+  durationHours: number
+  paymentPlan: PaymentPlanType
+  subtotalCents: number
+  displacementCents: number
+  discountCents: number
+  totalCents: number
+  notes: string
+  items: QuoteItemInput[]
+  equipmentNameById: Record<string, string>
+}) {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN?.trim()
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim()
+  if (!token || !phoneNumberId) return
+
+  const destinationNumber = "5512991568840"
+  const itemsText =
+    params.items.length > 0
+      ? params.items
+          .map((i) => `- ${i.quantity}x ${params.equipmentNameById[i.equipmentId] ?? i.equipmentId}`)
+          .join("\n")
+      : "- (sem itens)"
+
+  const address = [
+    `${params.addressLine1}, ${params.addressNumber}`,
+    params.addressLine2,
+    params.neighborhood,
+    `${params.city}-${params.state}`,
+    params.postalCode
+  ]
+    .filter(Boolean)
+    .join(", ")
+
+  const messageLines = [
+    "Nova solicitação de reserva",
+    "",
+    `Reserva: ${params.reservationId}`,
+    `Orçamento: ${params.quoteId}`,
+    "",
+    "Cliente:",
+    `- Nome: ${params.clientName || "—"}`,
+    `- WhatsApp: ${params.clientWhatsapp || "—"}`,
+    `- E-mail: ${params.userEmail || "—"}`,
+    "",
+    "Evento:",
+    `- Nome: ${params.eventName || "—"}`,
+    `- Data: ${formatDateBR(params.eventDate)}`,
+    `- Hora início: ${params.startTime || "—"}`,
+    `- Duração: ${params.durationHours}h`,
+    `- Distância: ${params.distanceKm.toFixed(2)} km`,
+    `- Modalidade: ${params.isMultiDay ? `${params.daysCount} dias` : "1 dia"}`,
+    params.isMultiDay ? `- Data final: ${formatDateBR(params.eventEndDate)}` : "",
+    params.isMultiDay ? `- Montagem: ${formatDateBR(params.setupDate)} ${params.setupTime || ""}`.trim() : "",
+    "",
+    "Local:",
+    `- ${params.venueName || "—"}`,
+    `- ${address || "—"}`,
+    "",
+    "Itens:",
+    itemsText,
+    "",
+    "Pagamento e valores:",
+    `- Forma: ${paymentPlanLabel(params.paymentPlan)}`,
+    `- Subtotal: ${formatBRLFromCents(params.subtotalCents)}`,
+    `- Deslocamento: ${formatBRLFromCents(params.displacementCents)}`,
+    `- Desconto: ${formatBRLFromCents(params.discountCents)}`,
+    `- Total: ${formatBRLFromCents(params.totalCents)}`,
+    "",
+    `Observações: ${params.notes || "—"}`
+  ].filter(Boolean)
+
+  const text = messageLines.join("\n").slice(0, 3900)
+  const res = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: destinationNumber,
+      type: "text",
+      text: {
+        body: text,
+        preview_url: false
+      }
+    })
+  })
+
+  if (!res.ok) {
+    const responseText = await res.text()
+    throw new Error(`Falha ao enviar WhatsApp: ${responseText}`)
+  }
+}
+
 export async function createReservation(
   _prevState: CreateReservationState,
   formData: FormData
@@ -624,8 +762,49 @@ export async function createReservation(
 
   if (reservationInsert.error) return { error: "Falha ao enviar solicitação de reserva." }
 
+  const reservationId = reservationInsert.data.id as string
   try {
-    const reservationId = reservationInsert.data.id as string
+    await sendReservationWhatsAppNotification({
+      reservationId,
+      quoteId,
+      userEmail: user.email ?? "",
+      clientName: typeof profile?.full_name === "string" ? profile.full_name : "",
+      clientWhatsapp:
+        (typeof profile?.whatsapp === "string" && profile.whatsapp) ||
+        (typeof profile?.phone === "string" && profile.phone) ||
+        "",
+      eventName,
+      eventDate,
+      startTime,
+      isMultiDay,
+      eventEndDate: isMultiDay ? eventEndDate : null,
+      setupDate: isMultiDay ? setupDate : null,
+      setupTime: isMultiDay ? setupTime : null,
+      venueName,
+      addressLine1,
+      addressNumber,
+      addressLine2,
+      neighborhood,
+      city,
+      state,
+      postalCode,
+      distanceKm,
+      daysCount,
+      durationHours,
+      paymentPlan,
+      subtotalCents: breakdown.subtotal_cents,
+      displacementCents: breakdown.displacement_cents,
+      discountCents: breakdown.discount_cents,
+      totalCents: breakdown.total_cents,
+      notes,
+      items,
+      equipmentNameById
+    })
+  } catch (err) {
+    console.error("[createReservation] WhatsApp notification failed:", err)
+  }
+
+  try {
     const profileRow = profileRes.data as any
     const referredById = typeof profileRow?.referred_by === "string" ? profileRow.referred_by : ""
 
@@ -653,7 +832,6 @@ export async function createReservation(
     }
   } catch {}
 
-  const reservationId = reservationInsert.data.id as string
   if (missingClientData) {
     redirect(`/cliente/dados?next=${encodeURIComponent(`/cliente/pedidos/${reservationId}`)}`)
   }
