@@ -272,8 +272,7 @@ export default function SimuladorFutebolVirtualPage() {
 
             <Button
               asChild
-              size="sm"
-              className="shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-300/35"
+              className="h-9 px-3 text-xs shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-300/35"
             >
               <Link href="#orcamento">Pedir orçamento</Link>
             </Button>
