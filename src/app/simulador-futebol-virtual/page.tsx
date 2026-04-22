@@ -259,6 +259,16 @@ export default function SimuladorFutebolVirtualPage() {
         body.vrgh-landing-simulador-futebol-virtual > div > header {
           display: none;
         }
+
+        html {
+          scroll-padding-top: 96px;
+        }
+
+        @media (min-width: 768px) {
+          html {
+            scroll-padding-top: 112px;
+          }
+        }
       `}</style>
 
       <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 text-white backdrop-blur print:hidden">
