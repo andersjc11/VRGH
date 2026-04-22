@@ -616,13 +616,13 @@ export default function SimuladorFutebolVirtualPage() {
                     className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,197,94,0.18),transparent_60%)]"
                   />
                   <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-                    <div className="relative aspect-[16/9]">
+                    <div className="relative aspect-square">
                       <Image
                         src="/simulador-futebol-como-funciona.jpg"
                         alt="Participante na ativação do simulador de futebol virtual, pronto para cobrar o pênalti"
                         fill
                         sizes="(max-width: 768px) 100vw, 560px"
-                        className="object-cover object-top"
+                        className="object-cover object-center"
                       />
                       <div
                         aria-hidden="true"
