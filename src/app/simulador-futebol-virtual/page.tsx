@@ -233,7 +233,7 @@ export default function SimuladorFutebolVirtualPage() {
   const whatsappHref = useMemo(() => {
     const text =
       "Olá! Quero um orçamento para o Simulador de Futebol Virtual (cobrança de pênaltis).\n\n" +
-      "Data(s):\nLocal (cidade/UF):\nHorário:\nPrecisa de cenografia (lona/piso/prismas)?\nEmissão de NF:\n"
+      "Data(s):\nLocal (cidade/UF):\nHorário:\nEmissão de NF:\n"
     return `https://wa.me/5512991568840?text=${encodeURIComponent(text)}`
   }, [])
 
@@ -642,7 +642,23 @@ export default function SimuladorFutebolVirtualPage() {
                   aria-hidden="true"
                   className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_55%)]"
                 />
-                <div className="relative">
+                <div className="relative grid gap-4 md:grid-cols-2 md:items-center">
+                  <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                    <div className="relative aspect-[4/3]">
+                      <Image
+                        src="/simulador-futebol-o-que-levamos.jpg"
+                        alt="Setup do simulador de futebol virtual com headset VR e TV para a plateia"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 320px"
+                        className="object-cover"
+                      />
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-transparent"
+                      />
+                    </div>
+                  </div>
+
                   <ul className="space-y-3 text-sm text-zinc-300">
                     <li className="flex gap-2">
                       <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
@@ -666,15 +682,6 @@ export default function SimuladorFutebolVirtualPage() {
                     </li>
                   </ul>
                 </div>
-              </Card>
-
-              <Card>
-                <p className="text-sm font-semibold text-white">Cenografia (opcional)</p>
-                <p className="mt-2 text-sm text-zinc-300">
-                  Podemos operar com cenografia do cliente (lona/piso/prismas) ou entregar a arena
-                  completa sob demanda. Informe no orçamento se você quer: “arena pronta” ou “somente
-                  tecnologia”.
-                </p>
               </Card>
             </div>
           </div>
@@ -772,10 +779,6 @@ export default function SimuladorFutebolVirtualPage() {
                 <li className="flex gap-2">
                   <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
                   <span>Se precisa de NF e forma de pagamento</span>
-                </li>
-                <li className="flex gap-2">
-                  <IconCheck className="mt-0.5 h-4 w-4 text-emerald-300" />
-                  <span>Se precisa de cenografia (lona/piso/prismas) e promotores</span>
                 </li>
               </ul>
               <Button asChild className="mt-6" size="lg">
