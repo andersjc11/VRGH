@@ -257,7 +257,7 @@ export default function SimuladorFutebolVirtualPage() {
                     </p>
                     <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
                       <IconGoal className="h-4 w-4 text-lime-200" />
-                      Bola real + chute de verdade
+                      Bola virtual + chute de verdade
                     </p>
                     <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
                       <IconWhistle className="h-4 w-4 text-white/90" />
@@ -335,7 +335,7 @@ export default function SimuladorFutebolVirtualPage() {
                       </div>
                       <div className="absolute bottom-4 left-4 right-4">
                         <p className="text-sm font-semibold text-white">
-                          Chute de verdade com bola real
+                          Chute de verdade com bola virtual
                         </p>
                         <p className="mt-1 text-xs text-white/80">
                           Experiência rápida, fila constante e desafio entre participantes
