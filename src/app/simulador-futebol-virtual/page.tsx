@@ -211,9 +211,11 @@ function PhotoCarousel(props: {
   description: string
   items: PhotoCarouselItem[]
 }) {
+  const sectionRef = useRef<HTMLElement | null>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const [index, setIndex] = useState(0)
   const indexRef = useRef(0)
+  const isInViewRef = useRef(false)
   const pausedRef = useRef(false)
   const resumeTimeoutRef = useRef<number | null>(null)
 
@@ -234,13 +236,34 @@ function PhotoCarousel(props: {
     const children = Array.from(viewport.children) as HTMLElement[]
     const target = children[nextIndex]
     if (!target) return
-    target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
+    const viewportRect = viewport.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    const left = targetRect.left - viewportRect.left + viewport.scrollLeft
+    viewport.scrollTo({ left, behavior: "smooth" })
     setIndex(nextIndex)
   }
 
   useEffect(() => {
     indexRef.current = index
   }, [index])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const section = sectionRef.current
+    if (!section) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isInViewRef.current = entry.isIntersecting && entry.intersectionRatio >= 0.2
+      },
+      { threshold: [0, 0.2, 0.5] }
+    )
+    observer.observe(section)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
     if (props.items.length < 2) return
@@ -251,6 +274,7 @@ function PhotoCarousel(props: {
 
     const intervalId = window.setInterval(() => {
       if (pausedRef.current) return
+      if (!isInViewRef.current) return
       const nextIndex = (indexRef.current + 1) % props.items.length
       scrollToIndex(nextIndex)
     }, 3000)
@@ -270,6 +294,7 @@ function PhotoCarousel(props: {
   return (
     <section
       id={props.id}
+      ref={sectionRef}
       className="scroll-mt-24 border-t border-white/10 md:scroll-mt-28"
     >
       <div className="mx-auto max-w-6xl px-4 py-12">
