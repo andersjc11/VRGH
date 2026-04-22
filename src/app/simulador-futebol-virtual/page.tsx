@@ -85,6 +85,19 @@ function IconCheck({ className }: IconProps) {
   )
 }
 
+function IconMenu({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="M4 7h16M4 12h16M4 17h16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 type CarouselItem = {
   title: string
   subtitle?: string
@@ -114,7 +127,10 @@ function Carousel(props: {
   const canNext = index < props.items.length - 1
 
   return (
-    <section id={props.id} className="border-t border-white/10">
+    <section
+      id={props.id}
+      className="scroll-mt-24 border-t border-white/10 md:scroll-mt-28"
+    >
       <div className="mx-auto max-w-6xl px-4 py-12">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
@@ -191,6 +207,8 @@ export default function SimuladorFutebolVirtualPage() {
       document.body.classList.remove("vrgh-landing-simulador-futebol-virtual")
     }
   }, [])
+
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const whatsappHref = useMemo(() => {
     const text =
@@ -270,45 +288,67 @@ export default function SimuladorFutebolVirtualPage() {
               </Button>
             </nav>
 
-            <Button
-              asChild
-              className="h-9 px-3 text-xs shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-300/35"
-            >
-              <Link href="#orcamento">Pedir orçamento</Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={mobileNavOpen ? "Fechar menu" : "Abrir menu"}
+                aria-expanded={mobileNavOpen}
+                onClick={() => setMobileNavOpen((prev) => !prev)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white transition-colors hover:bg-white/10 active:bg-white/5 md:hidden"
+              >
+                <IconMenu className="h-5 w-5" />
+              </button>
+              <Button
+                asChild
+                className="h-9 px-3 text-xs shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-300/35"
+              >
+                <Link href="#orcamento">Pedir orçamento</Link>
+              </Button>
+            </div>
           </div>
 
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 md:hidden">
-            <a
-              href="#o-que-levamos"
-              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
-            >
-              O que levamos
-            </a>
-            <a
-              href="#como-funciona"
-              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
-            >
-              Como funciona
-            </a>
-            <a
-              href="#eventos"
-              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
-            >
-              Eventos
-            </a>
-            <a
-              href="#clientes"
-              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
-            >
-              Clientes
-            </a>
-            <a
-              href="#orcamento"
-              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
-            >
-              Orçamento
-            </a>
+          <div
+            className={`mt-3 overflow-hidden transition-[max-height,opacity] duration-200 md:hidden ${
+              mobileNavOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+            }`}
+          >
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-2 backdrop-blur">
+              <a
+                href="#o-que-levamos"
+                onClick={() => setMobileNavOpen(false)}
+                className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
+              >
+                O que levamos
+              </a>
+              <a
+                href="#como-funciona"
+                onClick={() => setMobileNavOpen(false)}
+                className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
+              >
+                Como funciona
+              </a>
+              <a
+                href="#eventos"
+                onClick={() => setMobileNavOpen(false)}
+                className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
+              >
+                Eventos
+              </a>
+              <a
+                href="#clientes"
+                onClick={() => setMobileNavOpen(false)}
+                className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
+              >
+                Clientes
+              </a>
+              <a
+                href="#orcamento"
+                onClick={() => setMobileNavOpen(false)}
+                className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
+              >
+                Orçamento
+              </a>
+            </div>
           </div>
         </div>
       </header>
@@ -434,7 +474,7 @@ export default function SimuladorFutebolVirtualPage() {
         </div>
       </section>
 
-      <section id="como-funciona" className="border-b border-white/10">
+      <section id="como-funciona" className="scroll-mt-24 border-b border-white/10 md:scroll-mt-28">
         <div className="mx-auto max-w-6xl px-4 py-12">
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-3">
@@ -472,7 +512,10 @@ export default function SimuladorFutebolVirtualPage() {
             </div>
 
             <div className="space-y-3">
-              <h3 id="o-que-levamos" className="text-xl font-semibold tracking-tight text-white">
+              <h3
+                id="o-que-levamos"
+                className="scroll-mt-24 text-xl font-semibold tracking-tight text-white md:scroll-mt-28"
+              >
                 O que levamos
               </h3>
               <Card className="relative overflow-hidden">
@@ -587,7 +630,7 @@ export default function SimuladorFutebolVirtualPage() {
         items={companies}
       />
 
-      <section id="orcamento" className="border-t border-white/10">
+      <section id="orcamento" className="scroll-mt-24 border-t border-white/10 md:scroll-mt-28">
         <div className="mx-auto max-w-6xl px-4 py-12">
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
