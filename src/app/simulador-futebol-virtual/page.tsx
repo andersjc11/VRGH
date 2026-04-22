@@ -104,6 +104,11 @@ type CarouselItem = {
   meta?: string
 }
 
+type PhotoCarouselItem = {
+  src: string
+  alt: string
+}
+
 function Carousel(props: {
   id?: string
   title: string
@@ -200,6 +205,100 @@ function Carousel(props: {
   )
 }
 
+function PhotoCarousel(props: {
+  id?: string
+  title: string
+  description: string
+  items: PhotoCarouselItem[]
+}) {
+  const viewportRef = useRef<HTMLDivElement | null>(null)
+  const [index, setIndex] = useState(0)
+
+  const scrollToIndex = (nextIndex: number) => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+    const children = Array.from(viewport.children) as HTMLElement[]
+    const target = children[nextIndex]
+    if (!target) return
+    target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
+    setIndex(nextIndex)
+  }
+
+  const canPrev = index > 0
+  const canNext = index < props.items.length - 1
+
+  return (
+    <section
+      id={props.id}
+      className="scroll-mt-24 border-t border-white/10 md:scroll-mt-28"
+    >
+      <div className="mx-auto max-w-6xl px-4 py-12">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight text-white">{props.title}</h2>
+            <p className="max-w-2xl text-sm text-zinc-300">{props.description}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              intent="secondary"
+              aria-label="Anterior"
+              disabled={!canPrev}
+              onClick={() => scrollToIndex(Math.max(0, index - 1))}
+            >
+              ←
+            </Button>
+            <Button
+              type="button"
+              intent="secondary"
+              aria-label="Próximo"
+              disabled={!canNext}
+              onClick={() => scrollToIndex(Math.min(props.items.length - 1, index + 1))}
+            >
+              →
+            </Button>
+          </div>
+        </div>
+
+        <div
+          ref={viewportRef}
+          className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [-webkit-overflow-scrolling:touch]"
+          onScroll={(e) => {
+            const viewport = e.currentTarget
+            const children = Array.from(viewport.children) as HTMLElement[]
+            const viewportLeft = viewport.getBoundingClientRect().left
+            let bestIndex = 0
+            let bestDistance = Number.POSITIVE_INFINITY
+            for (let i = 0; i < children.length; i++) {
+              const left = children[i].getBoundingClientRect().left
+              const distance = Math.abs(left - viewportLeft)
+              if (distance < bestDistance) {
+                bestDistance = distance
+                bestIndex = i
+              }
+            }
+            setIndex(bestIndex)
+          }}
+        >
+          {props.items.map((item) => (
+            <Card key={item.src} className="w-[86%] shrink-0 snap-start overflow-hidden p-0 sm:w-[520px]">
+              <div className="relative h-[520px] w-full bg-black/20 sm:h-[420px]">
+                <Image
+                  src={item.src}
+                  alt={item.alt}
+                  fill
+                  sizes="(max-width: 640px) 86vw, 520px"
+                  className="object-contain"
+                />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function SimuladorFutebolVirtualPage() {
   useEffect(() => {
     document.body.classList.add("vrgh-landing-simulador-futebol-virtual")
@@ -237,27 +336,27 @@ export default function SimuladorFutebolVirtualPage() {
     return `https://wa.me/5512991568840?text=${encodeURIComponent(text)}`
   }, [])
 
-  const events = useMemo<CarouselItem[]>(
+  const eventPhotos = useMemo<PhotoCarouselItem[]>(
     () => [
       {
-        title: "Uniube Aberta",
-        subtitle: "Uberaba/MG • Ativação de cobrança de pênaltis em realidade virtual",
-        meta: "Montagem 22/05 • Evento 23/05 (09h–15h) • Desmontagem a partir das 16h"
+        src: "/simulador-futebol-eventos-01.jpg",
+        alt: "Ativação do simulador de futebol virtual em evento"
       },
       {
-        title: "Shopping Cidade Jardim",
-        subtitle: "São Paulo/SP • Ativação dentro da Academia Reebok",
-        meta: "Arena indoor • Fluxo contínuo • Operação com promotor"
+        src: "/simulador-futebol-eventos-02.jpg",
+        alt: "Participante na experiência de pênaltis em realidade virtual"
       },
       {
-        title: "ABS",
-        subtitle: "Uberaba/MG • Ativação corporativa",
-        meta: "Edição anterior com alto engajamento e fila organizada"
+        src: "/simulador-futebol-eventos-03.jpg",
+        alt: "Experiência de pênaltis em VR com TV para a plateia"
       },
       {
-        title: "Arena de Verão",
-        subtitle: "Balneário Camboriú/SC • Temporada com múltiplas datas",
-        meta: "Calendário: junho e julho • Planejamento de escala e equipe"
+        src: "/simulador-futebol-eventos-04.jpg",
+        alt: "Arena montada para cobrança de pênaltis em realidade virtual"
+      },
+      {
+        src: "/simulador-futebol-eventos-05.jpg",
+        alt: "Ativação do simulador de futebol virtual em espaço corporativo"
       }
     ],
     []
@@ -774,11 +873,11 @@ export default function SimuladorFutebolVirtualPage() {
         </div>
       </section>
 
-      <Carousel
+      <PhotoCarousel
         id="eventos"
         title="Eventos já realizados"
-        description="Algumas ativações e contextos onde a cobrança de pênaltis em VR trouxe fila, engajamento e lembrança de marca."
-        items={events}
+        description="Alguns registros reais da ativação em eventos e ações."
+        items={eventPhotos}
       />
 
       <Carousel
