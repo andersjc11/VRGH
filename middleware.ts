@@ -59,13 +59,14 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set("x-vrgh-pathname", pathname)
+
   let response = NextResponse.next({
     request: {
-      headers: request.headers
+      headers: requestHeaders
     }
   })
-
-  response.headers.set("x-vrgh-pathname", pathname)
 
   const ref = request.nextUrl.searchParams.get("ref")
   if (ref) {
