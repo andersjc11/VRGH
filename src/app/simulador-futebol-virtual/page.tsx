@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
@@ -245,62 +246,105 @@ export default function SimuladorFutebolVirtualPage() {
         </div>
 
         <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-          <div className="mx-auto max-w-4xl text-center">
+          <div className="mx-auto max-w-5xl">
             <div className="rounded-3xl border border-white/10 bg-black/30 px-6 py-10 shadow-2xl shadow-black/50 backdrop-blur sm:px-10">
-              <div className="flex flex-wrap justify-center gap-2">
-                <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
-                  <IconBall className="h-4 w-4 text-emerald-200" />
-                  Cobrança de pênaltis em VR
-                </p>
-                <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
-                  <IconGoal className="h-4 w-4 text-lime-200" />
-                  Bola real + chute de verdade
-                </p>
-                <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
-                  <IconWhistle className="h-4 w-4 text-white/90" />
-                  Operação completa no evento
-                </p>
+              <div className="grid gap-10 md:grid-cols-2 md:items-center">
+                <div className="text-center md:text-left">
+                  <div className="flex flex-wrap justify-center gap-2 md:justify-start">
+                    <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
+                      <IconBall className="h-4 w-4 text-emerald-200" />
+                      Cobrança de pênaltis em VR
+                    </p>
+                    <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
+                      <IconGoal className="h-4 w-4 text-lime-200" />
+                      Bola real + chute de verdade
+                    </p>
+                    <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
+                      <IconWhistle className="h-4 w-4 text-white/90" />
+                      Operação completa no evento
+                    </p>
+                  </div>
+
+                  <h1 className="mt-7 text-5xl font-semibold leading-[1.06] tracking-tight text-white md:text-6xl">
+                    Simulador de Futebol Virtual
+                    <span className="block bg-gradient-to-r from-white via-emerald-100 to-lime-100 bg-clip-text text-transparent">
+                      cobrança de pênaltis
+                    </span>
+                  </h1>
+                  <p className="mt-5 text-base text-white/85 md:text-lg">
+                    Uma ativação rápida de entender, difícil de resistir e perfeita para gerar fila,
+                    fotos e desafio entre amigos. Nosso setup coloca o participante no momento mais
+                    emocionante do futebol: o pênalti.
+                  </p>
+
+                  <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center md:justify-start">
+                    <Button
+                      asChild
+                      size="lg"
+                      className="shadow-xl shadow-emerald-500/20 ring-1 ring-emerald-300/35"
+                    >
+                      <a href={whatsappHref} target="_blank" rel="noreferrer">
+                        Pedir orçamento no WhatsApp
+                      </a>
+                    </Button>
+                    <Button asChild intent="secondary" size="lg">
+                      <Link href="#como-funciona">Ver como funciona</Link>
+                    </Button>
+                  </div>
+
+                  <p className="mt-6 text-sm text-zinc-300">
+                    Jogo utilizado:{" "}
+                    <a
+                      href="https://store.steampowered.com/app/555060/Final_Soccer_VR/?l=portuguese"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-200 hover:text-emerald-100"
+                    >
+                      Final Soccer VR
+                    </a>
+                    . Nossa licença é focada na experiência de pênaltis (chute ao gol).
+                  </p>
+                </div>
+
+                <div className="mx-auto w-full max-w-md">
+                  <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.60)]">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-emerald-500/15 via-transparent to-lime-400/10"
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -inset-px rounded-3xl ring-1 ring-emerald-300/25"
+                    />
+                    <div className="relative aspect-[3/4]">
+                      <Image
+                        src="/simulador-futebol-penalti.jpg"
+                        alt="Ativação do simulador de cobrança de pênaltis em realidade virtual em evento"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 420px"
+                        className="object-cover object-[center_20%]"
+                        priority
+                      />
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent"
+                      />
+                      <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-xs font-medium text-white">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.55)]" />
+                        Ativação real no evento
+                      </div>
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <p className="text-sm font-semibold text-white">
+                          Chute de verdade com bola real
+                        </p>
+                        <p className="mt-1 text-xs text-white/80">
+                          Experiência rápida, fila constante e desafio entre participantes
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-
-              <h1 className="mt-7 text-5xl font-semibold leading-[1.06] tracking-tight text-white md:text-6xl">
-                Simulador de Futebol Virtual
-                <span className="block bg-gradient-to-r from-white via-emerald-100 to-lime-100 bg-clip-text text-transparent">
-                  cobrança de pênaltis
-                </span>
-              </h1>
-              <p className="mt-5 text-base text-white/85 md:text-lg">
-                Uma ativação rápida de entender, difícil de resistir e perfeita para gerar fila,
-                fotos e desafio entre amigos. Nosso setup coloca o participante no momento mais
-                emocionante do futebol: o pênalti.
-              </p>
-
-              <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-                <Button
-                  asChild
-                  size="lg"
-                  className="shadow-xl shadow-emerald-500/20 ring-1 ring-emerald-300/35"
-                >
-                  <a href={whatsappHref} target="_blank" rel="noreferrer">
-                    Pedir orçamento no WhatsApp
-                  </a>
-                </Button>
-                <Button asChild intent="secondary" size="lg">
-                  <Link href="#como-funciona">Ver como funciona</Link>
-                </Button>
-              </div>
-
-              <p className="mt-6 text-sm text-zinc-300">
-                Jogo utilizado:{" "}
-                <a
-                  href="https://store.steampowered.com/app/555060/Final_Soccer_VR/?l=portuguese"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-emerald-200 hover:text-emerald-100"
-                >
-                  Final Soccer VR
-                </a>
-                . Nossa licença é focada na experiência de pênaltis (chute ao gol).
-              </p>
             </div>
           </div>
         </div>
