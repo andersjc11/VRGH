@@ -210,6 +210,26 @@ export default function SimuladorFutebolVirtualPage() {
 
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
+  const scrollToAnchor = (hash: string, behavior: ScrollBehavior = "smooth") => {
+    const id = hash.replace(/^#/, "")
+    const target = document.getElementById(id)
+    if (!target) return
+
+    const header = document.querySelector(
+      'header[data-landing-menu="simulador-futebol-virtual"]'
+    ) as HTMLElement | null
+    const headerHeight = header ? Math.ceil(header.getBoundingClientRect().height) : 0
+
+    const top = window.scrollY + target.getBoundingClientRect().top - headerHeight - 12
+    window.scrollTo({ top, behavior })
+  }
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!hash) return
+    requestAnimationFrame(() => scrollToAnchor(hash, "auto"))
+  }, [])
+
   const whatsappHref = useMemo(() => {
     const text =
       "Olá! Quero um orçamento para o Simulador de Futebol Virtual (cobrança de pênaltis).\n\n" +
@@ -271,7 +291,10 @@ export default function SimuladorFutebolVirtualPage() {
         }
       `}</style>
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 text-white backdrop-blur print:hidden">
+      <header
+        data-landing-menu="simulador-futebol-virtual"
+        className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 text-white backdrop-blur print:hidden"
+      >
         <div className="mx-auto max-w-6xl px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <Link href="/" className="flex items-center gap-3">
@@ -282,19 +305,64 @@ export default function SimuladorFutebolVirtualPage() {
 
             <nav className="hidden items-center gap-2 md:flex">
               <Button asChild intent="ghost">
-                <Link href="#o-que-levamos">O que levamos</Link>
+                <a
+                  href="#o-que-levamos"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.history.pushState(null, "", "#o-que-levamos")
+                    scrollToAnchor("#o-que-levamos")
+                  }}
+                >
+                  O que levamos
+                </a>
               </Button>
               <Button asChild intent="ghost">
-                <Link href="#como-funciona">Como funciona</Link>
+                <a
+                  href="#como-funciona"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.history.pushState(null, "", "#como-funciona")
+                    scrollToAnchor("#como-funciona")
+                  }}
+                >
+                  Como funciona
+                </a>
               </Button>
               <Button asChild intent="ghost">
-                <Link href="#eventos">Eventos</Link>
+                <a
+                  href="#eventos"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.history.pushState(null, "", "#eventos")
+                    scrollToAnchor("#eventos")
+                  }}
+                >
+                  Eventos
+                </a>
               </Button>
               <Button asChild intent="ghost">
-                <Link href="#clientes">Clientes</Link>
+                <a
+                  href="#clientes"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.history.pushState(null, "", "#clientes")
+                    scrollToAnchor("#clientes")
+                  }}
+                >
+                  Clientes
+                </a>
               </Button>
               <Button asChild intent="ghost">
-                <Link href="#orcamento">Orçamento</Link>
+                <a
+                  href="#orcamento"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.history.pushState(null, "", "#orcamento")
+                    scrollToAnchor("#orcamento")
+                  }}
+                >
+                  Orçamento
+                </a>
               </Button>
             </nav>
 
@@ -312,7 +380,18 @@ export default function SimuladorFutebolVirtualPage() {
                 asChild
                 className="h-9 px-3 text-xs shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-300/35"
               >
-                <Link href="#orcamento">Pedir orçamento</Link>
+                <a
+                  href="#orcamento"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMobileNavOpen(false)
+                    window.history.pushState(null, "", "#orcamento")
+                    requestAnimationFrame(() => scrollToAnchor("#orcamento"))
+                    setTimeout(() => scrollToAnchor("#orcamento"), 220)
+                  }}
+                >
+                  Pedir orçamento
+                </a>
               </Button>
             </div>
           </div>
@@ -325,35 +404,65 @@ export default function SimuladorFutebolVirtualPage() {
             <div className="rounded-2xl border border-white/10 bg-black/30 p-2 backdrop-blur">
               <a
                 href="#o-que-levamos"
-                onClick={() => setMobileNavOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  setMobileNavOpen(false)
+                  window.history.pushState(null, "", "#o-que-levamos")
+                  requestAnimationFrame(() => scrollToAnchor("#o-que-levamos"))
+                  setTimeout(() => scrollToAnchor("#o-que-levamos"), 220)
+                }}
                 className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
               >
                 O que levamos
               </a>
               <a
                 href="#como-funciona"
-                onClick={() => setMobileNavOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  setMobileNavOpen(false)
+                  window.history.pushState(null, "", "#como-funciona")
+                  requestAnimationFrame(() => scrollToAnchor("#como-funciona"))
+                  setTimeout(() => scrollToAnchor("#como-funciona"), 220)
+                }}
                 className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
               >
                 Como funciona
               </a>
               <a
                 href="#eventos"
-                onClick={() => setMobileNavOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  setMobileNavOpen(false)
+                  window.history.pushState(null, "", "#eventos")
+                  requestAnimationFrame(() => scrollToAnchor("#eventos"))
+                  setTimeout(() => scrollToAnchor("#eventos"), 220)
+                }}
                 className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
               >
                 Eventos
               </a>
               <a
                 href="#clientes"
-                onClick={() => setMobileNavOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  setMobileNavOpen(false)
+                  window.history.pushState(null, "", "#clientes")
+                  requestAnimationFrame(() => scrollToAnchor("#clientes"))
+                  setTimeout(() => scrollToAnchor("#clientes"), 220)
+                }}
                 className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
               >
                 Clientes
               </a>
               <a
                 href="#orcamento"
-                onClick={() => setMobileNavOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  setMobileNavOpen(false)
+                  window.history.pushState(null, "", "#orcamento")
+                  requestAnimationFrame(() => scrollToAnchor("#orcamento"))
+                  setTimeout(() => scrollToAnchor("#orcamento"), 220)
+                }}
                 className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
               >
                 Orçamento
