@@ -403,10 +403,6 @@ export default function SimuladorFutebolVirtualPage() {
         alt: "Ativação do simulador de futebol virtual em evento"
       },
       {
-        src: "/simulador-futebol-eventos-02.jpg",
-        alt: "Participante na experiência de pênaltis em realidade virtual"
-      },
-      {
         src: "/simulador-futebol-eventos-03.jpg",
         alt: "Experiência de pênaltis em VR com TV para a plateia"
       },
