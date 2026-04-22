@@ -213,6 +213,20 @@ function PhotoCarousel(props: {
 }) {
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const [index, setIndex] = useState(0)
+  const indexRef = useRef(0)
+  const pausedRef = useRef(false)
+  const resumeTimeoutRef = useRef<number | null>(null)
+
+  const pauseTemporarily = (durationMs = 4000) => {
+    pausedRef.current = true
+    if (resumeTimeoutRef.current) {
+      window.clearTimeout(resumeTimeoutRef.current)
+    }
+    resumeTimeoutRef.current = window.setTimeout(() => {
+      pausedRef.current = false
+      resumeTimeoutRef.current = null
+    }, durationMs)
+  }
 
   const scrollToIndex = (nextIndex: number) => {
     const viewport = viewportRef.current
@@ -223,6 +237,32 @@ function PhotoCarousel(props: {
     target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
     setIndex(nextIndex)
   }
+
+  useEffect(() => {
+    indexRef.current = index
+  }, [index])
+
+  useEffect(() => {
+    if (props.items.length < 2) return
+    if (typeof window === "undefined") return
+
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false
+    if (reduceMotion) return
+
+    const intervalId = window.setInterval(() => {
+      if (pausedRef.current) return
+      const nextIndex = (indexRef.current + 1) % props.items.length
+      scrollToIndex(nextIndex)
+    }, 3000)
+
+    return () => {
+      window.clearInterval(intervalId)
+      if (resumeTimeoutRef.current) {
+        window.clearTimeout(resumeTimeoutRef.current)
+        resumeTimeoutRef.current = null
+      }
+    }
+  }, [props.items.length])
 
   const canPrev = index > 0
   const canNext = index < props.items.length - 1
@@ -244,7 +284,10 @@ function PhotoCarousel(props: {
               intent="secondary"
               aria-label="Anterior"
               disabled={!canPrev}
-              onClick={() => scrollToIndex(Math.max(0, index - 1))}
+              onClick={() => {
+                pauseTemporarily()
+                scrollToIndex(Math.max(0, index - 1))
+              }}
             >
               ←
             </Button>
@@ -253,7 +296,10 @@ function PhotoCarousel(props: {
               intent="secondary"
               aria-label="Próximo"
               disabled={!canNext}
-              onClick={() => scrollToIndex(Math.min(props.items.length - 1, index + 1))}
+              onClick={() => {
+                pauseTemporarily()
+                scrollToIndex(Math.min(props.items.length - 1, index + 1))
+              }}
             >
               →
             </Button>
@@ -263,7 +309,21 @@ function PhotoCarousel(props: {
         <div
           ref={viewportRef}
           className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [-webkit-overflow-scrolling:touch]"
+          onMouseEnter={() => {
+            pausedRef.current = true
+          }}
+          onMouseLeave={() => {
+            pausedRef.current = false
+          }}
+          onPointerDown={() => pauseTemporarily()}
+          onFocusCapture={() => {
+            pausedRef.current = true
+          }}
+          onBlurCapture={() => {
+            pausedRef.current = false
+          }}
           onScroll={(e) => {
+            pauseTemporarily()
             const viewport = e.currentTarget
             const children = Array.from(viewport.children) as HTMLElement[]
             const viewportLeft = viewport.getBoundingClientRect().left
