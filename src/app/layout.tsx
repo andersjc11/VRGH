@@ -1,9 +1,12 @@
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import { Inter } from "next/font/google"
 import { Orbitron } from "next/font/google"
 import "./globals.css"
 import { SiteFooter } from "@/components/site/SiteFooter"
-import { SiteHeader } from "@/components/site/SiteHeader"
+import { SimuladorFutebolVirtualHeader, SiteHeader } from "@/components/site/SiteHeader"
+
+export const dynamic = "force-dynamic"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -70,11 +73,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const pathname = headers().get("x-vrgh-pathname") ?? ""
+  const header = pathname === "/simulador-futebol-virtual" ? (
+    <SimuladorFutebolVirtualHeader />
+  ) : (
+    <SiteHeader />
+  )
+
   return (
     <html lang="pt-BR" className={`${inter.className} ${orbitron.variable}`}>
       <body>
         <div className="min-h-dvh flex flex-col">
-          <SiteHeader />
+          {header}
           <main className="flex-1">{children}</main>
           <SiteFooter />
         </div>
