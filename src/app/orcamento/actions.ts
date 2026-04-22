@@ -314,6 +314,8 @@ async function sendReservationWhatsAppNotification(params: {
   const token = process.env.WHATSAPP_ACCESS_TOKEN?.trim()
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim()
   if (!token || !phoneNumberId) return
+  const templateName = process.env.WHATSAPP_TEMPLATE_NAME?.trim()
+  const templateLang = process.env.WHATSAPP_TEMPLATE_LANG?.trim() || "pt_BR"
 
   const destinationNumber = "5512991568840"
   const itemsText =
@@ -372,27 +374,48 @@ async function sendReservationWhatsAppNotification(params: {
   ].filter(Boolean)
 
   const text = messageLines.join("\n").slice(0, 3900)
-  const res = await fetch(`https://graph.facebook.com/v20.0/${phoneNumberId}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
+  const endpoint = `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`
+  const sendPayload = async (payload: Record<string, unknown>) => {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await res.text()
+    if (!res.ok) throw new Error(body || `HTTP ${res.status}`)
+  }
+
+  if (templateName) {
+    await sendPayload({
       messaging_product: "whatsapp",
       to: destinationNumber,
-      type: "text",
-      text: {
-        body: text,
-        preview_url: false
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: templateLang },
+        components: [
+          {
+            type: "body",
+            parameters: [{ type: "text", text: text.slice(0, 1020) }]
+          }
+        ]
       }
     })
-  })
-
-  if (!res.ok) {
-    const responseText = await res.text()
-    throw new Error(`Falha ao enviar WhatsApp: ${responseText}`)
+    return
   }
+
+  await sendPayload({
+    messaging_product: "whatsapp",
+    to: destinationNumber,
+    type: "text",
+    text: {
+      body: text,
+      preview_url: false
+    }
+  })
 }
 
 export async function createReservation(
