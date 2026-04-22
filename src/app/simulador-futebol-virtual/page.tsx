@@ -622,7 +622,7 @@ export default function SimuladorFutebolVirtualPage() {
                         alt="Participante na ativação do simulador de futebol virtual, pronto para cobrar o pênalti"
                         fill
                         sizes="(max-width: 768px) 100vw, 560px"
-                        className="object-cover"
+                        className="object-cover object-top"
                       />
                       <div
                         aria-hidden="true"
