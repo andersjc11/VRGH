@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
 
@@ -185,6 +185,13 @@ function Carousel(props: {
 }
 
 export default function SimuladorFutebolVirtualPage() {
+  useEffect(() => {
+    document.body.classList.add("vrgh-landing-simulador-futebol-virtual")
+    return () => {
+      document.body.classList.remove("vrgh-landing-simulador-futebol-virtual")
+    }
+  }, [])
+
   const whatsappHref = useMemo(() => {
     const text =
       "Olá! Quero um orçamento para o Simulador de Futebol Virtual (cobrança de pênaltis).\n\n" +
@@ -230,6 +237,83 @@ export default function SimuladorFutebolVirtualPage() {
 
   return (
     <div className="relative">
+      <style jsx global>{`
+        body.vrgh-landing-simulador-futebol-virtual > div > header {
+          display: none;
+        }
+      `}</style>
+
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 text-white backdrop-blur print:hidden">
+        <div className="mx-auto max-w-6xl px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="relative h-10 w-36">
+                <Image src="/vrgh.png" alt="VRGH" fill sizes="144px" className="object-contain" />
+              </div>
+            </Link>
+
+            <nav className="hidden items-center gap-2 md:flex">
+              <Button asChild intent="ghost">
+                <Link href="#o-que-levamos">O que levamos</Link>
+              </Button>
+              <Button asChild intent="ghost">
+                <Link href="#como-funciona">Como funciona</Link>
+              </Button>
+              <Button asChild intent="ghost">
+                <Link href="#eventos">Eventos</Link>
+              </Button>
+              <Button asChild intent="ghost">
+                <Link href="#clientes">Clientes</Link>
+              </Button>
+              <Button asChild intent="ghost">
+                <Link href="#orcamento">Orçamento</Link>
+              </Button>
+            </nav>
+
+            <Button
+              asChild
+              size="sm"
+              className="shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-300/35"
+            >
+              <Link href="#orcamento">Pedir orçamento</Link>
+            </Button>
+          </div>
+
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 md:hidden">
+            <a
+              href="#o-que-levamos"
+              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
+            >
+              O que levamos
+            </a>
+            <a
+              href="#como-funciona"
+              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
+            >
+              Como funciona
+            </a>
+            <a
+              href="#eventos"
+              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
+            >
+              Eventos
+            </a>
+            <a
+              href="#clientes"
+              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
+            >
+              Clientes
+            </a>
+            <a
+              href="#orcamento"
+              className="shrink-0 rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs text-white/90"
+            >
+              Orçamento
+            </a>
+          </div>
+        </div>
+      </header>
+
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.18),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(34,197,94,0.10),transparent_55%)]"

@@ -59,12 +59,9 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set("x-vrgh-pathname", pathname)
-
   let response = NextResponse.next({
     request: {
-      headers: requestHeaders
+      headers: request.headers
     }
   })
 
