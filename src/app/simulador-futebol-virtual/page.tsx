@@ -92,6 +92,7 @@ type CarouselItem = {
 }
 
 function Carousel(props: {
+  id?: string
   title: string
   description: string
   items: CarouselItem[]
@@ -113,7 +114,7 @@ function Carousel(props: {
   const canNext = index < props.items.length - 1
 
   return (
-    <section className="border-t border-white/10">
+    <section id={props.id} className="border-t border-white/10">
       <div className="mx-auto max-w-6xl px-4 py-12">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
@@ -388,7 +389,9 @@ export default function SimuladorFutebolVirtualPage() {
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-xl font-semibold tracking-tight text-white">O que levamos</h3>
+              <h3 id="o-que-levamos" className="text-xl font-semibold tracking-tight text-white">
+                O que levamos
+              </h3>
               <Card className="relative overflow-hidden">
                 <div
                   aria-hidden="true"
@@ -488,12 +491,14 @@ export default function SimuladorFutebolVirtualPage() {
       </section>
 
       <Carousel
+        id="eventos"
         title="Eventos já realizados"
         description="Algumas ativações e contextos onde a cobrança de pênaltis em VR trouxe fila, engajamento e lembrança de marca."
         items={events}
       />
 
       <Carousel
+        id="clientes"
         title="Empresas que já contrataram"
         description="Clientes que levaram nossa ativação de futebol para eventos, ações de marca e experiências indoor."
         items={companies}
@@ -577,6 +582,30 @@ export default function SimuladorFutebolVirtualPage() {
               </a>
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section className="border-t border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <Card className="relative overflow-hidden">
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.16),transparent_60%)]"
+            />
+            <div className="relative flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="space-y-1">
+                <p className="text-sm text-zinc-300">Quer ver outras ativações?</p>
+                <p className="text-lg font-semibold text-white">
+                  Conheça os outros equipamentos e experiências da VRGH.
+                </p>
+              </div>
+              <Button asChild intent="secondary" size="lg">
+                <a href="https://www.vrgh.com.br/#equipamentos" target="_blank" rel="noreferrer">
+                  Ver equipamentos no site
+                </a>
+              </Button>
+            </div>
+          </Card>
         </div>
       </section>
     </div>

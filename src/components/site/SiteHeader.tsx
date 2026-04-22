@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/Button"
 import { signOut } from "@/app/(auth)/actions"
@@ -41,13 +41,25 @@ function IconMenu({ className }: { className?: string }) {
 }
 
 export async function SiteHeader() {
+  const pathname = headers().get("x-vrgh-pathname") ?? ""
+  const isLandingPage = pathname === "/simulador-futebol-virtual"
   const ref = cookies().get("vrgh_ref")?.value?.trim()
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
-  const orcamentoHref = ref ? `/orcamento${refQuery}` : "/orcamento"
+  const orcamentoHref = isLandingPage ? "#orcamento" : ref ? `/orcamento${refQuery}` : "/orcamento"
   const loginHref = ref ? `/login${refQuery}` : "/login"
   const cadastroHref = ref ? `/cadastro${refQuery}` : "/cadastro"
-  const equipamentosHref = ref ? `/?ref=${encodeURIComponent(ref)}#equipamentos` : "/#equipamentos"
-  const comoFuncionaHref = ref ? `/?ref=${encodeURIComponent(ref)}#como-funciona` : "/#como-funciona"
+  const equipamentosHref = isLandingPage
+    ? "#o-que-levamos"
+    : ref
+      ? `/?ref=${encodeURIComponent(ref)}#equipamentos`
+      : "/#equipamentos"
+  const comoFuncionaHref = isLandingPage
+    ? "#como-funciona"
+    : ref
+      ? `/?ref=${encodeURIComponent(ref)}#como-funciona`
+      : "/#como-funciona"
+  const eventosHref = "#eventos"
+  const clientesHref = "#clientes"
 
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
@@ -115,7 +127,7 @@ export async function SiteHeader() {
                       href={equipamentosHref}
                       className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
                     >
-                      Equipamentos
+                      {isLandingPage ? "O que levamos" : "Equipamentos"}
                     </Link>
                     <Link
                       href={comoFuncionaHref}
@@ -123,6 +135,22 @@ export async function SiteHeader() {
                     >
                       Como funciona
                     </Link>
+                    {isLandingPage ? (
+                      <>
+                        <Link
+                          href={eventosHref}
+                          className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                        >
+                          Eventos
+                        </Link>
+                        <Link
+                          href={clientesHref}
+                          className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                        >
+                          Clientes
+                        </Link>
+                      </>
+                    ) : null}
                     <Link
                       href={orcamentoHref}
                       className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
@@ -133,13 +161,23 @@ export async function SiteHeader() {
                 </div>
               </details>
 
-              <Button
-                asChild
-                intent="primary"
-                className="h-9 px-2 text-xs whitespace-nowrap shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40 sm:px-3 sm:text-sm"
-              >
-                <Link href={loginHref}>Entrar</Link>
-              </Button>
+              {isLandingPage ? (
+                <Button
+                  asChild
+                  intent="primary"
+                  className="h-9 px-2 text-xs whitespace-nowrap shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40 sm:px-3 sm:text-sm"
+                >
+                  <Link href={orcamentoHref}>Pedir orçamento</Link>
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  intent="primary"
+                  className="h-9 px-2 text-xs whitespace-nowrap shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40 sm:px-3 sm:text-sm"
+                >
+                  <Link href={loginHref}>Entrar</Link>
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -153,13 +191,23 @@ export async function SiteHeader() {
           {!isAdmin ? (
             <nav className="hidden items-center gap-2 md:flex">
               <Button asChild intent="ghost">
-                <Link href={equipamentosHref}>Equipamentos</Link>
+                <Link href={equipamentosHref}>{isLandingPage ? "O que levamos" : "Equipamentos"}</Link>
               </Button>
               <Button asChild intent="ghost">
                 <Link href={comoFuncionaHref}>Como funciona</Link>
               </Button>
+              {isLandingPage ? (
+                <>
+                  <Button asChild intent="ghost">
+                    <Link href={eventosHref}>Eventos</Link>
+                  </Button>
+                  <Button asChild intent="ghost">
+                    <Link href={clientesHref}>Clientes</Link>
+                  </Button>
+                </>
+              ) : null}
               <Button asChild intent="ghost">
-                <Link href={orcamentoHref}>Orçamento</Link>
+                <Link href={orcamentoHref}>{isLandingPage ? "Orçamento" : "Orçamento"}</Link>
               </Button>
             </nav>
           ) : null}
@@ -180,12 +228,20 @@ export async function SiteHeader() {
               </>
             ) : (
               <>
-                <Button asChild intent="ghost">
-                  <Link href={loginHref}>Entrar</Link>
-                </Button>
-                <Button asChild>
-                  <Link href={cadastroHref}>Criar conta</Link>
-                </Button>
+                {isLandingPage ? (
+                  <Button asChild className="shadow-lg shadow-brand-500/20 ring-1 ring-brand-300/35">
+                    <Link href={orcamentoHref}>Pedir orçamento</Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button asChild intent="ghost">
+                      <Link href={loginHref}>Entrar</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link href={cadastroHref}>Criar conta</Link>
+                    </Button>
+                  </>
+                )}
               </>
             )}
           </div>

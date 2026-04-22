@@ -65,6 +65,8 @@ export async function middleware(request: NextRequest) {
     }
   })
 
+  response.headers.set("x-vrgh-pathname", pathname)
+
   const ref = request.nextUrl.searchParams.get("ref")
   if (ref) {
     response.cookies.set({
