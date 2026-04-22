@@ -599,13 +599,45 @@ export default function SimuladorFutebolVirtualPage() {
             <div className="space-y-3">
               <h2 className="text-2xl font-semibold tracking-tight text-white">Como funciona</h2>
               <p className="text-sm text-zinc-300">
-                O participante veste o headset de realidade virtual e cobra pênaltis com uma bola de
-                verdade. A bola é chutada diretamente em uma lona/parede de impacto, com sensor na
-                canela para registrar o chute.
+                O participante veste o headset de realidade virtual e entra em uma arena de futebol
+                com torcida, bandeiras e clima de estádio. Com a orientação do nosso staff, ele parte
+                para o desafio: cobrar pênaltis em uma bola virtual (e dependendo da habilidade… pode
+                até parar na arquibancada).
+                <span className="block">
+                  A dinâmica completa, entre preparativos e participação, dura em média 2 a 3 minutos.
+                  O movimento do chute é real: posiciona, escolhe o canto (ou vai no meio mesmo) e
+                  cobra. O placar do estádio registra os gols e a experiência vira disputa.
+                </span>
               </p>
               <div className="mt-5 grid gap-3">
+                <Card className="relative overflow-hidden">
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,197,94,0.18),transparent_60%)]"
+                  />
+                  <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                    <div className="relative aspect-[16/9]">
+                      <Image
+                        src="/simulador-futebol-como-funciona.jpg"
+                        alt="Participante na ativação do simulador de futebol virtual, pronto para cobrar o pênalti"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 560px"
+                        className="object-cover"
+                      />
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-transparent"
+                      />
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <p className="text-xs font-medium text-white/90">
+                          Imersão + desafio rápido: perfeito para criar fila e competição
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
                 <Card>
-                  <p className="text-sm font-semibold text-white">Dinâmica em 60 segundos</p>
+                  <p className="text-sm font-semibold text-white">Dinâmica em 2–3 minutos</p>
                   <ol className="mt-3 space-y-2 text-sm text-zinc-300">
                     <li className="flex gap-2">
                       <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-xs text-white">
@@ -617,13 +649,13 @@ export default function SimuladorFutebolVirtualPage() {
                       <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-xs text-white">
                         2
                       </span>
-                      <span>Chute real: posiciona, mira e cobra o pênalti</span>
+                      <span>Imersão no estádio + cobrança do pênalti (chute real)</span>
                     </li>
                     <li className="flex gap-2">
                       <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-xs text-white">
                         3
                       </span>
-                      <span>Ranking e repetição: vira desafio e cria fila</span>
+                      <span>Placar registra os gols + ranking e repetição</span>
                     </li>
                   </ol>
                 </Card>
