@@ -390,6 +390,14 @@ export default async function HomePage({
       alt: "Participantes jogando em cadeiras gamer em evento"
     },
     {
+      src: "/WhatsApp Image 2026-04-23 at 13.18.17 (1).jpeg",
+      alt: "Ativação em estande com TV e público em evento"
+    },
+    {
+      src: "/IMG-20240326-WA0107.jpg",
+      alt: "Ativação com console e TV em ginásio durante evento"
+    },
+    {
       src: "/20250208_135805.jpg",
       alt: "Estrutura gamer com volante e múltiplas estações em evento"
     },
@@ -400,6 +408,10 @@ export default async function HomePage({
     {
       src: "/20250208_135506.jpg",
       alt: "Convidados jogando em PCs e consoles durante evento"
+    },
+    {
+      src: "/20250208_141404.jpg",
+      alt: "Estrutura gamer com PCs e participantes durante evento"
     }
   ]
 
