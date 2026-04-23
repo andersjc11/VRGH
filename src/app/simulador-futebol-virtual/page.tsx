@@ -98,111 +98,9 @@ function IconMenu({ className }: IconProps) {
   )
 }
 
-type CarouselItem = {
-  title: string
-  subtitle?: string
-  meta?: string
-}
-
 type PhotoCarouselItem = {
   src: string
   alt: string
-}
-
-function Carousel(props: {
-  id?: string
-  title: string
-  description: string
-  items: CarouselItem[]
-}) {
-  const viewportRef = useRef<HTMLDivElement | null>(null)
-  const [index, setIndex] = useState(0)
-
-  const scrollToIndex = (nextIndex: number) => {
-    const viewport = viewportRef.current
-    if (!viewport) return
-    const children = Array.from(viewport.children) as HTMLElement[]
-    const target = children[nextIndex]
-    if (!target) return
-    target.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
-    setIndex(nextIndex)
-  }
-
-  const canPrev = index > 0
-  const canNext = index < props.items.length - 1
-
-  return (
-    <section
-      id={props.id}
-      className="scroll-mt-24 border-t border-white/10 md:scroll-mt-28"
-    >
-      <div className="mx-auto max-w-6xl px-4 py-12">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold tracking-tight text-white">{props.title}</h2>
-            <p className="max-w-2xl text-sm text-zinc-300">{props.description}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              intent="secondary"
-              aria-label="Anterior"
-              disabled={!canPrev}
-              onClick={() => scrollToIndex(Math.max(0, index - 1))}
-            >
-              ←
-            </Button>
-            <Button
-              type="button"
-              intent="secondary"
-              aria-label="Próximo"
-              disabled={!canNext}
-              onClick={() => scrollToIndex(Math.min(props.items.length - 1, index + 1))}
-            >
-              →
-            </Button>
-          </div>
-        </div>
-
-        <div
-          ref={viewportRef}
-          className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [-webkit-overflow-scrolling:touch]"
-          onScroll={(e) => {
-            const viewport = e.currentTarget
-            const children = Array.from(viewport.children) as HTMLElement[]
-            const viewportLeft = viewport.getBoundingClientRect().left
-            let bestIndex = 0
-            let bestDistance = Number.POSITIVE_INFINITY
-            for (let i = 0; i < children.length; i++) {
-              const left = children[i].getBoundingClientRect().left
-              const distance = Math.abs(left - viewportLeft)
-              if (distance < bestDistance) {
-                bestDistance = distance
-                bestIndex = i
-              }
-            }
-            setIndex(bestIndex)
-          }}
-        >
-          {props.items.map((item) => (
-            <Card
-              key={`${item.title}-${item.meta ?? ""}`}
-              className="w-[86%] shrink-0 snap-start sm:w-[420px]"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <p className="text-lg font-semibold text-white">{item.title}</p>
-                  {item.subtitle ? <p className="text-sm text-zinc-300">{item.subtitle}</p> : null}
-                </div>
-                <div className="h-10 w-10 rounded-xl border border-white/10 bg-white/5" />
-              </div>
-              {item.meta ? <p className="mt-4 text-xs text-zinc-400">{item.meta}</p> : null}
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
 }
 
 function PhotoCarousel(props: {
@@ -447,16 +345,6 @@ export default function SimuladorFutebolVirtualPage() {
     []
   )
 
-  const companies = useMemo<CarouselItem[]>(
-    () => [
-      { title: "UNIUBE", subtitle: "Universidade", meta: "Ação em evento aberto ao público" },
-      { title: "Reebok (Academia)", subtitle: "Fitness & experiência", meta: "Ativação em shopping" },
-      { title: "Shopping Cidade Jardim", subtitle: "Varejo premium", meta: "Evento indoor" },
-      { title: "ABS", subtitle: "Indústria/serviços", meta: "Ativação corporativa" }
-    ],
-    []
-  )
-
   return (
     <div className="relative">
       <style jsx global>{`
@@ -522,18 +410,6 @@ export default function SimuladorFutebolVirtualPage() {
                   }}
                 >
                   Eventos
-                </a>
-              </Button>
-              <Button asChild intent="ghost">
-                <a
-                  href="#clientes"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    window.history.pushState(null, "", "#clientes")
-                    scrollToAnchor("#clientes")
-                  }}
-                >
-                  Clientes
                 </a>
               </Button>
               <Button asChild intent="ghost">
@@ -624,19 +500,6 @@ export default function SimuladorFutebolVirtualPage() {
                 className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
               >
                 Eventos
-              </a>
-              <a
-                href="#clientes"
-                onClick={(e) => {
-                  e.preventDefault()
-                  setMobileNavOpen(false)
-                  window.history.pushState(null, "", "#clientes")
-                  requestAnimationFrame(() => scrollToAnchor("#clientes"))
-                  setTimeout(() => scrollToAnchor("#clientes"), 220)
-                }}
-                className="block rounded-xl px-3 py-2 text-sm text-white hover:bg-white/10"
-              >
-                Clientes
               </a>
               <a
                 href="#orcamento"
@@ -963,13 +826,6 @@ export default function SimuladorFutebolVirtualPage() {
         title="Eventos já realizados"
         description="Alguns registros reais da ativação em eventos e ações."
         items={eventPhotos}
-      />
-
-      <Carousel
-        id="clientes"
-        title="Empresas que já contrataram"
-        description="Clientes que levaram nossa ativação de futebol para eventos, ações de marca e experiências indoor."
-        items={companies}
       />
 
       <section id="orcamento" className="scroll-mt-24 border-t border-white/10 md:scroll-mt-28">
