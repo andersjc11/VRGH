@@ -364,6 +364,44 @@ function IconTrendUp({ className }: IconProps) {
   )
 }
 
+function IconChevronLeft({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M15 18l-6-6 6-6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconChevronRight({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M9 6l6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export default async function HomePage({
   searchParams
 }: {
@@ -378,6 +416,29 @@ export default async function HomePage({
   const whatsappHref = `https://wa.me/5512991568840?text=${encodeURIComponent(
     "Olá! Quero um orçamento para locação de estrutura gamer."
   )}`
+
+  const eventPhotos = [
+    {
+      src: "/IMG-20240326-WA0061.jpg",
+      alt: "Evento com estações de jogo e TVs para convidados"
+    },
+    {
+      src: "/IMG-20240326-WA0073.jpg",
+      alt: "Participantes jogando em cadeiras gamer em evento"
+    },
+    {
+      src: "/20250208_135805.jpg",
+      alt: "Estrutura gamer com volante e múltiplas estações em evento"
+    },
+    {
+      src: "/20250208_135624.jpg",
+      alt: "Setup com PCs e TVs para jogos em evento"
+    },
+    {
+      src: "/20250208_135506.jpg",
+      alt: "Convidados jogando em PCs e consoles durante evento"
+    }
+  ]
 
   const organizationJsonLd = {
     "@context": "https://schema.org",
@@ -507,6 +568,70 @@ export default async function HomePage({
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="eventos" className="border-b border-white/10 scroll-mt-24">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight">Eventos já realizados</h2>
+            <p className="text-zinc-300">Alguns registros reais da nossa estrutura gamer em ação.</p>
+          </div>
+
+          <div className="mt-8">
+            <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {eventPhotos.map((photo, index) => {
+                const slideId = `eventos-foto-${index + 1}`
+                const prevId = `eventos-foto-${index === 0 ? eventPhotos.length : index}`
+                const nextId = `eventos-foto-${index + 2 > eventPhotos.length ? 1 : index + 2}`
+
+                return (
+                  <div
+                    key={photo.src}
+                    id={slideId}
+                    className="w-full shrink-0 snap-start sm:w-[85%] lg:w-[72%]"
+                  >
+                    <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 via-black/20 to-black/40">
+                      <img
+                        src={photo.src}
+                        alt={photo.alt}
+                        className="h-full w-full object-contain"
+                        loading="lazy"
+                      />
+                      <a
+                        aria-label="Foto anterior"
+                        href={`#${prevId}`}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/55 p-2 text-white/90 shadow-lg backdrop-blur transition hover:bg-black/70 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                      >
+                        <IconChevronLeft className="h-5 w-5" />
+                      </a>
+                      <a
+                        aria-label="Próxima foto"
+                        href={`#${nextId}`}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/55 p-2 text-white/90 shadow-lg backdrop-blur transition hover:bg-black/70 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                      >
+                        <IconChevronRight className="h-5 w-5" />
+                      </a>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {eventPhotos.map((photo, index) => {
+                const dotId = `eventos-foto-${index + 1}`
+                return (
+                  <a
+                    key={photo.src}
+                    href={`#${dotId}`}
+                    aria-label={`Ir para foto ${index + 1}`}
+                    className="h-2.5 w-2.5 rounded-full border border-white/15 bg-white/10 transition hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/20"
+                  />
+                )
+              })}
             </div>
           </div>
         </div>
