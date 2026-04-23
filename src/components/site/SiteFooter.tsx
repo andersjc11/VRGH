@@ -33,7 +33,7 @@ export function SiteFooter() {
             <p className="font-semibold text-zinc-200">Contato</p>
             <div className="grid gap-1 text-zinc-300">
               <p>WhatsApp: (12) 99156-8840</p>
-              <p>E-mail: contato@vrgh.com.br</p>
+              <p>E-mail: contato@vrinfinitypro.com.br</p>
             </div>
           </div>
         </div>
