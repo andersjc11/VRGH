@@ -412,6 +412,26 @@ export default async function HomePage({
     {
       src: "/20250208_141404.jpg",
       alt: "Estrutura gamer com PCs e participantes durante evento"
+    },
+    {
+      src: "/20231122_140525.jpg",
+      alt: "Ativação com simulador de corrida e público acompanhando"
+    },
+    {
+      src: "/20241004_113338.jpg",
+      alt: "Arena gamer com iluminação neon em evento"
+    },
+    {
+      src: "/eventocbdu.jpg",
+      alt: "Ativação com realidade virtual em estande durante evento"
+    },
+    {
+      src: "/jubs01.jpg",
+      alt: "Telão e estações de PC em evento de e-sports"
+    },
+    {
+      src: "/jubs02.jpg",
+      alt: "Bancada de PCs e telão gigante em evento de e-sports"
     }
   ]
 
