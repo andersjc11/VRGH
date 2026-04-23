@@ -462,83 +462,104 @@ export default async function HomePage({
           <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-fuchsia-500/15 blur-3xl" />
         </div>
         <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="rounded-3xl border border-white/10 bg-black/25 px-6 py-10 shadow-2xl shadow-black/50 backdrop-blur sm:px-10 md:bg-black/35">
-              <div className="flex flex-wrap justify-center gap-2">
-                {ref ? (
-                  <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_24px_rgba(52,211,153,0.55)]" />
-                    Indicação ativa: {ref}
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/25 px-6 py-10 shadow-2xl shadow-black/50 backdrop-blur sm:px-10 md:bg-black/35">
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+              <div className="absolute -left-24 top-8 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
+              <div className="absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-fuchsia-500/15 blur-3xl" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_55%)] opacity-70" />
+            </div>
+
+            <div className="relative grid gap-10 md:grid-cols-12 md:items-center">
+              <div className="space-y-5 text-center md:col-span-7 md:text-left">
+                <div className="flex flex-wrap justify-center gap-2 md:justify-start">
+                  {ref ? (
+                    <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-sm text-white/90">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_24px_rgba(52,211,153,0.55)]" />
+                      Indicação ativa: {ref}
+                    </p>
+                  ) : null}
+                  <p className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-black/45 px-3 py-1 text-sm text-white/90">
+                    <IconSparkles className="h-4 w-4 text-cyan-200" />
+                    Estrutura gamer completa
                   </p>
-                ) : null}
-                <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
-                  <IconSparkles className="h-4 w-4 text-fuchsia-200" />
-                  Festa + Gamer no seu evento
+                  <p className="inline-flex items-center gap-2 rounded-full border border-fuchsia-300/25 bg-black/45 px-3 py-1 text-sm text-white/90">
+                    <IconCalendarCheck className="h-4 w-4 text-fuchsia-200" />
+                    Valor na hora
+                  </p>
+                  <p className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-black/45 px-3 py-1 text-sm text-white/90">
+                    <IconTag className="h-4 w-4 text-emerald-200" />
+                    Reserva rápida
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/70">
+                    Festa • Empresa • Ativação
+                  </p>
+                  <h1 className="font-[var(--font-gamer)] text-5xl leading-[1.02] tracking-tight text-white drop-shadow-[0_2px_28px_rgba(0,0,0,0.9)] md:text-6xl">
+                    <span className="block">Transforme seu evento</span>
+                    <span className="block">
+                      <span className="bg-gradient-to-r from-cyan-200 via-brand-100 to-fuchsia-200 bg-clip-text text-transparent">
+                        em algo inesquecível
+                      </span>{" "}
+                      🔥
+                    </span>
+                  </h1>
+                </div>
+
+                <p className="text-lg font-semibold text-white/95 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] md:text-xl">
+                  <span className="bg-gradient-to-r from-cyan-200 via-white to-fuchsia-200 bg-clip-text text-transparent">
+                    Estrutura gamer completa
+                  </span>
+                  , fácil e rápida
                 </p>
-                <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
-                  <IconCalendarCheck className="h-4 w-4 text-brand-200" />
-                  Disponibilidade na hora
+                <p className="text-base text-white/85 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] md:text-lg">
+                  Escolha os equipamentos, veja o valor na hora e reserve sua data.
                 </p>
-                <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-sm text-white/90">
-                  <IconTag className="h-4 w-4 text-amber-200" />
-                  Desconto por pacotes
+                <p className="text-sm text-white/80 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)]">
+                  Perfeito para festas, empresas e ativações.
                 </p>
+
+                <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center md:justify-start">
+                  <Button asChild size="lg" className="shadow-xl shadow-cyan-500/25 ring-1 ring-cyan-300/35">
+                    <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    intent="secondary"
+                    size="lg"
+                    className="bg-white/10 ring-1 ring-white/15 hover:bg-white/15"
+                  >
+                    <Link href={equipamentosHref}>Ver equipamentos</Link>
+                  </Button>
+                </div>
               </div>
 
-              <h1 className="mt-7 font-[var(--font-gamer)] text-5xl leading-[1.06] tracking-tight text-white drop-shadow-[0_2px_28px_rgba(0,0,0,0.9)] md:text-6xl md:leading-[1.06]">
-                <span className="block">Seu evento</span>
-                <span className="block">
-                  <span className="bg-gradient-to-r from-white via-brand-100 to-fuchsia-100 bg-clip-text text-transparent">
-                    gamer completo
-                  </span>{" "}
-                  <span className="text-white/95">sem complicação</span>
-                </span>
-              </h1>
-              <p className="mt-3 font-[var(--font-gamer)] text-xl text-white/90 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] md:text-2xl">
-                Orçamento na hora e{" "}
-                <span className="bg-gradient-to-r from-brand-100 to-fuchsia-100 bg-clip-text text-transparent">
-                  pagamento facilitado
-                </span>
-              </p>
-              <p className="mt-5 text-base text-white/85 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] md:text-lg">
-                Monte sua estrutura em poucos passos e veja o valor final na hora. Garanta sua data enquanto ainda há disponibilidade.
-              </p>
-              <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-                <Button
-                  asChild
-                  size="lg"
-                  className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40"
-                >
-                  <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
-                </Button>
-                <Button
-                  asChild
-                  intent="secondary"
-                  size="lg"
-                  className="bg-white/10 ring-1 ring-white/15 hover:bg-white/15"
-                >
-                  <Link href={equipamentosHref}>Ver equipamentos</Link>
-                </Button>
-              </div>
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left">
-                  <p className="text-xs text-white/70">Experiência</p>
-                  <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-white">
-                    <IconGamepad className="h-4 w-4 text-cyan-200" />
+              <div className="grid gap-3 md:col-span-5">
+                <div className="rounded-2xl border border-cyan-300/20 bg-black/30 px-5 py-4 shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60">
+                    Experiência
+                  </p>
+                  <p className="mt-2 flex items-center gap-2 text-base font-semibold text-white">
+                    <IconGamepad className="h-5 w-5 text-cyan-200" />
                     Setup gamer premium
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left">
-                  <p className="text-xs text-white/70">Operação</p>
-                  <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-white">
-                    <IconHeadset className="h-4 w-4 text-brand-200" />
+                <div className="rounded-2xl border border-fuchsia-300/20 bg-black/30 px-5 py-4 shadow-[0_0_0_1px_rgba(217,70,239,0.08),0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60">
+                    Operação
+                  </p>
+                  <p className="mt-2 flex items-center gap-2 text-base font-semibold text-white">
+                    <IconHeadset className="h-5 w-5 text-fuchsia-200" />
                     Suporte no evento
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left">
-                  <p className="text-xs text-white/70">Facilidade</p>
-                  <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-white">
-                    <IconCalendarCheck className="h-4 w-4 text-emerald-200" />
+                <div className="rounded-2xl border border-emerald-300/20 bg-black/30 px-5 py-4 shadow-[0_0_0_1px_rgba(52,211,153,0.08),0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60">
+                    Facilidade
+                  </p>
+                  <p className="mt-2 flex items-center gap-2 text-base font-semibold text-white">
+                    <IconCalendarCheck className="h-5 w-5 text-emerald-200" />
                     Reserva online
                   </p>
                 </div>
