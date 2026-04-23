@@ -456,13 +456,13 @@ export default async function HomePage({
       />
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[url('/hero-gamer.jpg')] bg-cover bg-center opacity-60 md:opacity-45" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/35 to-black/75 md:from-black/55 md:via-black/55 md:to-black/85" />
+          <div className="absolute inset-0 bg-[url('/hero-gamer.jpg')] bg-cover bg-center opacity-80 md:opacity-65" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/20 to-black/55 md:from-black/35 md:via-black/35 md:to-black/70" />
           <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-brand-500/25 blur-3xl" />
           <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-fuchsia-500/15 blur-3xl" />
         </div>
         <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/25 px-6 py-10 shadow-2xl shadow-black/50 backdrop-blur sm:px-10 md:bg-black/35">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/15 px-6 py-10 shadow-2xl shadow-black/50 backdrop-blur sm:px-10 md:bg-black/25">
             <div aria-hidden="true" className="pointer-events-none absolute inset-0">
               <div className="absolute -left-24 top-8 h-72 w-72 rounded-full bg-cyan-400/15 blur-3xl" />
               <div className="absolute -right-20 bottom-0 h-72 w-72 rounded-full bg-fuchsia-500/15 blur-3xl" />
@@ -501,8 +501,7 @@ export default async function HomePage({
                     <span className="block">
                       <span className="bg-gradient-to-r from-cyan-200 via-brand-100 to-fuchsia-200 bg-clip-text text-transparent">
                         em algo inesquecível
-                      </span>{" "}
-                      🔥
+                      </span>
                     </span>
                   </h1>
                 </div>
