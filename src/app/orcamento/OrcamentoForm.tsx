@@ -52,7 +52,7 @@ function SubmitButton() {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" size="lg" className="w-full" disabled={pending}>
-      Enviar solicitação de reserva
+      Enviar solicitação de proposta
     </Button>
   )
 }
@@ -1114,15 +1114,15 @@ export function OrcamentoForm({
       <div className="lg:col-span-1 space-y-4">
         {eventDaysMode ? (
           <Card>
-            <p className="text-sm text-zinc-400">Resumo</p>
+            <p className="text-sm text-zinc-400">Resumo da Solicitação</p>
             <div className="mt-4 space-y-2 text-sm">
               {!isEventReady ? (
                 <p className="text-sm text-zinc-300">
-                  Preencha datas e horários do evento para ver os valores.
+                  Preencha datas e horários do evento para continuar.
                 </p>
               ) : summary.lines.length === 0 ? (
                 <p className="text-sm text-zinc-300">
-                  Selecione os equipamentos para ver o resumo.
+                  Selecione os equipamentos para sua proposta.
                 </p>
               ) : (
                 <>
@@ -1132,43 +1132,13 @@ export function OrcamentoForm({
                         <span className="text-zinc-300">
                           {l.name} × {l.quantity}
                         </span>
-                        <span className="font-semibold">{formatBRLFromCents(l.total_cents)}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-300">Total sem desconto</span>
-                      <span className="font-semibold">
-                        {formatBRLFromCents(summary.total_without_discount_cents)}
-                      </span>
-                    </div>
-                    {summary.bundle_discount_cents > 0 ? (
-                      <div className="flex items-center justify-between">
-                        <span className="text-zinc-300">Desconto combo</span>
-                        <span className="font-semibold text-green-300">
-                          -{formatBRLFromCents(summary.bundle_discount_cents)}
-                        </span>
-                      </div>
-                    ) : null}
-                    {summary.condo_discount_cents > 0 ? (
-                      <div className="flex items-center justify-between">
-                        <span className="text-zinc-300">Desconto condomínio</span>
-                        <span className="font-semibold text-green-300">
-                          -{formatBRLFromCents(summary.condo_discount_cents)}
-                        </span>
-                      </div>
-                    ) : null}
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-300">Desconto total</span>
-                      <span className="font-semibold text-green-300">
-                        -{formatBRLFromCents(summary.discount_cents)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-200">Total</span>
-                    <span className="text-lg font-semibold">{formatBRLFromCents(summary.total_cents)}</span>
+                  <div className="mt-3 border-t border-white/10 pt-3">
+                    <p className="text-zinc-300 italic">
+                      Nossa equipe analisará seu pedido e enviará uma proposta humanizada com os melhores valores e condições para seu evento.
+                    </p>
                   </div>
                 </>
               )}
@@ -1204,7 +1174,7 @@ export function OrcamentoForm({
                     setReserveMode(true)
                   }}
                 >
-                  Continuar para reservar
+                  Continuar para Proposta
                 </Button>
               )
             ) : (
@@ -1220,7 +1190,7 @@ export function OrcamentoForm({
                     router.push(loginHref)
                   }}
                 >
-                  Entrar para reservar
+                  Entrar para Solicitar
                 </Button>
                 <Button
                   type="button"
@@ -1242,8 +1212,8 @@ export function OrcamentoForm({
         ) : null}
 
         <p className="text-xs text-zinc-500">
-          Integração de pagamento está mockada: a escolha fica registrada e o pedido
-          vai para análise/confirmação.
+          Sua solicitação será analisada por nossa equipe, que entrará em contato 
+          para confirmar detalhes e enviar o orçamento formal.
         </p>
       </div>
     </form>

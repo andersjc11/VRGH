@@ -127,7 +127,7 @@ export async function SiteHeader() {
                       href={orcamentoHref}
                       className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
                     >
-                      Orçamento
+                      Solicitar Proposta
                     </Link>
                   </div>
                 </div>
@@ -159,7 +159,7 @@ export async function SiteHeader() {
                 <Link href={comoFuncionaHref}>Como funciona</Link>
               </Button>
               <Button asChild intent="ghost">
-                <Link href={orcamentoHref}>Orçamento</Link>
+                <Link href={orcamentoHref}>Solicitar Proposta</Link>
               </Button>
             </nav>
           ) : null}

@@ -24,7 +24,7 @@ export function SiteFooter() {
                 Equipamentos
               </Link>
               <Link href="/orcamento" className="hover:text-white">
-                Orçamento
+                Solicitar Proposta
               </Link>
             </div>
           </div>

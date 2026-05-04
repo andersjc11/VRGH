@@ -533,15 +533,15 @@ export default async function HomePage({
                   , fácil e rápida
                 </p>
                 <p className="text-base text-white/85 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] md:text-lg">
-                  Escolha os equipamentos, veja o valor na hora e reserve sua data.
+                  Escolha os equipamentos e receba uma proposta personalizada rápida.
                 </p>
                 <p className="text-sm text-white/80 drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)]">
-                  Perfeito para festas, empresas e ativações.
+                  Fale com nossa equipe para um atendimento humanizado.
                 </p>
 
                 <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center md:justify-start">
                   <Button asChild size="lg" className="shadow-xl shadow-cyan-500/25 ring-1 ring-cyan-300/35">
-                    <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
+                    <Link href={`/orcamento${refQuery}`}>Solicitar Proposta</Link>
                   </Button>
                   <Button
                     asChild
@@ -604,7 +604,7 @@ export default async function HomePage({
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold tracking-tight">Equipamentos</h2>
             <p className="text-zinc-300">
-              Escolha os itens que mais combinam com seu evento e monte o seu orçamento.
+              Escolha os itens que mais combinam com seu evento e solicite sua proposta.
             </p>
           </div>
 
@@ -673,7 +673,7 @@ export default async function HomePage({
 
           <div className="mt-10">
             <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
-              <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
+              <Link href={`/orcamento${refQuery}`}>Solicitar Proposta</Link>
             </Button>
           </div>
         </div>
@@ -776,7 +776,7 @@ export default async function HomePage({
               </p>
               <div className="pt-4">
                 <Button asChild intent="secondary">
-                  <Link href={`/orcamento${refQuery}`}>Começar orçamento</Link>
+                  <Link href={`/orcamento${refQuery}`}>Solicitar Proposta</Link>
                 </Button>
               </div>
             </div>
@@ -790,7 +790,7 @@ export default async function HomePage({
                     </span>
                     <div>
                       <p className="text-xs text-zinc-400">Passo 1</p>
-                      <p className="font-semibold">Monte seu orçamento</p>
+                      <p className="font-semibold">Solicite sua proposta</p>
                     </div>
                   </div>
                   <p className="mt-3 text-sm text-zinc-300">
@@ -949,8 +949,8 @@ export default async function HomePage({
                   Pronto para levar a experiência gamer para o seu evento?
                 </h2>
                 <p className="text-zinc-300">
-                  Faça um orçamento automático ou chame no WhatsApp para tirar
-                  dúvidas e receber uma proposta personalizada.
+                  Solicite sua proposta online ou chame no WhatsApp para tirar
+                   dúvidas e receber uma proposta personalizada.
                 </p>
                 <div className="grid gap-2 text-sm text-zinc-200 sm:grid-cols-2">
                   <p className="flex items-center gap-2">
@@ -973,7 +973,7 @@ export default async function HomePage({
               </div>
               <div className="relative flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
-                  <Link href={`/orcamento${refQuery}`}>Fazer orçamento</Link>
+                  <Link href={`/orcamento${refQuery}`}>Solicitar Proposta</Link>
                 </Button>
                 <Button
                   asChild
