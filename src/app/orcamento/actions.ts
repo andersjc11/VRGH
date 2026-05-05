@@ -445,7 +445,7 @@ export async function createReservation(
     .eq("id", user.id)
     .maybeSingle()
   const profile = profileRes.data as any
-  const isSalesTeam = profile?.role === "sales"
+  const isSalesTeam = profile?.role === "sales" || profile?.role === "client"
 
   const isGuest = getString(formData, "is_guest") === "true"
   const guestName = getString(formData, "guest_name")

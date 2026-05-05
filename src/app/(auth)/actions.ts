@@ -114,11 +114,11 @@ export async function signIn(
     redirect("/admin")
   }
 
-  if (role === "sales") {
-    redirect("/vendas")
+  if (role === "sales" || role === "client") {
+    redirect("/orcamento")
   }
 
-  // Se for cliente comum, não deve logar (conforme nova regra de negócio)
+  // Se por algum motivo não tiver role, desloga
   await supabase.auth.signOut()
   return { error: "Acesso restrito à equipe de vendas." }
 }

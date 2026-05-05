@@ -308,7 +308,7 @@ export default async function VendasDashboardPage({
     .maybeSingle()
 
   const profile = profileRes.data as ProfileRow | null
-  if (profile?.role !== "sales" && profile?.role !== "admin") redirect("/")
+  if (profile?.role !== "sales" && profile?.role !== "client" && profile?.role !== "admin") redirect("/")
 
   const reservationsRes = await supabase
     .from("reservations")

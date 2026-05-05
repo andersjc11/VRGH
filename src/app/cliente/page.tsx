@@ -13,8 +13,8 @@ export default async function ClienteRedirectPage() {
     .eq("id", user.id)
     .maybeSingle()
 
-  if (profileRes.data?.role === "sales" || profileRes.data?.role === "admin") {
-    redirect("/vendas")
+  if (profileRes.data?.role === "sales" || profileRes.data?.role === "client" || profileRes.data?.role === "admin") {
+    redirect("/orcamento")
   }
 
   // Se for cliente comum logado por algum motivo, deslogar e mandar pra home

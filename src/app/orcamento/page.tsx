@@ -46,7 +46,7 @@ export default async function OrcamentoPage({
   let customers: any[] = []
   if (user) {
     const profileRes = await supabase.from("profiles").select("role, referral_code").eq("id", user.id).maybeSingle()
-    if (profileRes.data?.role === "sales") {
+    if (profileRes.data?.role === "sales" || profileRes.data?.role === "client") {
       salesProfile = profileRes.data
       // Se for equipe de vendas, carregar lista de clientes para seleção
       const customersRes = await supabase

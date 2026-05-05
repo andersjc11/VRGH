@@ -59,10 +59,10 @@ export async function SiteHeader() {
     ? await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
     : null
   const role = profileRes?.data?.role
-  const isAdmin = role === "admin"
-  const isSales = role === "sales"
+   const isAdmin = role === "admin"
+   const isSales = role === "sales" || role === "client"
 
-  return (
+   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
       <div className="mx-auto max-w-6xl px-4 py-4">
         {user ? (
