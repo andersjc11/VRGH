@@ -51,10 +51,10 @@ type Props = {
   customers?: Array<{ id: string; full_name: string | null; phone: string | null }>
 }
 
-function SubmitButton() {
+function SubmitButton({ disabled }: { disabled?: boolean }) {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" size="lg" className="w-full" disabled={pending}>
+    <Button type="submit" size="lg" className="w-full" disabled={pending || disabled}>
       Enviar solicitação de proposta
     </Button>
   )
@@ -90,7 +90,6 @@ export function OrcamentoForm({
   const [distanceKm, setDistanceKm] = React.useState(10)
   const [paymentPlan, setPaymentPlan] = React.useState<PaymentPlanType>("pix")
   const [qtyById, setQtyById] = React.useState<Record<string, string>>({})
-  const [reserveMode, setReserveMode] = React.useState(false)
   const [eventDaysMode, setEventDaysMode] = React.useState<"" | "single" | "multi">("")
   const [rentalChargeMode, setRentalChargeMode] = React.useState<"hourly" | "daily">("hourly")
   const [eventDate, setEventDate] = React.useState("")
@@ -237,6 +236,15 @@ export function OrcamentoForm({
     return false
   }, [endTime, eventDate, eventDaysMode, eventEndDate, needsEndTime, setupDate, setupTime, singleDurationHours, startTime])
 
+  const isFormValid = React.useMemo(() => {
+    if (!isEventReady) return false
+    if (items.length === 0) return false
+    if (!addressLine1 || !addressNumber || !neighborhood || !city || !stateUf) return false
+    if (isSalesTeam && !thirdPartyUserId && !isGuest) return false
+    if (isSalesTeam && isGuest && (!guestName || !guestPhone)) return false
+    return true
+  }, [isEventReady, items.length, addressLine1, addressNumber, neighborhood, city, stateUf, isSalesTeam, thirdPartyUserId, isGuest, guestName, guestPhone])
+
   const itemsForPricing = React.useMemo(() => (isEventReady ? items : []), [isEventReady, items])
 
   const breakdown = React.useMemo(
@@ -371,10 +379,9 @@ export function OrcamentoForm({
 
   const [state, action] = useFormState(createReservation, {} as CreateReservationState)
 
-  const snapshotSession = React.useCallback((nextReserveMode?: boolean) => {
+  const snapshotSession = React.useCallback(() => {
     const payload: QuoteSessionV1 = {
       v: 1,
-      reserveMode: typeof nextReserveMode === "boolean" ? nextReserveMode : reserveMode,
       condoCode,
       durationHours,
       distanceKm,
@@ -425,7 +432,6 @@ export function OrcamentoForm({
     rentalChargeMode,
     setupDate,
     setupTime,
-    reserveMode,
     startTime,
     stateUf,
     venueName,
@@ -453,7 +459,6 @@ export function OrcamentoForm({
       const parsed = JSON.parse(raw) as QuoteSessionV1
       if (!parsed || parsed.v !== 1) return
 
-      setReserveMode(Boolean(parsed.reserveMode))
       setDurationHours(parsed.durationHours)
       setDistanceKm(parsed.distanceKm)
       setPaymentPlan(parsed.paymentPlan)
@@ -609,14 +614,9 @@ export function OrcamentoForm({
         }
         if (!isAuthenticated) {
           e.preventDefault()
-          setReserveMode(true)
-          snapshotSession(true)
+          snapshotSession()
           router.push(loginHref)
           return
-        }
-        if (!reserveMode) {
-          e.preventDefault()
-          setReserveMode(true)
         }
       }}
       className="mt-8 grid gap-6 lg:grid-cols-3"
@@ -644,7 +644,7 @@ export function OrcamentoForm({
             <Card className="border-brand-500/30 bg-brand-500/5">
               <div className="space-y-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Vendedor: Seleção de Cliente</h2>
+                  <h2 className="text-lg font-semibold text-white">1. Vendedor: Seleção de Cliente</h2>
                   <p className="text-sm text-zinc-400">
                     Identifique o cliente para gerar este orçamento.
                   </p>
@@ -713,7 +713,7 @@ export function OrcamentoForm({
           ) : null}
 
         <Card>
-          <p className="text-sm text-zinc-400">1. Dados do evento</p>
+          <p className="text-sm text-zinc-400">{isSalesTeam ? "2" : "1"}. Dados do evento</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-zinc-200">CEP do evento</label>
@@ -945,41 +945,37 @@ export function OrcamentoForm({
                   </>
                 )}
 
-                {reserveMode ? (
-                  <>
-                    <div className="space-y-2 sm:col-span-2">
-                      <label className="text-sm text-zinc-200">Nome do evento</label>
-                      <Input
-                        name="event_name"
-                        placeholder="Ex: Festa de aniversário"
-                        value={eventName}
-                        onChange={(e) => setEventName(e.target.value)}
-                        required
-                      />
-                    </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm text-zinc-200">Nome do evento</label>
+                  <Input
+                    name="event_name"
+                    placeholder="Ex: Festa de aniversário"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    required
+                  />
+                </div>
 
-                    <div className="space-y-2 sm:col-span-2">
-                      <label className="text-sm text-zinc-200">Local (nome do salão)</label>
-                      <Input
-                        name="venue_name"
-                        placeholder="Ex: Salão de festas"
-                        value={venueName}
-                        onChange={(e) => setVenueName(e.target.value)}
-                      />
-                    </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm text-zinc-200">Local (nome do salão)</label>
+                  <Input
+                    name="venue_name"
+                    placeholder="Ex: Salão de festas"
+                    value={venueName}
+                    onChange={(e) => setVenueName(e.target.value)}
+                  />
+                </div>
 
-                    <div className="space-y-2 sm:col-span-2">
-                      <label className="text-sm text-zinc-200">Observações</label>
-                      <textarea
-                        name="notes"
-                        className="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                        placeholder="Detalhes do evento, restrições de acesso, etc."
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                      />
-                    </div>
-                  </>
-                ) : null}
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm text-zinc-200">Observações</label>
+                  <textarea
+                    name="notes"
+                    className="min-h-24 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    placeholder="Detalhes do evento, restrições de acesso, etc."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
               </>
             ) : (
               <div className="sm:col-span-2">
@@ -990,92 +986,145 @@ export function OrcamentoForm({
         </Card>
         {eventDaysMode ? (
           <>
-            {reserveMode ? (
-              <Card>
-                <p className="text-sm text-zinc-400">2. Período e deslocamento</p>
-                <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                  {eventDaysMode === "single" ? (
-                    <div className="space-y-2 sm:col-span-3">
-                      <label className="text-sm text-zinc-200">Tipo de locação</label>
-                      <div className="flex flex-wrap gap-4">
-                        <label className="flex items-center gap-2 text-sm text-zinc-300">
-                          <input
-                            type="radio"
-                            name="rental_charge_mode_ui"
-                            value="hourly"
-                            checked={rentalChargeMode === "hourly"}
-                            onChange={() => setRentalChargeMode("hourly")}
-                            disabled={pricingProfile === "day_block"}
-                          />
-                          Por hora
-                        </label>
-                        <label className="flex items-center gap-2 text-sm text-zinc-300">
-                          <input
-                            type="radio"
-                            name="rental_charge_mode_ui"
-                            value="daily"
-                            checked={rentalChargeMode === "daily" || pricingProfile === "day_block"}
-                            onChange={() => setRentalChargeMode("daily")}
-                          />
-                          Por diária (8h)
-                        </label>
-                      </div>
-                    </div>
-                  ) : null}
-                  <div className="space-y-2">
-                    <label className="text-sm text-zinc-200">Duração (horas)</label>
-                    <select
-                      value={durationHours}
-                      onChange={(e) => setDurationHours(Number(e.target.value))}
-                      disabled={pricingProfile !== "hourly"}
-                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value={4}>4</option>
-                      <option value={5}>5</option>
-                      <option value={6}>6</option>
-                      <option value={7}>7</option>
-                      <option value={8}>8</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-zinc-200">Distância (km)</label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={distanceKm}
-                      onChange={(e) => setDistanceKm(Number(e.target.value))}
-                      disabled={isDistancePending || !distanceError}
-                    />
-                    <p className="text-xs text-zinc-400">
-                      {isDistancePending
-                        ? "Calculando pelo CEP..."
-                        : distanceError
-                          ? "Não foi possível calcular automaticamente. Informe a distância manualmente."
-                          : "Calculada automaticamente pelo CEP."}
-                    </p>
-                    {distanceError ? (
-                      <p className="text-xs text-red-300">{distanceError}</p>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-zinc-200">Pagamento</label>
-                    <select
-                      value={paymentPlan}
-                      onChange={(e) => setPaymentPlan(e.target.value as PaymentPlanType)}
-                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    >
-                      <option value="pix">PIX</option>
-                      <option value="deposit">Sinal + restante</option>
-                      <option value="installments">Parcelado</option>
-                    </select>
-                  </div>
+            <Card>
+              <p className="text-sm text-zinc-400">{isSalesTeam ? "3" : "2"}. Endereço do evento</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm text-zinc-200">Rua</label>
+                  <Input
+                    placeholder="Ex: Avenida Brasil"
+                    value={addressLine1}
+                    onChange={(e) => setAddressLine1(e.target.value)}
+                    readOnly={lockByCep}
+                  />
                 </div>
-              </Card>
-            ) : null}
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Número</label>
+                  <Input
+                    inputMode="numeric"
+                    placeholder="Ex: 123"
+                    value={addressNumber}
+                    onChange={(e) => setAddressNumber(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm text-zinc-200">Bairro</label>
+                  <Input
+                    placeholder="Ex: Centro"
+                    value={neighborhood}
+                    onChange={(e) => setNeighborhood(e.target.value)}
+                    readOnly={lockByCep}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Complemento</label>
+                  <Input
+                    placeholder="Apto, bloco, referência"
+                    value={addressLine2}
+                    onChange={(e) => setAddressLine2(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm text-zinc-200">Cidade</label>
+                  <Input value={city} onChange={(e) => setCity(e.target.value)} readOnly={lockByCep} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">UF</label>
+                  <Input
+                    maxLength={2}
+                    value={stateUf}
+                    onChange={(e) => setStateUf(e.target.value)}
+                    readOnly={lockByCep}
+                  />
+                </div>
+              </div>
+            </Card>
 
             <Card>
-              <p className="text-sm text-zinc-400">{reserveMode ? "3" : "2"}. Equipamentos (disponíveis)</p>
+              <p className="text-sm text-zinc-400">{isSalesTeam ? "4" : "3"}. Período e deslocamento</p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                {eventDaysMode === "single" ? (
+                  <div className="space-y-2 sm:col-span-3">
+                    <label className="text-sm text-zinc-200">Tipo de locação</label>
+                    <div className="flex flex-wrap gap-4">
+                      <label className="flex items-center gap-2 text-sm text-zinc-300">
+                        <input
+                          type="radio"
+                          name="rental_charge_mode_ui"
+                          value="hourly"
+                          checked={rentalChargeMode === "hourly"}
+                          onChange={() => setRentalChargeMode("hourly")}
+                          disabled={pricingProfile === "day_block"}
+                        />
+                        Por hora
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-zinc-300">
+                        <input
+                          type="radio"
+                          name="rental_charge_mode_ui"
+                          value="daily"
+                          checked={rentalChargeMode === "daily" || pricingProfile === "day_block"}
+                          onChange={() => setRentalChargeMode("daily")}
+                        />
+                        Por diária (8h)
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Duração (horas)</label>
+                  <select
+                    value={durationHours}
+                    onChange={(e) => setDurationHours(Number(e.target.value))}
+                    disabled={pricingProfile !== "hourly"}
+                    className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  >
+                    <option value={4}>4</option>
+                    <option value={5}>5</option>
+                    <option value={6}>6</option>
+                    <option value={7}>7</option>
+                    <option value={8}>8</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Distância (km)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={distanceKm}
+                    onChange={(e) => setDistanceKm(Number(e.target.value))}
+                    disabled={isDistancePending || !distanceError}
+                  />
+                  <p className="text-xs text-zinc-400">
+                    {isDistancePending
+                      ? "Calculando pelo CEP..."
+                      : distanceError
+                        ? "Não foi possível calcular automaticamente. Informe a distância manualmente."
+                        : "Calculada automaticamente pelo CEP."}
+                  </p>
+                  {distanceError ? (
+                    <p className="text-xs text-red-300">{distanceError}</p>
+                  ) : null}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-zinc-200">Pagamento</label>
+                  <select
+                    value={paymentPlan}
+                    onChange={(e) => setPaymentPlan(e.target.value as PaymentPlanType)}
+                    className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  >
+                    <option value="pix">PIX</option>
+                    <option value="deposit">Sinal + restante</option>
+                    <option value="installments">Parcelado</option>
+                  </select>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <p className="text-sm text-zinc-400">{isSalesTeam ? "5" : "4"}. Equipamentos (disponíveis)</p>
               <div className="mt-4 grid gap-4">
                 {!isEventReady ? (
                   <p className="text-sm text-zinc-300">
@@ -1156,63 +1205,6 @@ export function OrcamentoForm({
                 )}
               </div>
             </Card>
-
-            {reserveMode && items.length > 0 ? (
-              <Card>
-                <p className="text-sm text-zinc-400">4. Endereço do evento</p>
-                <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm text-zinc-200">Rua</label>
-                    <Input
-                      placeholder="Ex: Avenida Brasil"
-                      value={addressLine1}
-                      onChange={(e) => setAddressLine1(e.target.value)}
-                      readOnly={lockByCep}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-zinc-200">Número</label>
-                    <Input
-                      inputMode="numeric"
-                      placeholder="Ex: 123"
-                      value={addressNumber}
-                      onChange={(e) => setAddressNumber(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm text-zinc-200">Bairro</label>
-                    <Input
-                      placeholder="Ex: Centro"
-                      value={neighborhood}
-                      onChange={(e) => setNeighborhood(e.target.value)}
-                      readOnly={lockByCep}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-zinc-200">Complemento</label>
-                    <Input
-                      placeholder="Apto, bloco, referência"
-                      value={addressLine2}
-                      onChange={(e) => setAddressLine2(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm text-zinc-200">Cidade</label>
-                    <Input value={city} onChange={(e) => setCity(e.target.value)} readOnly={lockByCep} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm text-zinc-200">UF</label>
-                    <Input
-                      maxLength={2}
-                      value={stateUf}
-                      onChange={(e) => setStateUf(e.target.value)}
-                      readOnly={lockByCep}
-                    />
-                  </div>
-                </div>
-              </Card>
-            ) : null}
           </>
         ) : null}
       </div>
@@ -1306,53 +1298,7 @@ export function OrcamentoForm({
         {eventDaysMode ? (
           <>
             {state.error ? <p className="text-sm text-red-300">{state.error}</p> : null}
-            {isAuthenticated ? (
-              reserveMode ? (
-                <SubmitButton />
-              ) : (
-                <Button
-                  type="button"
-                  size="lg"
-                  className="w-full"
-                  disabled={!isEventReady}
-                  onClick={() => {
-                    setReserveMode(true)
-                  }}
-                >
-                  Continuar para Proposta
-                </Button>
-              )
-            ) : (
-              <div className="space-y-2">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="w-full"
-                  disabled={!isEventReady}
-                  onClick={() => {
-                    setReserveMode(true)
-                    snapshotSession(true)
-                    router.push(loginHref)
-                  }}
-                >
-                  Entrar para Solicitar
-                </Button>
-                <Button
-                  type="button"
-                  size="lg"
-                  intent="secondary"
-                  className="w-full"
-                  disabled={!isEventReady}
-                  onClick={() => {
-                    setReserveMode(true)
-                    snapshotSession(true)
-                    router.push(cadastroHref)
-                  }}
-                >
-                  Criar conta
-                </Button>
-              </div>
-            )}
+            <SubmitButton disabled={!isFormValid && isAuthenticated} />
           </>
         ) : null}
 
