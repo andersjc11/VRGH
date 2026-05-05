@@ -376,8 +376,9 @@ export default async function HomePage({
   const equipamentosHref = ref ? `/?ref=${encodeURIComponent(ref)}#equipamentos` : "/#equipamentos"
   const cadastroHref = ref ? `/cadastro${refQuery}` : "/cadastro"
   const loginHref = ref ? `/login${refQuery}` : "/login"
-  const whatsappHref = `https://wa.me/5512991568840?text=${encodeURIComponent(
-    "Olá! Quero um orçamento para locação de estrutura gamer."
+  const whatsappNumber = "5512992239698"
+  const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+    "Olá! Vi o site da VRInfinity e gostaria de solicitar uma proposta personalizada para meu evento."
   )}`
 
   const eventPhotos = [
@@ -541,7 +542,7 @@ export default async function HomePage({
 
                 <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center md:justify-start">
                   <Button asChild size="lg" className="shadow-xl shadow-cyan-500/25 ring-1 ring-cyan-300/35">
-                    <Link href={`/orcamento${refQuery}`}>Solicitar Proposta</Link>
+                    <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Solicitar Proposta</a>
                   </Button>
                   <Button
                     asChild
@@ -672,10 +673,10 @@ export default async function HomePage({
           </div>
 
           <div className="mt-10">
-            <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
-              <Link href={`/orcamento${refQuery}`}>Solicitar Proposta</Link>
-            </Button>
-          </div>
+              <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
+                <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Solicitar Proposta</a>
+              </Button>
+            </div>
         </div>
       </section>
 
@@ -775,10 +776,10 @@ export default async function HomePage({
                 Um fluxo prático para você contratar com clareza e previsibilidade.
               </p>
               <div className="pt-4">
-                <Button asChild intent="secondary">
-                  <Link href={`/orcamento${refQuery}`}>Solicitar Proposta</Link>
-                </Button>
-              </div>
+                  <Button asChild intent="secondary">
+                    <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Solicitar Proposta</a>
+                  </Button>
+                </div>
             </div>
             <div className="grid gap-4 lg:col-span-2 sm:grid-cols-2">
               <Card className="group relative overflow-hidden transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07]">
@@ -973,7 +974,9 @@ export default async function HomePage({
               </div>
               <div className="relative flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <Button asChild size="lg" className="shadow-xl shadow-brand-500/30 ring-1 ring-brand-300/40">
-                  <Link href={`/orcamento${refQuery}`}>Solicitar Proposta</Link>
+                  <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                    Solicitar Proposta
+                  </a>
                 </Button>
                 <Button
                   asChild
@@ -981,8 +984,8 @@ export default async function HomePage({
                   intent="secondary"
                   className="bg-white/10 ring-1 ring-white/15 hover:bg-white/15"
                 >
-                  <a href={whatsappHref} target="_blank" rel="noreferrer">
-                    Chamar no WhatsApp
+                  <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                    Falar no WhatsApp
                   </a>
                 </Button>
               </div>

@@ -43,11 +43,13 @@ function IconMenu({ className }: { className?: string }) {
 export async function SiteHeader() {
   const ref = cookies().get("vrgh_ref")?.value?.trim()
   const refQuery = ref ? `?ref=${encodeURIComponent(ref)}` : ""
-  const orcamentoHref = ref ? `/orcamento${refQuery}` : "/orcamento"
-  const loginHref = ref ? `/login${refQuery}` : "/login"
-  const cadastroHref = ref ? `/cadastro${refQuery}` : "/cadastro"
-  const equipamentosHref = ref ? `/?ref=${encodeURIComponent(ref)}#equipamentos` : "/#equipamentos"
-  const comoFuncionaHref = ref ? `/?ref=${encodeURIComponent(ref)}#como-funciona` : "/#como-funciona"
+  const whatsappNumber = "5512992239698"
+  const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+    "Olá! Vi o site da VRInfinity e gostaria de solicitar uma proposta personalizada para meu evento."
+  )}`
+
+  const equipamentosHref = "/#equipamentos"
+  const comoFuncionaHref = "/#como-funciona"
 
   const supabase = createSupabaseServerClient()
   const { data } = await supabase.auth.getUser()
@@ -123,12 +125,14 @@ export async function SiteHeader() {
                     >
                       Como funciona
                     </Link>
-                    <Link
-                      href={orcamentoHref}
+                    <a
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="block rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
                     >
                       Solicitar Proposta
-                    </Link>
+                    </a>
                   </div>
                 </div>
               </details>
@@ -138,7 +142,7 @@ export async function SiteHeader() {
                 intent="primary"
                 className="h-9 px-2 text-xs whitespace-nowrap shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40 sm:px-3 sm:text-sm"
               >
-                <Link href={loginHref}>Entrar</Link>
+                <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Solicitar Proposta</a>
               </Button>
             </div>
           </div>
@@ -159,7 +163,7 @@ export async function SiteHeader() {
                 <Link href={comoFuncionaHref}>Como funciona</Link>
               </Button>
               <Button asChild intent="ghost">
-                <Link href={orcamentoHref}>Solicitar Proposta</Link>
+                <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Solicitar Proposta</a>
               </Button>
             </nav>
           ) : null}
@@ -179,14 +183,9 @@ export async function SiteHeader() {
                 </form>
               </>
             ) : (
-              <>
-                <Button asChild intent="ghost">
-                  <Link href={loginHref}>Entrar</Link>
-                </Button>
-                <Button asChild>
-                  <Link href={cadastroHref}>Criar conta</Link>
-                </Button>
-              </>
+              <Button asChild intent="primary">
+                <a href={whatsappHref} target="_blank" rel="noopener noreferrer">Solicitar Proposta</a>
+              </Button>
             )}
           </div>
         </div>
