@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { useFormState, useFormStatus } from "react-dom"
 import { useRouter, useSearchParams } from "next/navigation"
 import type { Equipment, EquipmentPrice, PaymentPlanType, PricingConfig, QuoteItemInput } from "@/lib/domain/types"
@@ -1005,12 +1006,15 @@ export function OrcamentoForm({
                             </p>
                           ) : null}
                           {eq.image_url ? (
-                            <img
-                              src={eq.image_url}
-                              alt={eq.name}
-                              className="mt-3 h-40 sm:h-80 w-full max-w-lg rounded-lg border border-white/10 bg-white/5 object-cover"
-                              loading="lazy"
-                            />
+                            <div className="relative mt-3 h-40 sm:h-80 w-full max-w-lg overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                              <Image
+                                src={eq.image_url}
+                                alt={eq.name}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 1024px) 100vw, 512px"
+                              />
+                            </div>
                           ) : null}
                         </div>
                         <div className="flex items-center gap-2">

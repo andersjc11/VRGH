@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { EventPhotoCarousel } from "@/components/site/EventPhotoCarousel"
 import { Button } from "@/components/ui/Button"
@@ -656,12 +657,13 @@ export default async function HomePage({
                     </div>
                     <p className="mt-3 text-base font-semibold">{eq.name}</p>
                     {eq.image_url ? (
-                      <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/20">
-                        <img
+                      <div className="relative mt-3 h-44 overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                        <Image
                           src={eq.image_url}
                           alt={eq.name}
-                          className="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                          loading="lazy"
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       </div>
                     ) : null}

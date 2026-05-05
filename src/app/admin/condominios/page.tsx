@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -324,7 +325,7 @@ export default async function AdminCondominiosPage({
                   </div>
 
                   <div className="flex flex-col items-center justify-start gap-2">
-                    <img src={qr} alt={`QR Code ${row.name}`} className="h-[180px] w-[180px] rounded bg-white p-2" />
+                    <Image src={qr} alt={`QR Code ${row.name}`} width={180} height={180} className="rounded bg-white p-2" />
                     <p className="text-xs text-zinc-400">{row.code}</p>
                   </div>
                 </div>

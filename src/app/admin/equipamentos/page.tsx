@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { redirect } from "next/navigation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { Card } from "@/components/ui/Card"
@@ -1216,12 +1217,15 @@ export default async function AdminEquipamentosPage({
                         {hasImage ? (
                           <div className="space-y-2 sm:col-span-2">
                             <p className="text-sm text-zinc-200">Prévia da imagem</p>
-                            <img
-                              src={e.image_url}
-                              alt={e.name}
-                              className="h-44 w-full rounded-lg border border-white/10 bg-white/5 object-cover"
-                              loading="lazy"
-                            />
+                            <div className="relative h-44 w-full overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                              <Image
+                                src={e.image_url}
+                                alt={e.name}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 768px) 100vw, 50vw"
+                              />
+                            </div>
                           </div>
                         ) : null}
                         {hasVideo && toVideoEmbedUrl(e.video_url) ? (
