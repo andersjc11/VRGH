@@ -71,9 +71,23 @@ async function updatePedido(formData: FormData) {
   const id = getString(formData, "id")
   if (!id) redirect("/cliente")
 
-  const currentRes = await supabase.from("reservations").select("id,status,user_id").eq("id", id).maybeSingle()
+  const currentRes = await supabase.from("reservations").select("id,status,user_id,payment_terms").eq("id", id).maybeSingle()
   const current = currentRes.data as any
-  if (!current || current.user_id !== user.id) redirect("/cliente")
+  if (!current) redirect("/cliente")
+
+  const profileRes = await supabase.from("profiles").select("role, referral_code").eq("id", user.id).maybeSingle()
+  const myRole = profileRes.data?.role
+  const myReferralCode = profileRes.data?.referral_code
+  const paymentTerms = (current.payment_terms as any) || {}
+  const manualBonusId = typeof paymentTerms.manual_bonus_id === "string" ? paymentTerms.manual_bonus_id : ""
+  const refCode = typeof paymentTerms.ref === "string" ? paymentTerms.ref.trim().toUpperCase() : ""
+
+  const isOwner = current.user_id === user.id
+  const isMyReferral = (refCode && refCode === myReferralCode) || (manualBonusId && manualBonusId === user.id)
+
+  if (myRole !== "admin" && !isOwner && !isMyReferral) {
+    redirect("/cliente")
+  }
 
   const status = String(current.status ?? "")
   if (!statusAllowsEdit(status)) {
@@ -116,14 +130,48 @@ export default async function PedidoDetalhePage({
   const res = await supabase
     .from("reservations")
     .select(
-      "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_number,address_line2,neighborhood,city,state,postal_code,notes,payment_terms,quote_id"
+      "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_number,address_line2,neighborhood,city,state,postal_code,notes,payment_terms,quote_id,user_id,profiles(full_name,cpf,phone,whatsapp,address_line1,neighborhood,city,postal_code)"
     )
     .eq("id", params.id)
-    .eq("user_id", user.id)
     .maybeSingle()
 
   const pedido = res.data as any
   if (!pedido) redirect("/cliente")
+
+  // Se não for admin, verificar se o pedido pertence ao usuário
+  const profileRes = await supabase.from("profiles").select("role, referral_code").eq("id", user.id).maybeSingle()
+  const myRole = profileRes.data?.role
+  const myReferralCode = profileRes.data?.referral_code
+  const isOwner = pedido.user_id === user.id
+  const paymentTerms = (pedido.payment_terms as any) || {}
+  const manualBonusId = typeof paymentTerms.manual_bonus_id === "string" ? paymentTerms.manual_bonus_id : ""
+  const refCode = typeof paymentTerms.ref === "string" ? paymentTerms.ref.trim().toUpperCase() : ""
+
+  const isMyReferral = (refCode && refCode === myReferralCode) || (manualBonusId && manualBonusId === user.id)
+
+  if (myRole !== "admin" && !isOwner && !isMyReferral) {
+    redirect("/cliente")
+  }
+
+  const guestName = typeof paymentTerms.guest_name === "string" ? paymentTerms.guest_name : ""
+  const guestPhone = typeof paymentTerms.guest_phone === "string" ? paymentTerms.guest_phone : ""
+
+  let sellerName = "—"
+  if (manualBonusId) {
+    const sellerRes = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", manualBonusId)
+      .maybeSingle()
+    if (sellerRes.data?.full_name) sellerName = sellerRes.data.full_name
+  } else if (refCode) {
+    const sellerRes = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("referral_code", refCode)
+      .maybeSingle()
+    if (sellerRes.data?.full_name) sellerName = sellerRes.data.full_name
+  }
 
   const viewAll = searchParams?.view === "1"
   const edit = searchParams?.edit === "1"
@@ -211,6 +259,25 @@ export default async function PedidoDetalhePage({
       ) : null}
 
       <div className="mt-8 grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <p className="text-sm text-zinc-400">Contratante (Cliente)</p>
+            <p className="mt-2 font-semibold">
+              {guestName || pedido.profiles?.full_name || "—"}
+            </p>
+            <p className="mt-1 text-sm text-zinc-300">
+              Contato: {guestPhone || pedido.profiles?.whatsapp || pedido.profiles?.phone || "—"}
+            </p>
+          </Card>
+          <Card>
+            <p className="text-sm text-zinc-400">Vendedor Responsável</p>
+            <p className="mt-2 font-semibold">{sellerName}</p>
+            {refCode ? (
+              <p className="mt-1 text-xs text-zinc-400">Código: {refCode}</p>
+            ) : null}
+          </Card>
+        </div>
+
         <Card>
           <p className="text-sm text-zinc-400">Evento</p>
           <p className="mt-2 font-semibold">{pedido.event_name ?? "—"}</p>

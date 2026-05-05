@@ -309,6 +309,29 @@ export default async function AdminPedidoDetalhePage({
   const pedido = res.data as any
   if (!pedido) redirect("/admin/pedidos")
 
+  const paymentTerms = (pedido.payment_terms as any) || {}
+  const guestName = typeof paymentTerms.guest_name === "string" ? paymentTerms.guest_name : ""
+  const guestPhone = typeof paymentTerms.guest_phone === "string" ? paymentTerms.guest_phone : ""
+  const manualBonusId = typeof paymentTerms.manual_bonus_id === "string" ? paymentTerms.manual_bonus_id : ""
+  const refCode = normalizeReferralCode(paymentTerms.ref)
+
+  let sellerName = "—"
+  if (manualBonusId) {
+    const sellerRes = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", manualBonusId)
+      .maybeSingle()
+    if (sellerRes.data?.full_name) sellerName = sellerRes.data.full_name
+  } else if (refCode) {
+    const sellerRes = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("referral_code", refCode)
+      .maybeSingle()
+    if (sellerRes.data?.full_name) sellerName = sellerRes.data.full_name
+  }
+
   const displacementSettingsRes = await supabase
     .from("pricing_settings")
     .select("value_json")
@@ -643,25 +666,40 @@ export default async function AdminPedidoDetalhePage({
       ) : null}
 
       <div className="mt-8 grid gap-4">
-        <Card>
-          <p className="text-sm text-zinc-400">Contratante</p>
-          <p className="mt-2 font-semibold">
-            {pedido.profiles?.full_name ?? pedido.user_id ?? "—"}
-          </p>
-          <p className="mt-1 text-sm text-zinc-300">
-            CPF: {pedido.profiles?.cpf ?? "—"}
-          </p>
-          <p className="mt-1 text-sm text-zinc-300">
-            Contato: {pedido.profiles?.whatsapp ?? pedido.profiles?.phone ?? "—"}
-          </p>
-          <p className="mt-3 text-sm text-zinc-300">
-            {pedido.profiles?.address_line1 ?? "—"}
-            {pedido.profiles?.neighborhood ? ` • ${pedido.profiles.neighborhood}` : ""}
-          </p>
-          <p className="mt-1 text-sm text-zinc-300">
-            {pedido.profiles?.city ?? "—"} • {pedido.profiles?.postal_code ?? "—"}
-          </p>
-        </Card>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <p className="text-sm text-zinc-400">Contratante (Cliente)</p>
+            <p className="mt-2 font-semibold">
+              {guestName || pedido.profiles?.full_name || pedido.user_id || "—"}
+            </p>
+            <p className="mt-1 text-sm text-zinc-300">
+              CPF: {pedido.profiles?.cpf ?? "—"}
+            </p>
+            <p className="mt-1 text-sm text-zinc-300">
+              Contato: {guestPhone || pedido.profiles?.whatsapp || pedido.profiles?.phone || "—"}
+            </p>
+            <p className="mt-3 text-sm text-zinc-300">
+              {pedido.profiles?.address_line1 ?? "—"}
+              {pedido.profiles?.neighborhood ? ` • ${pedido.profiles.neighborhood}` : ""}
+            </p>
+            <p className="mt-1 text-sm text-zinc-300">
+              {pedido.profiles?.city ?? "—"} • {pedido.profiles?.postal_code ?? "—"}
+            </p>
+          </Card>
+          <Card>
+            <p className="text-sm text-zinc-400">Vendedor Responsável</p>
+            <p className="mt-2 font-semibold">{sellerName}</p>
+            {refCode ? (
+              <p className="mt-1 text-xs text-zinc-400">Código: {refCode}</p>
+            ) : null}
+            <div className="mt-4 border-t border-white/5 pt-4">
+              <p className="text-[10px] uppercase tracking-wider text-zinc-500">
+                Identificação interna
+              </p>
+              <p className="text-[10px] text-zinc-600 truncate">{pedido.id}</p>
+            </div>
+          </Card>
+        </div>
         <Card>
           <p className="text-sm text-zinc-400">Evento</p>
           <p className="mt-2 font-semibold">{pedido.event_name ?? "—"}</p>
