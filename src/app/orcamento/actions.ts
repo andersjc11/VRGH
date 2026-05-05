@@ -458,38 +458,39 @@ export async function createReservation(
     const cleanPhone = guestPhone.replace(/\D/g, "")
     const placeholderEmail = `cliente_${cleanPhone}@vrinfinitypro.com.br`
 
-    // 1. Tentar encontrar usuário pelo email placeholder
-    const { data: existingUsers } = await admin.auth.admin.listUsers()
-    let targetUser = existingUsers?.users?.find(u => u.email === placeholderEmail)
+    // 1. Tentar encontrar usuário pelo email
+    const { data: userData, error: fetchError } = await admin.auth.admin.getUserByEmail(placeholderEmail)
+    let targetUser = userData?.user
 
     if (!targetUser) {
       // 2. Criar novo usuário se não existir
       const { data: newUser, error: createError } = await admin.auth.admin.createUser({
         email: placeholderEmail,
-        password: Math.random().toString(36).slice(-12), // Senha aleatória
+        password: Math.random().toString(36).slice(-12),
         email_confirm: true,
         user_metadata: { full_name: guestName }
       })
 
       if (createError) {
-        return { error: `Falha ao cadastrar cliente: ${createError.message}` }
+        return { error: `Falha ao cadastrar cliente (Auth): ${createError.message}` }
       }
       targetUser = newUser.user
     }
 
-    // 3. Atualizar perfil do cliente
+    // 3. Garantir que o perfil existe e está atualizado
+    // Usamos upsert aqui para garantir que o perfil seja criado caso o trigger não tenha funcionado
     const { error: profileError } = await admin
       .from("profiles")
-      .update({
+      .upsert({
+        id: targetUser.id,
         full_name: guestName,
         phone: guestPhone,
         whatsapp: guestPhone,
-        role: "client" // Role padrão para clientes
-      })
-      .eq("id", targetUser.id)
+        role: "client"
+      }, { onConflict: "id" })
 
     if (profileError) {
-      return { error: `Falha ao atualizar perfil do cliente: ${profileError.message}` }
+      return { error: `Falha ao atualizar perfil do cliente (DB): ${profileError.message}` }
     }
 
     effectiveUserId = targetUser.id
@@ -770,7 +771,9 @@ export async function createReservation(
     .select("id")
     .single()
 
-  if (quoteInsert.error) return { error: "Falha ao criar orçamento." }
+  if (quoteInsert.error) {
+    return { error: `Falha ao criar orçamento: ${quoteInsert.error.message}` }
+  }
 
   const quoteId = quoteInsert.data.id as string
 
@@ -803,7 +806,9 @@ export async function createReservation(
   })
 
   const quoteItemsInsert = await supabase.from("quote_items").insert(quoteItemsRows)
-  if (quoteItemsInsert.error) return { error: "Falha ao salvar itens do orçamento." }
+  if (quoteItemsInsert.error) {
+    return { error: `Falha ao salvar itens do orçamento: ${quoteItemsInsert.error.message}` }
+  }
 
   const paymentTerms =
     paymentPlan === "pix"
@@ -846,7 +851,9 @@ export async function createReservation(
     .select("id")
     .single()
 
-  if (reservationInsert.error) return { error: "Falha ao enviar solicitação de reserva." }
+  if (reservationInsert.error) {
+    return { error: `Falha ao enviar solicitação de reserva: ${reservationInsert.error.message}` }
+  }
 
   const reservationId = reservationInsert.data.id as string
   try {
