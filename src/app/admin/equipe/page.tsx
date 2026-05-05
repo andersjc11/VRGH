@@ -213,13 +213,13 @@ export default async function AdminEquipePage({
                         {deleteId === member.id ? (
                           <form action={deleteMember} className="flex justify-end gap-2">
                             <input type="hidden" name="user_id" value={member.id} />
-                            <Button type="submit" intent="primary" className="bg-red-600 hover:bg-red-500 border-red-700" size="sm">Confirmar</Button>
-                            <Button asChild intent="ghost" size="sm">
+                            <Button type="submit" intent="primary" className="bg-red-600 hover:bg-red-500 border-red-700" size="md">Confirmar</Button>
+                            <Button asChild intent="ghost" size="md">
                               <Link href="/admin/equipe">Cancelar</Link>
                             </Button>
                           </form>
                         ) : (
-                          <Button asChild intent="ghost" size="sm">
+                          <Button asChild intent="ghost" size="md">
                             <Link href={`/admin/equipe?delete=${member.id}`}>Excluir</Link>
                           </Button>
                         )}

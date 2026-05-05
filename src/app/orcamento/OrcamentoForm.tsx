@@ -228,7 +228,7 @@ export function OrcamentoForm({
     return false
   }, [endTime, eventDate, eventDaysMode, eventEndDate, needsEndTime, setupDate, setupTime, singleDurationHours, startTime])
 
-  const itemsForPricing = isEventReady ? items : []
+  const itemsForPricing = React.useMemo(() => (isEventReady ? items : []), [isEventReady, items])
 
   const breakdown = React.useMemo(
     () =>
