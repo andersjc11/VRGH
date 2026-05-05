@@ -244,7 +244,7 @@ export default async function AdminClientesPage({
       const profile = profilesById[u.id]
       return { user: u, profile }
     })
-    .filter((x) => x.profile?.role === "client")
+    .filter((x) => x.profile?.role !== "admin" && x.profile?.role !== "sales")
     .sort((a, b) => String(b.profile?.created_at ?? "").localeCompare(String(a.profile?.created_at ?? "")))
 
   const filteredRows = q

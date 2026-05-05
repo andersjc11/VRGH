@@ -445,14 +445,58 @@ export async function createReservation(
     .eq("id", user.id)
     .maybeSingle()
   const profile = profileRes.data as any
-  const isSalesTeam = profile?.role === "client"
+  const isSalesTeam = profile?.role === "sales"
 
   const isGuest = getString(formData, "is_guest") === "true"
   const guestName = getString(formData, "guest_name")
   const guestPhone = getString(formData, "guest_phone")
 
-  const thirdPartyUserId = getString(formData, "third_party_user_id")
-  const effectiveUserId = isSalesTeam && !isGuest && thirdPartyUserId ? thirdPartyUserId : user.id
+  let effectiveUserId = user.id
+
+  if (isSalesTeam && isGuest && guestName && guestPhone) {
+    const admin = createSupabaseAdminClient()
+    const cleanPhone = guestPhone.replace(/\D/g, "")
+    const placeholderEmail = `cliente_${cleanPhone}@vrinfinitypro.com.br`
+
+    // 1. Tentar encontrar usuário pelo email placeholder
+    const { data: existingUsers } = await admin.auth.admin.listUsers()
+    let targetUser = existingUsers?.users?.find(u => u.email === placeholderEmail)
+
+    if (!targetUser) {
+      // 2. Criar novo usuário se não existir
+      const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+        email: placeholderEmail,
+        password: Math.random().toString(36).slice(-12), // Senha aleatória
+        email_confirm: true,
+        user_metadata: { full_name: guestName }
+      })
+
+      if (createError) {
+        return { error: `Falha ao cadastrar cliente: ${createError.message}` }
+      }
+      targetUser = newUser.user
+    }
+
+    // 3. Atualizar perfil do cliente
+    const { error: profileError } = await admin
+      .from("profiles")
+      .update({
+        full_name: guestName,
+        phone: guestPhone,
+        whatsapp: guestPhone,
+        role: "client" // Role padrão para clientes
+      })
+      .eq("id", targetUser.id)
+
+    if (profileError) {
+      return { error: `Falha ao atualizar perfil do cliente: ${profileError.message}` }
+    }
+
+    effectiveUserId = targetUser.id
+  } else if (isSalesTeam && !isGuest) {
+    const thirdPartyUserId = getString(formData, "third_party_user_id")
+    if (thirdPartyUserId) effectiveUserId = thirdPartyUserId
+  }
 
   const refCode = formRef || cookieRef || metaRef || (isSalesTeam ? profile?.referral_code : "")
 

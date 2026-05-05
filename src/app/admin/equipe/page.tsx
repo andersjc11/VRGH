@@ -98,7 +98,7 @@ export default async function AdminEquipePage({
           full_name: fullName,
           phone: phone,
           whatsapp: phone,
-          role: "client"
+          role: "sales"
         })
         .eq("id", authData.user.id)
 
@@ -142,7 +142,7 @@ export default async function AdminEquipePage({
   const profilesRes = await supabase
     .from("profiles")
     .select("id,full_name,phone,created_at")
-    .eq("role", "client")
+    .eq("role", "sales")
     .order("created_at", { ascending: false })
 
   const profileList = profilesRes.data ?? []

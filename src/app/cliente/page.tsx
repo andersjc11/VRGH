@@ -308,6 +308,7 @@ export default async function ClientePage({
     .maybeSingle()
 
   const profile = profileRes.data as ProfileRow | null
+  if (profile?.role !== "sales") redirect("/") // Apenas equipe de vendas acessa esta área
   const clientDataComplete = Boolean(
     profile?.full_name &&
       profile?.cpf &&

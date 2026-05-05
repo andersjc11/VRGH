@@ -58,7 +58,9 @@ export async function SiteHeader() {
   const profileRes = user
     ? await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
     : null
-  const isAdmin = profileRes?.data?.role === "admin"
+  const role = profileRes?.data?.role
+  const isAdmin = role === "admin"
+  const isSales = role === "sales"
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/80 backdrop-blur print:hidden">
@@ -79,8 +81,8 @@ export async function SiteHeader() {
                 className="h-9 px-2 text-xs whitespace-nowrap shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40 sm:px-3 sm:text-sm"
               >
                 <Link href={isAdmin ? "/admin" : "/cliente"}>
-                  <span className="sm:hidden">{isAdmin ? "Painel Admin" : "Área de Vendas"}</span>
-                  <span className="hidden sm:inline">{isAdmin ? "Painel admin" : "Área de vendas"}</span>
+                  <span className="sm:hidden">{isAdmin ? "Painel Admin" : (isSales ? "Área de Vendas" : "Minha Conta")}</span>
+                  <span className="hidden sm:inline">{isAdmin ? "Painel admin" : (isSales ? "Área de vendas" : "Minha conta")}</span>
                 </Link>
               </Button>
               <form action={signOut}>
@@ -174,7 +176,7 @@ export async function SiteHeader() {
               <>
                 <Button asChild intent="secondary">
                   <Link href={isAdmin ? "/admin" : "/cliente"}>
-                    {isAdmin ? "Painel admin" : "Área de vendas"}
+                    {isAdmin ? "Painel admin" : (isSales ? "Área de vendas" : "Minha conta")}
                   </Link>
                 </Button>
                 <form action={signOut}>
