@@ -48,6 +48,7 @@ export async function SiteHeader() {
     "Olá! Vi o site da VRInfinity e gostaria de solicitar uma proposta personalizada para meu evento."
   )}`
 
+  const loginHref = ref ? `/login${refQuery}` : "/login"
   const equipamentosHref = "/#equipamentos"
   const comoFuncionaHref = "/#como-funciona"
 
@@ -78,8 +79,8 @@ export async function SiteHeader() {
                 className="h-9 px-2 text-xs whitespace-nowrap shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40 sm:px-3 sm:text-sm"
               >
                 <Link href={isAdmin ? "/admin" : "/cliente"}>
-                  <span className="sm:hidden">{isAdmin ? "Área do Admin" : "Área do Cliente"}</span>
-                  <span className="hidden sm:inline">{isAdmin ? "Área do admin" : "Área do cliente"}</span>
+                  <span className="sm:hidden">{isAdmin ? "Painel Admin" : "Área de Vendas"}</span>
+                  <span className="hidden sm:inline">{isAdmin ? "Painel admin" : "Área de vendas"}</span>
                 </Link>
               </Button>
               <form action={signOut}>
@@ -173,7 +174,7 @@ export async function SiteHeader() {
               <>
                 <Button asChild intent="secondary">
                   <Link href={isAdmin ? "/admin" : "/cliente"}>
-                    {isAdmin ? "Área do admin" : "Área do cliente"}
+                    {isAdmin ? "Painel admin" : "Área de vendas"}
                   </Link>
                 </Button>
                 <form action={signOut}>

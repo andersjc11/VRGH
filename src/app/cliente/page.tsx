@@ -476,9 +476,9 @@ export default async function ClientePage({
     <div className="mx-auto max-w-6xl px-4 py-12">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Área do cliente</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Área de Vendas</h1>
           <p className="text-zinc-300">
-            Perfil, pedidos e seu programa de indicação com cashback.
+            Gerenciamento de pedidos e indicações de clientes.
           </p>
         </div>
         <Button asChild>
