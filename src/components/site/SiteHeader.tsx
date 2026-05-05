@@ -80,9 +80,9 @@ export async function SiteHeader() {
                 intent="primary"
                 className="h-9 px-2 text-xs whitespace-nowrap shadow-lg shadow-brand-500/25 ring-1 ring-brand-300/40 sm:px-3 sm:text-sm"
               >
-                <Link href={isAdmin ? "/admin" : "/cliente"}>
-                  <span className="sm:hidden">{isAdmin ? "Painel Admin" : (isSales ? "Área de Vendas" : "Minha Conta")}</span>
-                  <span className="hidden sm:inline">{isAdmin ? "Painel admin" : (isSales ? "Área de vendas" : "Minha conta")}</span>
+                <Link href={isAdmin ? "/admin" : (isSales ? "/vendas" : "/")}>
+                  <span className="sm:hidden">{isAdmin ? "Painel Admin" : (isSales ? "Área de Vendas" : "Home")}</span>
+                  <span className="hidden sm:inline">{isAdmin ? "Painel admin" : (isSales ? "Área de vendas" : "Home")}</span>
                 </Link>
               </Button>
               <form action={signOut}>
@@ -175,8 +175,8 @@ export async function SiteHeader() {
             {user ? (
               <>
                 <Button asChild intent="secondary">
-                  <Link href={isAdmin ? "/admin" : "/cliente"}>
-                    {isAdmin ? "Painel admin" : (isSales ? "Área de vendas" : "Minha conta")}
+                  <Link href={isAdmin ? "/admin" : (isSales ? "/vendas" : "/")}>
+                    {isAdmin ? "Painel admin" : (isSales ? "Área de vendas" : "Home")}
                   </Link>
                 </Button>
                 <form action={signOut}>

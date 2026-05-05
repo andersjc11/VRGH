@@ -99,7 +99,7 @@ export async function signIn(
   const userRes = await supabase.auth.getUser()
   const user = userRes.data.user
   if (!user) {
-    redirect("/cliente")
+    redirect("/login")
   }
 
   const profileRes = await supabase
@@ -108,11 +108,19 @@ export async function signIn(
     .eq("id", user.id)
     .maybeSingle()
 
-  if (profileRes.data?.role === "admin") {
+  const role = profileRes.data?.role
+
+  if (role === "admin") {
     redirect("/admin")
   }
 
-  redirect("/cliente")
+  if (role === "sales") {
+    redirect("/vendas")
+  }
+
+  // Se for cliente comum, não deve logar (conforme nova regra de negócio)
+  await supabase.auth.signOut()
+  return { error: "Acesso restrito à equipe de vendas." }
 }
 
 export async function signUp(
