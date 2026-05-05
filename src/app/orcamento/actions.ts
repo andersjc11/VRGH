@@ -459,8 +459,8 @@ export async function createReservation(
     const placeholderEmail = `cliente_${cleanPhone}@vrinfinitypro.com.br`
 
     // 1. Tentar encontrar usuário pelo email
-    const { data: userData, error: fetchError } = await admin.auth.admin.getUserByEmail(placeholderEmail)
-    let targetUser = userData?.user
+    const { data: usersData, error: fetchError } = await admin.auth.admin.listUsers()
+    let targetUser = usersData?.users?.find((u) => u.email === placeholderEmail)
 
     if (!targetUser) {
       // 2. Criar novo usuário se não existir
