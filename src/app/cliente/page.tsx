@@ -82,6 +82,7 @@ type ReservationByRefRow = {
   created_at: string
   event_name: string | null
   total_cents: number
+  payment_terms?: any
 }
 
 function formatDate(iso: string) {
@@ -395,7 +396,7 @@ export default async function ClientePage({
   const reservationsByRefRes = referralCode
     ? await admin
         .from("reservations")
-        .select("id,user_id,status,created_at,event_name,total_cents")
+        .select("id,user_id,status,created_at,event_name,total_cents,payment_terms")
         .contains("payment_terms", { ref: referralCode })
         .order("created_at", { ascending: false })
         .limit(50)
@@ -453,10 +454,13 @@ export default async function ClientePage({
     }),
     ...derivedReservations.map((res) => {
       const referred = referredProfileById[res.user_id]
+      const guestName = res.payment_terms?.guest_name
+      const guestPhone = res.payment_terms?.guest_phone
+      
       return {
         key: `res:${res.id}`,
         referredId: res.user_id,
-        referredName: referred?.full_name ? referred.full_name : `Cliente ${res.user_id.slice(0, 6)}`,
+        referredName: guestName ? `${guestName} (Gue)` : (referred?.full_name ? referred.full_name : `Cliente ${res.user_id.slice(0, 6)}`),
         reservation: { id: res.id, status: res.status, created_at: res.created_at, event_name: res.event_name },
         referralStatus: "pending",
         cashbackCents: Math.floor((res.total_cents ?? 0) * 0.05),

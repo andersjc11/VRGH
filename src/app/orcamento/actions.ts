@@ -447,8 +447,12 @@ export async function createReservation(
   const profile = profileRes.data as any
   const isSalesTeam = profile?.role === "client"
 
+  const isGuest = getString(formData, "is_guest") === "true"
+  const guestName = getString(formData, "guest_name")
+  const guestPhone = getString(formData, "guest_phone")
+
   const thirdPartyUserId = getString(formData, "third_party_user_id")
-  const effectiveUserId = isSalesTeam && thirdPartyUserId ? thirdPartyUserId : user.id
+  const effectiveUserId = isSalesTeam && !isGuest && thirdPartyUserId ? thirdPartyUserId : user.id
 
   const refCode = formRef || cookieRef || metaRef || (isSalesTeam ? profile?.referral_code : "")
 
@@ -765,9 +769,12 @@ export async function createReservation(
         : { max_installments: config.discounts.max_installments }
 
   const paymentTermsWithRef = refCode ? { ...paymentTerms, ref: refCode } : paymentTerms
-  const paymentTermsFinal = formCondoCode
-    ? { ...paymentTermsWithRef, condo: formCondoCode, condo_discount_pct: condoDiscountPct }
+  const paymentTermsWithGuest = isGuest
+    ? { ...paymentTermsWithRef, guest_name: guestName, guest_phone: guestPhone, manual_bonus_id: user.id }
     : paymentTermsWithRef
+  const paymentTermsFinal = formCondoCode
+    ? { ...paymentTermsWithGuest, condo: formCondoCode, condo_discount_pct: condoDiscountPct }
+    : paymentTermsWithGuest
 
   const reservationInsert = await supabase
     .from("reservations")

@@ -120,6 +120,9 @@ export function OrcamentoForm({
   const cepAbortRef = React.useRef<AbortController | null>(null)
 
   const [thirdPartyUserId, setThirdPartyUserId] = React.useState("")
+  const [isGuest, setIsGuest] = React.useState(false)
+  const [guestName, setGuestName] = React.useState("")
+  const [guestPhone, setGuestPhone] = React.useState("")
 
   function normalizeCep(value: string) {
     return value.replace(/\D/g, "").slice(0, 8)
@@ -590,9 +593,14 @@ export function OrcamentoForm({
       ref={formRef}
       action={action}
       onSubmit={(e) => {
-        if (isSalesTeam && !thirdPartyUserId) {
+        if (isSalesTeam && !thirdPartyUserId && !isGuest) {
           e.preventDefault()
-          alert("Por favor, selecione um cliente para gerar o orçamento.")
+          alert("Por favor, selecione um cliente ou preencha os dados do cliente não cadastrado.")
+          return
+        }
+        if (isSalesTeam && isGuest && (!guestName || !guestPhone)) {
+          e.preventDefault()
+          alert("Por favor, preencha o nome e telefone do cliente.")
           return
         }
         if (!isEventReady) {
@@ -617,6 +625,13 @@ export function OrcamentoForm({
       {isSalesTeam && thirdPartyUserId ? (
         <input type="hidden" name="third_party_user_id" value={thirdPartyUserId} />
       ) : null}
+      {isSalesTeam && isGuest ? (
+        <>
+          <input type="hidden" name="is_guest" value="true" />
+          <input type="hidden" name="guest_name" value={guestName} />
+          <input type="hidden" name="guest_phone" value={guestPhone} />
+        </>
+      ) : null}
       <input type="hidden" name="condo_code" value={condoCode ?? ""} />
       <input type="hidden" name="address_line1" value={addressLine1} />
       <input type="hidden" name="address_number" value={addressNumber} />
@@ -626,36 +641,76 @@ export function OrcamentoForm({
       <input type="hidden" name="state" value={stateUf} />
       <div className="lg:col-span-2 space-y-6">
         {isSalesTeam ? (
-          <Card className="border-brand-500/30 bg-brand-500/5">
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold text-white">Vendedor: Seleção de Cliente</h2>
-                <p className="text-sm text-zinc-400">
-                  Selecione o cliente para quem você está gerando este orçamento.
-                </p>
+            <Card className="border-brand-500/30 bg-brand-500/5">
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Vendedor: Seleção de Cliente</h2>
+                  <p className="text-sm text-zinc-400">
+                    Identifique o cliente para gerar este orçamento.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm text-zinc-300">
+                    <input
+                      type="radio"
+                      checked={!isGuest}
+                      onChange={() => setIsGuest(false)}
+                    />
+                    Cliente Cadastrado
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-zinc-300">
+                    <input
+                      type="radio"
+                      checked={isGuest}
+                      onChange={() => setIsGuest(true)}
+                    />
+                    Novo Cliente (WhatsApp)
+                  </label>
+                </div>
+
+                {!isGuest ? (
+                  <div className="space-y-2">
+                    <label className="text-sm text-zinc-200">Selecionar Cliente</label>
+                    <select
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      value={thirdPartyUserId}
+                      onChange={(e) => setThirdPartyUserId(e.target.value)}
+                      required={!isGuest}
+                    >
+                      <option value="">Selecione um cliente...</option>
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.full_name || "Sem nome"} ({c.phone || "Sem telefone"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm text-zinc-200">Nome do Cliente</label>
+                      <Input
+                        placeholder="Nome completo"
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        required={isGuest}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-zinc-200">WhatsApp do Cliente</label>
+                      <Input
+                        placeholder="Ex: 12992239698"
+                        value={guestPhone}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        required={isGuest}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <label className="text-sm text-zinc-200">Cliente</label>
-                <select
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  value={thirdPartyUserId}
-                  onChange={(e) => setThirdPartyUserId(e.target.value)}
-                  required
-                >
-                  <option value="">Selecione um cliente...</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.full_name || "Sem nome"} ({c.phone || "Sem telefone"})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-zinc-500">
-                  Não encontrou o cliente? Cadastre-o primeiro no painel administrativo.
-                </p>
-              </div>
-            </div>
-          </Card>
-        ) : null}
+            </Card>
+          ) : null}
 
         <Card>
           <p className="text-sm text-zinc-400">1. Dados do evento</p>
