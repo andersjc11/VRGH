@@ -47,6 +47,8 @@ type Props = {
   condoCode?: string
   condoDiscountPct?: number
   isAuthenticated: boolean
+  isSalesTeam?: boolean
+  customers?: Array<{ id: string; full_name: string | null; phone: string | null }>
 }
 
 function SubmitButton() {
@@ -65,7 +67,9 @@ export function OrcamentoForm({
   refCode,
   condoCode,
   condoDiscountPct,
-  isAuthenticated
+  isAuthenticated,
+  isSalesTeam,
+  customers = []
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -114,6 +118,8 @@ export function OrcamentoForm({
   const [availabilityError, setAvailabilityError] = React.useState<string | null>(null)
   const [isAvailabilityPending, startAvailabilityTransition] = React.useTransition()
   const cepAbortRef = React.useRef<AbortController | null>(null)
+
+  const [thirdPartyUserId, setThirdPartyUserId] = React.useState("")
 
   function normalizeCep(value: string) {
     return value.replace(/\D/g, "").slice(0, 8)
@@ -584,6 +590,11 @@ export function OrcamentoForm({
       ref={formRef}
       action={action}
       onSubmit={(e) => {
+        if (isSalesTeam && !thirdPartyUserId) {
+          e.preventDefault()
+          alert("Por favor, selecione um cliente para gerar o orçamento.")
+          return
+        }
         if (!isEventReady) {
           e.preventDefault()
           return
@@ -603,6 +614,9 @@ export function OrcamentoForm({
       className="mt-8 grid gap-6 lg:grid-cols-3"
     >
       <input type="hidden" name="ref" value={refCode ?? ""} />
+      {isSalesTeam && thirdPartyUserId ? (
+        <input type="hidden" name="third_party_user_id" value={thirdPartyUserId} />
+      ) : null}
       <input type="hidden" name="condo_code" value={condoCode ?? ""} />
       <input type="hidden" name="address_line1" value={addressLine1} />
       <input type="hidden" name="address_number" value={addressNumber} />
@@ -611,6 +625,38 @@ export function OrcamentoForm({
       <input type="hidden" name="city" value={city} />
       <input type="hidden" name="state" value={stateUf} />
       <div className="lg:col-span-2 space-y-6">
+        {isSalesTeam ? (
+          <Card className="border-brand-500/30 bg-brand-500/5">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Vendedor: Seleção de Cliente</h2>
+                <p className="text-sm text-zinc-400">
+                  Selecione o cliente para quem você está gerando este orçamento.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-200">Cliente</label>
+                <select
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  value={thirdPartyUserId}
+                  onChange={(e) => setThirdPartyUserId(e.target.value)}
+                  required
+                >
+                  <option value="">Selecione um cliente...</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.full_name || "Sem nome"} ({c.phone || "Sem telefone"})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-zinc-500">
+                  Não encontrou o cliente? Cadastre-o primeiro no painel administrativo.
+                </p>
+              </div>
+            </div>
+          </Card>
+        ) : null}
+
         <Card>
           <p className="text-sm text-zinc-400">1. Dados do evento</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">

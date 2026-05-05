@@ -437,21 +437,30 @@ export async function createReservation(
   }
   const cookieRef = cookies().get("vrgh_ref")?.value?.trim()
   const metaRef = typeof (user as any)?.user_metadata?.ref === "string" ? (user as any).user_metadata.ref.trim() : ""
-  const refCode = formRef || cookieRef || metaRef
+  
+  // Se for equipe de vendas, usar o código do próprio vendedor se nenhum outro foi passado
+  const profileRes = await supabase
+    .from("profiles")
+    .select("full_name,cpf,address_line1,address_number,neighborhood,city,postal_code,whatsapp,phone,referred_by,role,referral_code")
+    .eq("id", user.id)
+    .maybeSingle()
+  const profile = profileRes.data as any
+  const isSalesTeam = profile?.role === "client"
+
+  const thirdPartyUserId = getString(formData, "third_party_user_id")
+  const effectiveUserId = isSalesTeam && thirdPartyUserId ? thirdPartyUserId : user.id
+
+  const refCode = formRef || cookieRef || metaRef || (isSalesTeam ? profile?.referral_code : "")
+
   if (refCode) {
-    const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
-    if (applyRes.error) {
-      return { error: `Falha ao aplicar indicação: ${applyRes.error.message}` }
+    if (effectiveUserId === user.id) {
+      const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
+      if (applyRes.error) {
+        return { error: `Falha ao aplicar indicação: ${applyRes.error.message}` }
+      }
     }
   }
 
-  const profileRes = await supabase
-    .from("profiles")
-    .select("full_name,cpf,address_line1,address_number,neighborhood,city,postal_code,whatsapp,phone,referred_by")
-    .eq("id", user.id)
-    .maybeSingle()
-
-  const profile = profileRes.data as any
   const missingClientData =
     Boolean(profileRes.error) ||
     !profile?.full_name ||
@@ -696,7 +705,7 @@ export async function createReservation(
   const quoteInsert = await supabase
     .from("quotes")
     .insert({
-      user_id: user.id,
+      user_id: effectiveUserId,
       event_date: eventDate,
       is_multi_day: isMultiDay,
       event_end_date: isMultiDay ? eventEndDate : null,
@@ -763,7 +772,7 @@ export async function createReservation(
   const reservationInsert = await supabase
     .from("reservations")
     .insert({
-      user_id: user.id,
+      user_id: effectiveUserId,
       quote_id: quoteId,
       status: "submitted",
       event_name: eventName,
