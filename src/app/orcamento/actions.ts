@@ -813,9 +813,12 @@ export async function createReservation(
         : { max_installments: config.discounts.max_installments }
 
   const paymentTermsWithRef = refCode ? { ...paymentTerms, ref: refCode } : paymentTerms
-  const paymentTermsWithGuest = isGuest
-    ? { ...paymentTermsWithRef, guest_name: guestName, guest_phone: guestPhone, manual_bonus_id: user.id }
+  const paymentTermsWithSeller = isSalesTeam
+    ? { ...paymentTermsWithRef, manual_bonus_id: user.id }
     : paymentTermsWithRef
+  const paymentTermsWithGuest = isGuest
+    ? { ...paymentTermsWithSeller, guest_name: guestName, guest_phone: guestPhone }
+    : paymentTermsWithSeller
   const paymentTermsFinal = formCondoCode
     ? { ...paymentTermsWithGuest, condo: formCondoCode, condo_discount_pct: condoDiscountPct }
     : paymentTermsWithGuest
@@ -888,23 +891,33 @@ export async function createReservation(
   }
 
   try {
-    const profileRow = profileRes.data as any
-    const referredById = typeof profileRow?.referred_by === "string" ? profileRow.referred_by : ""
-
     const admin = createSupabaseAdminClient()
-    const refCodeUpper = typeof refCode === "string" ? refCode.trim().toUpperCase() : ""
+    let referrerId = ""
 
-    let referrerId = referredById
-    if (!referrerId && refCodeUpper) {
-      const referrerRes = await admin.from("profiles").select("id").eq("referral_code", refCodeUpper).maybeSingle()
-      referrerId = typeof (referrerRes.data as any)?.id === "string" ? (referrerRes.data as any).id : ""
+    if (isSalesTeam && effectiveUserId !== user.id) {
+      // Se for equipe de vendas atendendo um terceiro, o vendedor é o referrer
+      referrerId = user.id
+    } else {
+      // Caso contrário, tenta descobrir o referrer pelo perfil do cliente ou código de indicação
+      const profileRow = profileRes.data as any
+      referrerId = typeof profileRow?.referred_by === "string" ? profileRow.referred_by : ""
+
+      if (!referrerId && refCode) {
+        const refCodeUpper = refCode.trim().toUpperCase()
+        const referrerRes = await admin
+          .from("profiles")
+          .select("id")
+          .eq("referral_code", refCodeUpper)
+          .maybeSingle()
+        referrerId = typeof (referrerRes.data as any)?.id === "string" ? (referrerRes.data as any).id : ""
+      }
     }
 
-    if (referrerId && referrerId !== user.id) {
+    if (referrerId && referrerId !== effectiveUserId) {
       await admin.from("referrals").upsert(
         {
           referrer_id: referrerId,
-          referred_id: user.id,
+          referred_id: effectiveUserId,
           condominium_id: null,
           reservation_id: reservationId,
           cashback_cents: Math.floor(breakdown.total_cents * 0.05),
@@ -913,7 +926,9 @@ export async function createReservation(
         { onConflict: "referred_id,reservation_id" }
       )
     }
-  } catch {}
+  } catch (err) {
+    console.error("[createReservation] Referral tracking failed:", err)
+  }
 
   if (missingClientData) {
     redirect(`/cliente/dados?next=${encodeURIComponent(`/cliente/pedidos/${reservationId}`)}`)

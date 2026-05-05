@@ -98,6 +98,14 @@ async function awardCashbackForReservation(reservationId: string) {
   if (referredProfileRes.error) throw new Error(referredProfileRes.error.message)
 
   let referrerId = typeof referredProfileRes.data?.referred_by === "string" ? referredProfileRes.data.referred_by : ""
+  
+  if (!referrerId) {
+    const manualBonusId = typeof paymentTerms?.manual_bonus_id === "string" ? paymentTerms.manual_bonus_id : ""
+    if (manualBonusId) {
+      referrerId = manualBonusId
+    }
+  }
+
   if (!referrerId) {
     const refFromPaymentTerms = normalizeReferralCode(paymentTerms?.ref)
     if (refFromPaymentTerms) {

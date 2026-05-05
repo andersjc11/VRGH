@@ -394,7 +394,20 @@ export default async function VendasDashboardPage({
         .limit(50)
     : { data: [], error: null as any }
 
-  const reservationsByRef = (reservationsByRefRes.data ?? []) as ReservationByRefRow[]
+  const reservationsByManualBonusRes = await admin
+    .from("reservations")
+    .select("id,user_id,status,created_at,event_name,total_cents,payment_terms")
+    .contains("payment_terms", { manual_bonus_id: user.id })
+    .order("created_at", { ascending: false })
+    .limit(50)
+
+  const reservationsByRef = [
+    ...(reservationsByRefRes.data ?? []),
+    ...(reservationsByManualBonusRes.data ?? [])
+  ] as ReservationByRefRow[]
+
+  // Remover duplicados (caso uma reserva tenha tanto o ref quanto o manual_bonus_id)
+  const uniqueReservationsByRef = Array.from(new Map(reservationsByRef.map(r => [r.id, r])).values())
 
   const reservationIdsWithReferral = new Set(
     referrals
@@ -402,7 +415,7 @@ export default async function VendasDashboardPage({
       .filter((id): id is string => typeof id === "string" && Boolean(id))
   )
 
-  const derivedReservations = reservationsByRef
+  const derivedReservations = uniqueReservationsByRef
     .filter((r) => r.user_id !== user.id)
     .filter((r) => !reservationIdsWithReferral.has(r.id))
 
