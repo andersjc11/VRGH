@@ -1238,14 +1238,53 @@ export function OrcamentoForm({
                         <span className="text-zinc-300">
                           {l.name} × {l.quantity}
                         </span>
+                        {isSalesTeam && (
+                          <span className="font-semibold text-zinc-200">
+                            {formatBRLFromCents(l.total_cents)}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 border-t border-white/10 pt-3">
-                    <p className="text-zinc-300 italic">
-                      Nossa equipe analisará seu pedido e enviará uma proposta humanizada com os melhores valores e condições para seu evento.
-                    </p>
-                  </div>
+
+                  {isSalesTeam ? (
+                    <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-zinc-300">Total sem desconto</span>
+                        <span className="font-semibold text-zinc-200">
+                          {formatBRLFromCents(summary.total_without_discount_cents)}
+                        </span>
+                      </div>
+                      {summary.bundle_discount_cents > 0 ? (
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-300">Desconto combo</span>
+                          <span className="font-semibold text-green-300">
+                            -{formatBRLFromCents(summary.bundle_discount_cents)}
+                          </span>
+                        </div>
+                      ) : null}
+                      {summary.condo_discount_cents > 0 ? (
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-300">Desconto condomínio</span>
+                          <span className="font-semibold text-green-300">
+                            -{formatBRLFromCents(summary.condo_discount_cents)}
+                          </span>
+                        </div>
+                      ) : null}
+                      <div className="flex items-center justify-between">
+                        <span className="text-zinc-200 font-semibold text-base">Total</span>
+                        <span className="text-lg font-semibold text-cyan-200">
+                          {formatBRLFromCents(summary.total_cents)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 border-t border-white/10 pt-3">
+                      <p className="text-zinc-300 italic">
+                        Nossa equipe analisará seu pedido e enviará uma proposta humanizada com os melhores valores e condições para seu evento.
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
