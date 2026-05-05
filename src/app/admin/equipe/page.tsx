@@ -66,19 +66,16 @@ export default async function AdminEquipePage({
       await requireAdmin()
       const fullName = getString(formData, "full_name")
       const phone = getString(formData, "phone")
+      const email = getString(formData, "email")
       const password = getString(formData, "password")
 
-      if (!fullName || !phone || !password) {
+      if (!fullName || !phone || !email || !password) {
         redirect("/admin/equipe?error=Preencha todos os campos.")
       }
 
       if (password.length < 6) {
         redirect("/admin/equipe?error=A senha deve ter pelo menos 6 caracteres.")
       }
-
-      // No Supabase, Auth exige um email. Usaremos o telefone como parte do email fictício.
-      const cleanPhone = phone.replace(/\D/g, "")
-      const email = `${cleanPhone}@vrinfinitypro.com.br`
 
       const admin = createSupabaseAdminClient()
       
@@ -139,13 +136,22 @@ export default async function AdminEquipePage({
 
   // Listar membros da equipe (role = client)
   const admin = createSupabaseAdminClient()
+  const usersRes = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  const allUsers = usersRes.data.users ?? []
+
   const profilesRes = await supabase
     .from("profiles")
     .select("id,full_name,phone,created_at")
     .eq("role", "client")
     .order("created_at", { ascending: false })
 
-  const equipe = profilesRes.data ?? []
+  const profileList = profilesRes.data ?? []
+  const userById = Object.fromEntries(allUsers.map(u => [u.id, u]))
+
+  const equipe = profileList.map(p => ({
+    ...p,
+    email: userById[p.id]?.email ?? "—"
+  }))
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -179,6 +185,10 @@ export default async function AdminEquipePage({
               <Input name="phone" placeholder="Ex: 12992239698" required />
             </div>
             <div className="space-y-2">
+              <label className="text-sm text-zinc-200">E-mail de Acesso</label>
+              <Input name="email" type="email" placeholder="Ex: joao@email.com" required />
+            </div>
+            <div className="space-y-2">
               <label className="text-sm text-zinc-200">Senha de Acesso</label>
               <Input name="password" type="password" placeholder="Mínimo 6 caracteres" required />
             </div>
@@ -193,6 +203,7 @@ export default async function AdminEquipePage({
               <thead className="bg-white/5 text-zinc-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Nome</th>
+                  <th className="px-4 py-3 font-medium">E-mail</th>
                   <th className="px-4 py-3 font-medium">Telefone</th>
                   <th className="px-4 py-3 font-medium text-right">Ações</th>
                 </tr>
@@ -200,7 +211,7 @@ export default async function AdminEquipePage({
               <tbody className="divide-y divide-white/10">
                 {equipe.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-4 py-8 text-center text-zinc-500">
+                    <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
                       Nenhum membro cadastrado.
                     </td>
                   </tr>
@@ -208,6 +219,7 @@ export default async function AdminEquipePage({
                   equipe.map((member) => (
                     <tr key={member.id} className="hover:bg-white/[0.02]">
                       <td className="px-4 py-3 font-medium text-white">{member.full_name}</td>
+                      <td className="px-4 py-3 text-zinc-300">{member.email}</td>
                       <td className="px-4 py-3 text-zinc-300">{member.phone}</td>
                       <td className="px-4 py-3 text-right">
                         {deleteId === member.id ? (
