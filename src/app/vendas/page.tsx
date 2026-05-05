@@ -507,7 +507,7 @@ export default async function VendasDashboardPage({
               </p>
             </div>
             <div className="mt-2">
-              <Button asChild intent="secondary" size="sm">
+              <Button asChild intent="secondary" size="md">
                 <Link href="/cliente/dados">Editar Dados</Link>
               </Button>
             </div>
@@ -611,7 +611,7 @@ export default async function VendasDashboardPage({
                   </div>
                   <div className="flex items-center gap-4">
                     <p className="font-bold text-brand-200">{formatBRLFromCents(r.total_cents)}</p>
-                    <Button asChild intent="secondary" size="sm">
+                    <Button asChild intent="secondary" size="md">
                       <Link href={`/cliente/pedidos/${r.id}`}>Ver Detalhes</Link>
                     </Button>
                   </div>
