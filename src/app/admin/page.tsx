@@ -38,6 +38,16 @@ export default async function AdminHomePage() {
           </div>
         </Card>
         <Card>
+          <p className="text-sm text-zinc-400">Equipe</p>
+          <p className="mt-2 font-semibold">Vendas</p>
+          <p className="mt-1 text-sm text-zinc-300">Cadastrar vendedores, gerenciar acessos e senhas.</p>
+          <div className="mt-4">
+            <Button asChild intent="secondary">
+              <Link href="/admin/equipe">Abrir</Link>
+            </Button>
+          </div>
+        </Card>
+        <Card>
           <p className="text-sm text-zinc-400">Cadastros</p>
           <p className="mt-2 font-semibold">Equipamentos</p>
           <p className="mt-1 text-sm text-zinc-300">
