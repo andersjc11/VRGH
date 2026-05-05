@@ -1222,6 +1222,7 @@ export default async function AdminEquipamentosPage({
                                 src={e.image_url}
                                 alt={e.name}
                                 fill
+                                unoptimized
                                 className="object-cover"
                                 sizes="(max-width: 768px) 100vw, 50vw"
                               />

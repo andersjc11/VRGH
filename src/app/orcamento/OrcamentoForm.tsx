@@ -1112,6 +1112,7 @@ export function OrcamentoForm({
                                 src={eq.image_url}
                                 alt={eq.name}
                                 fill
+                                unoptimized
                                 className="object-cover"
                                 sizes="(max-width: 1024px) 100vw, 512px"
                               />
