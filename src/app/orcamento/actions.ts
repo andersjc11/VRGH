@@ -773,7 +773,9 @@ export async function createReservation(
     config
   })
 
-  const quoteInsert = await supabase
+  const writeClient = isSalesTeam && effectiveUserId !== user.id ? createSupabaseAdminClient() : supabase
+
+  const quoteInsert = await writeClient
     .from("quotes")
     .insert({
       user_id: effectiveUserId,
@@ -827,7 +829,7 @@ export async function createReservation(
     }
   })
 
-  const quoteItemsInsert = await supabase.from("quote_items").insert(quoteItemsRows)
+  const quoteItemsInsert = await writeClient.from("quote_items").insert(quoteItemsRows)
   if (quoteItemsInsert.error) {
     return { error: `Falha ao salvar itens do orçamento: ${quoteItemsInsert.error.message}` }
   }
@@ -850,7 +852,7 @@ export async function createReservation(
     ? { ...paymentTermsWithGuest, condo: formCondoCode, condo_discount_pct: condoDiscountPct }
     : paymentTermsWithGuest
 
-  const reservationInsert = await supabase
+  const reservationInsert = await writeClient
     .from("reservations")
     .insert({
       user_id: effectiveUserId,
