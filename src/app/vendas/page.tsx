@@ -51,38 +51,6 @@ type CashbackWithdrawalRow = {
   paid_at: string | null
 }
 
-type ReferralRow = {
-  id: string
-  reservation_id: string | null
-  referred_id: string
-  referrer_id: string
-  status: string | null
-  cashback_cents: number | null
-}
-
-type ReferredProfileRow = {
-  id: string
-  full_name: string | null
-}
-
-type ReferralReservationRow = {
-  id: string
-  status: string
-  created_at: string
-  event_name: string | null
-  total_cents: number
-}
-
-type ReservationByRefRow = {
-  id: string
-  user_id: string
-  status: string
-  created_at: string
-  event_name: string | null
-  total_cents: number
-  payment_terms?: any
-}
-
 function formatDate(iso: string) {
   const date = new Date(iso)
   return date.toLocaleDateString("pt-BR")
@@ -136,13 +104,6 @@ function paymentPlanLabel(plan: string | null | undefined) {
     default:
       return plan ?? "—"
   }
-}
-
-function referralStatusLabel(status: string | null | undefined) {
-  if (status === "approved") return "Aprovada"
-  if (status === "pending") return "Pendente"
-  if (status === "cancelled") return "Cancelada"
-  return status ?? "—"
 }
 
 const CASHBACK_RECEIPTS_BUCKET = "cashback-receipts"
@@ -290,15 +251,6 @@ export default async function VendasDashboardPage({
   const profile = profileRes.data as ProfileRow | null
   if (profile?.role !== "sales" && profile?.role !== "client" && profile?.role !== "admin") redirect("/")
 
-  const reservationsRes = await supabase
-    .from("reservations")
-    .select("id,status,created_at,total_cents,payment_plan,event_name")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(10)
-
-  const reservations = (reservationsRes.data ?? []) as ReservationRow[]
-
   const cashbackRes = await supabase
     .from("cashback_transactions")
     .select("id,amount_cents,status,created_at,source_referral_id")
@@ -327,130 +279,27 @@ export default async function VendasDashboardPage({
     .reduce((acc, w) => acc + (typeof w.amount_cents === "number" ? w.amount_cents : 0), 0)
   const cashbackAvailableToWithdrawCents = Math.max(0, cashbackApprovedCents - withdrawalRequestedCents - withdrawalPaidCents)
 
-  const referralCode = profile?.referral_code ?? ""
-
   const admin = createSupabaseAdminClient()
-  const referralsRes = await admin
-    .from("referrals")
-    .select("id,reservation_id,referred_id,referrer_id,status,cashback_cents")
-    .eq("referrer_id", user.id)
-    .limit(50)
-
-  const referrals = (referralsRes.data ?? []) as ReferralRow[]
-  const referredIds = Array.from(new Set(referrals.map((r) => r.referred_id).filter(Boolean))) as string[]
-  const referredProfilesRes = referredIds.length
-    ? await admin.from("profiles").select("id,full_name").in("id", referredIds)
-    : { data: [], error: null as any }
-
-  const referredProfileById = Object.fromEntries((referredProfilesRes.data ?? []).map((p: any) => [p.id, p])) as Record<
-    string,
-    ReferredProfileRow
-  >
-
-  const reservationIds = Array.from(new Set(referrals.map((r) => r.reservation_id).filter(Boolean))) as string[]
-  const referralReservationsRes = reservationIds.length
-    ? await admin.from("reservations").select("id,status,created_at,event_name,total_cents").in("id", reservationIds)
-    : { data: [], error: null as any }
-
-  const reservationById = Object.fromEntries((referralReservationsRes.data ?? []).map((r: any) => [r.id, r])) as Record<
-    string,
-    ReferralReservationRow
-  >
-
-  const cashbackByReferralId = Object.fromEntries(
-    cashbackTxs.filter((t) => t.source_referral_id).map((t) => [t.source_referral_id as string, t])
-  ) as Record<string, CashbackTxRow>
-
-  const reservationsByRefRes = referralCode
-    ? await admin
-        .from("reservations")
-        .select("id,user_id,status,created_at,event_name,total_cents,payment_terms")
-        .contains("payment_terms", { ref: referralCode })
-        .order("created_at", { ascending: false })
-        .limit(50)
-    : { data: [], error: null as any }
-
-  const reservationsByManualBonusRes = await admin
+  const pendingReservationsRes = await admin
     .from("reservations")
-    .select("id,user_id,status,created_at,event_name,total_cents,payment_terms")
+    .select("total_cents,status")
+    .contains("payment_terms", { manual_bonus_id: user.id })
+    .in("status", ["submitted", "in_review"])
+    .limit(1000)
+
+  const cashbackPendingCents = (pendingReservationsRes.data ?? []).reduce((acc: number, r: any) => {
+    const total = typeof r?.total_cents === "number" ? r.total_cents : 0
+    return acc + Math.floor(total * 0.05)
+  }, 0)
+
+  const reservationsRes = await admin
+    .from("reservations")
+    .select("id,status,created_at,total_cents,payment_plan,event_name")
     .contains("payment_terms", { manual_bonus_id: user.id })
     .order("created_at", { ascending: false })
-    .limit(50)
+    .limit(10)
 
-  const reservationsByRef = [
-    ...(reservationsByRefRes.data ?? []),
-    ...(reservationsByManualBonusRes.data ?? [])
-  ] as ReservationByRefRow[]
-
-  // Remover duplicados (caso uma reserva tenha tanto o ref quanto o manual_bonus_id)
-  const uniqueReservationsByRef = Array.from(new Map(reservationsByRef.map(r => [r.id, r])).values())
-
-  const reservationIdsWithReferral = new Set(
-    referrals
-      .map((r) => r.reservation_id)
-      .filter((id): id is string => typeof id === "string" && Boolean(id))
-  )
-
-  const derivedReservations = uniqueReservationsByRef
-    .filter((r) => r.user_id !== user.id)
-    .filter((r) => !reservationIdsWithReferral.has(r.id))
-
-  const missingProfileIds = Array.from(
-    new Set(derivedReservations.map((r) => r.user_id).filter((id) => id && !referredProfileById[id]))
-  )
-
-  const missingProfilesRes = missingProfileIds.length
-    ? await admin.from("profiles").select("id,full_name").in("id", missingProfileIds)
-    : { data: [], error: null as any }
-
-  for (const p of missingProfilesRes.data ?? []) {
-    if (p?.id) referredProfileById[p.id] = p
-  }
-
-  const referralsSorted = [...referrals].sort((a, b) => {
-    const aCreated = a.reservation_id ? reservationById[a.reservation_id]?.created_at : ""
-    const bCreated = b.reservation_id ? reservationById[b.reservation_id]?.created_at : ""
-    return String(bCreated).localeCompare(String(aCreated))
-  })
-
-  const indications = [
-    ...referralsSorted.map((r) => {
-      const reservation = r.reservation_id ? reservationById[r.reservation_id] : null
-      const referred = referredProfileById[r.referred_id]
-      const cashbackTx = cashbackByReferralId[r.id]
-      return {
-        key: r.id,
-        referredId: r.referred_id,
-        referredName: referred?.full_name ? referred.full_name : `Cliente ${r.referred_id.slice(0, 6)}`,
-        reservation: reservation
-          ? { id: reservation.id, status: reservation.status, created_at: reservation.created_at, event_name: reservation.event_name }
-          : null,
-        referralStatus: r.status,
-        cashbackCents: r.status === "pending"
-          ? Math.floor((reservation?.total_cents ?? 20000) * 0.05)
-          : (typeof r.cashback_cents === "number" ? r.cashback_cents : Math.floor((reservation?.total_cents ?? 20000) * 0.05)),
-        cashbackStatus: cashbackTx?.status ?? ""
-      }
-    }),
-    ...derivedReservations.map((res) => {
-      const referred = referredProfileById[res.user_id]
-      const guestName = res.payment_terms?.guest_name
-      
-      return {
-        key: `res:${res.id}`,
-        referredId: res.user_id,
-        referredName: guestName ? `${guestName} (Gue)` : (referred?.full_name ? referred.full_name : `Cliente ${res.user_id.slice(0, 6)}`),
-        reservation: { id: res.id, status: res.status, created_at: res.created_at, event_name: res.event_name },
-        referralStatus: "pending",
-        cashbackCents: Math.floor((res.total_cents ?? 0) * 0.05),
-        cashbackStatus: ""
-      }
-    })
-  ].sort((a, b) => String(b.reservation?.created_at ?? "").localeCompare(String(a.reservation?.created_at ?? "")))
-
-  const cashbackPendingCents = indications
-    .filter((ind) => ind.referralStatus === "pending")
-    .reduce((acc, ind) => acc + ind.cashbackCents, 0)
+  const reservations = (reservationsRes.data ?? []) as ReservationRow[]
 
   const ok = searchParams?.ok
   const error = searchParams?.error
@@ -461,7 +310,7 @@ export default async function VendasDashboardPage({
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-brand-300">Dashboard de Vendas</h1>
           <p className="text-zinc-300">
-            Gerencie seus orçamentos, acompanhe suas indicações e solicite resgates.
+            Gerencie seus orçamentos e solicite resgates.
           </p>
         </div>
         <div className="flex gap-3">
@@ -481,7 +330,7 @@ export default async function VendasDashboardPage({
       ) : null}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-3 border-white/5 bg-white/[0.02]">
+        <Card className="lg:col-span-1 border-white/5 bg-white/[0.02]">
           <div className="flex flex-col gap-4">
             <h2 className="text-lg font-semibold text-white">Meu Perfil</h2>
             <div className="flex flex-col gap-1">
@@ -503,64 +352,31 @@ export default async function VendasDashboardPage({
           </div>
         </Card>
 
-        <Card className="lg:col-span-3 border-white/5 bg-white/[0.02]">
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white">Resumo Financeiro</h2>
-              <div className="space-y-4 rounded-2xl border border-white/5 bg-white/5 p-5">
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-zinc-400">Saldo Aprovado</p>
-                  <p className="text-3xl font-bold text-brand-300">{formatBRLFromCents(cashbackApprovedCents)}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-zinc-500">Pendente</p>
-                    <p className="text-sm font-semibold text-zinc-300">{formatBRLFromCents(cashbackPendingCents)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-zinc-500">Disponível</p>
-                    <p className="text-sm font-semibold text-emerald-400">{formatBRLFromCents(cashbackAvailableToWithdrawCents)}</p>
-                  </div>
-                </div>
-                <div className="space-y-3 pt-2">
-                   <p className="text-xs text-zinc-400">Solicitar Resgate via Pix</p>
-                   <form action={requestCashbackWithdrawal} className="space-y-2">
-                    <Input name="pix_key" placeholder="Sua chave Pix" className="bg-black/20" />
-                    <Button type="submit" intent="primary" className="w-full" disabled={cashbackAvailableToWithdrawCents <= 0}>
-                      Resgatar {formatBRLFromCents(cashbackAvailableToWithdrawCents)}
-                    </Button>
-                  </form>
-                </div>
+        <Card className="lg:col-span-2 border-white/5 bg-white/[0.02]">
+          <h2 className="text-lg font-semibold text-white">Resumo Financeiro</h2>
+          <div className="mt-4 space-y-4 rounded-2xl border border-white/5 bg-white/5 p-5">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-zinc-400">Saldo Aprovado</p>
+              <p className="text-3xl font-bold text-brand-300">{formatBRLFromCents(cashbackApprovedCents)}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-zinc-500">Pendente</p>
+                <p className="text-sm font-semibold text-zinc-300">{formatBRLFromCents(cashbackPendingCents)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-zinc-500">Disponível</p>
+                <p className="text-sm font-semibold text-emerald-400">{formatBRLFromCents(cashbackAvailableToWithdrawCents)}</p>
               </div>
             </div>
-
-            <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-lg font-semibold text-white">Minhas Indicações</h2>
-              {indications.length === 0 ? (
-                <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-white/10">
-                  <p className="text-sm text-zinc-500">Nenhuma indicação registrada ainda.</p>
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {indications.slice(0, 8).map((row) => (
-                    <div
-                      key={row.key}
-                      className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-4 py-3"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-zinc-100">{row.referredName}</span>
-                        <span className="text-xs text-zinc-400">
-                          {row.reservation?.event_name ?? "Reserva"} • {reservationStatusLabel(row.reservation?.status)}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-brand-300">{formatBRLFromCents(row.cashbackCents)}</p>
-                        <p className="text-[10px] text-zinc-500">{referralStatusLabel(row.referralStatus)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="space-y-3 pt-2">
+              <p className="text-xs text-zinc-400">Solicitar Resgate via Pix</p>
+              <form action={requestCashbackWithdrawal} className="space-y-2">
+                <Input name="pix_key" placeholder="Sua chave Pix" className="bg-black/20" />
+                <Button type="submit" intent="primary" className="w-full" disabled={cashbackAvailableToWithdrawCents <= 0}>
+                  Resgatar {formatBRLFromCents(cashbackAvailableToWithdrawCents)}
+                </Button>
+              </form>
             </div>
           </div>
         </Card>
@@ -581,8 +397,11 @@ export default async function VendasDashboardPage({
                   </div>
                   <div className="flex items-center gap-4">
                     <p className="font-bold text-brand-200">{formatBRLFromCents(r.total_cents)}</p>
+                    <Button asChild intent="primary" size="md">
+                      <Link href={`/cliente/pedidos/${r.id}?edit=1&view=1`}>Editar</Link>
+                    </Button>
                     <Button asChild intent="secondary" size="md">
-                      <Link href={`/cliente/pedidos/${r.id}`}>Ver Detalhes</Link>
+                      <Link href={`/cliente/pedidos/${r.id}?view=1`}>Ver Detalhes</Link>
                     </Button>
                   </div>
                 </div>

@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { createClient } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { requireEnv } from "@/lib/env"
 import { formatBRLFromCents } from "@/lib/pricing/calc"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
@@ -60,6 +62,14 @@ function paymentPlanLabel(plan: string | null | undefined) {
   }
 }
 
+function createSupabaseAdminClient() {
+  return createClient(
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    { auth: { persistSession: false } }
+  )
+}
+
 async function updatePedido(formData: FormData) {
   "use server"
 
@@ -71,7 +81,8 @@ async function updatePedido(formData: FormData) {
   const id = getString(formData, "id")
   if (!id) redirect("/cliente")
 
-  const currentRes = await supabase.from("reservations").select("id,status,user_id,payment_terms").eq("id", id).maybeSingle()
+  const admin = createSupabaseAdminClient()
+  const currentRes = await admin.from("reservations").select("id,status,user_id,payment_terms").eq("id", id).maybeSingle()
   const current = currentRes.data as any
   if (!current) redirect("/cliente")
 
@@ -107,7 +118,7 @@ async function updatePedido(formData: FormData) {
     notes: getString(formData, "notes") || null
   }
 
-  const upd = await supabase.from("reservations").update(payload).eq("id", id).eq("user_id", user.id)
+  const upd = await admin.from("reservations").update(payload).eq("id", id)
   if (upd.error) {
     redirect(`/cliente/pedidos/${id}?edit=1&error=${encodeURIComponent(upd.error.message)}`)
   }
