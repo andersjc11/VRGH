@@ -106,6 +106,10 @@ function paymentPlanLabel(plan: string | null | undefined) {
   }
 }
 
+function statusAllowsEdit(status: string | null | undefined) {
+  return status === "submitted" || status === "in_review"
+}
+
 const CASHBACK_RECEIPTS_BUCKET = "cashback-receipts"
 
 function createSupabaseAdminClient() {
@@ -397,9 +401,11 @@ export default async function VendasDashboardPage({
                   </div>
                   <div className="flex items-center gap-4">
                     <p className="font-bold text-brand-200">{formatBRLFromCents(r.total_cents)}</p>
-                    <Button asChild intent="primary" size="md">
-                      <Link href={`/cliente/pedidos/${r.id}?edit=1&view=1`}>Editar</Link>
-                    </Button>
+                    {statusAllowsEdit(r.status) ? (
+                      <Button asChild intent="primary" size="md">
+                        <Link href={`/cliente/pedidos/${r.id}?edit=1&view=1`}>Editar</Link>
+                      </Button>
+                    ) : null}
                     <Button asChild intent="secondary" size="md">
                       <Link href={`/cliente/pedidos/${r.id}?view=1`}>Ver Detalhes</Link>
                     </Button>

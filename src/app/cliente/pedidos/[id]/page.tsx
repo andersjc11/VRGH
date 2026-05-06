@@ -97,7 +97,7 @@ async function updatePedido(formData: FormData) {
   const isMyReferral = (refCode && refCode === myReferralCode) || (manualBonusId && manualBonusId === user.id)
 
   if (myRole !== "admin" && !isOwner && !isMyReferral) {
-    redirect("/cliente")
+    redirect("/vendas")
   }
 
   const status = String(current.status ?? "")
@@ -138,21 +138,26 @@ export default async function PedidoDetalhePage({
   const user = data.user
   if (!user) redirect(`/login?next=/cliente/pedidos/${params.id}`)
 
-  const res = await supabase
+  const profileRes = await supabase.from("profiles").select("role, referral_code").eq("id", user.id).maybeSingle()
+  const myRole = profileRes.data?.role
+  const myReferralCode = profileRes.data?.referral_code
+  const backHref = myRole === "sales" || myRole === "client" ? "/vendas" : "/cliente"
+  const isAdmin = myRole === "admin"
+
+  const admin = createSupabaseAdminClient()
+  const reservationsSelect = isAdmin
+    ? "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_number,address_line2,neighborhood,city,state,postal_code,notes,payment_terms,quote_id,user_id,profiles(full_name,cpf,phone,whatsapp,address_line1,neighborhood,city,postal_code)"
+    : "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_number,address_line2,neighborhood,city,state,postal_code,notes,payment_terms,quote_id,user_id,profiles(full_name,phone,whatsapp)"
+
+  const res = await admin
     .from("reservations")
-    .select(
-      "id,status,created_at,total_cents,payment_plan,event_name,venue_name,address_line1,address_number,address_line2,neighborhood,city,state,postal_code,notes,payment_terms,quote_id,user_id,profiles(full_name,cpf,phone,whatsapp,address_line1,neighborhood,city,postal_code)"
-    )
+    .select(reservationsSelect)
     .eq("id", params.id)
     .maybeSingle()
 
   const pedido = res.data as any
-  if (!pedido) redirect("/cliente")
+  if (!pedido) redirect(backHref)
 
-  // Se não for admin, verificar se o pedido pertence ao usuário
-  const profileRes = await supabase.from("profiles").select("role, referral_code").eq("id", user.id).maybeSingle()
-  const myRole = profileRes.data?.role
-  const myReferralCode = profileRes.data?.referral_code
   const isOwner = pedido.user_id === user.id
   const paymentTerms = (pedido.payment_terms as any) || {}
   const manualBonusId = typeof paymentTerms.manual_bonus_id === "string" ? paymentTerms.manual_bonus_id : ""
@@ -161,7 +166,7 @@ export default async function PedidoDetalhePage({
   const isMyReferral = (refCode && refCode === myReferralCode) || (manualBonusId && manualBonusId === user.id)
 
   if (myRole !== "admin" && !isOwner && !isMyReferral) {
-    redirect("/cliente")
+    redirect(backHref)
   }
 
   const guestName = typeof paymentTerms.guest_name === "string" ? paymentTerms.guest_name : ""
@@ -185,17 +190,20 @@ export default async function PedidoDetalhePage({
   }
 
   const viewAll = searchParams?.view === "1"
-  const edit = searchParams?.edit === "1"
+  const editRequested = searchParams?.edit === "1"
   const ok = searchParams?.ok === "1"
-  const error = typeof searchParams?.error === "string" ? searchParams.error : ""
+  const errorFromQuery = typeof searchParams?.error === "string" ? searchParams.error : ""
 
   const canEdit = statusAllowsEdit(String(pedido.status ?? ""))
+  const edit = editRequested && canEdit
+  const error =
+    errorFromQuery || (editRequested && !canEdit ? "Este pedido não pode mais ser editado." : "")
 
   const quoteId = typeof pedido.quote_id === "string" ? pedido.quote_id : ""
   const shouldLoadDetails = viewAll || edit
 
   const quoteRes = shouldLoadDetails && quoteId
-    ? await supabase
+    ? await admin
         .from("quotes")
         .select(
           "id,event_date,event_end_date,start_time,setup_date,setup_time,is_multi_day,duration_hours,distance_km,subtotal_cents,displacement_cents,discount_cents,total_cents,created_at"
@@ -207,7 +215,7 @@ export default async function PedidoDetalhePage({
   const quote = quoteRes.data as any
 
   const itemsRes = shouldLoadDetails && quoteId
-    ? await supabase
+    ? await admin
         .from("quote_items")
         .select("id,equipment_id,quantity,unit_price_cents,line_total_cents,equipments(name)")
         .eq("quote_id", quoteId)
@@ -245,7 +253,7 @@ export default async function PedidoDetalhePage({
         </div>
         <div className="flex gap-2">
           <Button asChild intent="ghost">
-            <Link href="/cliente">Voltar</Link>
+            <Link href={backHref}>Voltar</Link>
           </Button>
           <Button asChild intent="secondary">
             <Link href={`/cliente/pedidos/${pedido.id}${viewAll ? "" : "?view=1"}`}>{viewAll ? "Fechar" : "Ver tudo"}</Link>
@@ -387,8 +395,16 @@ export default async function PedidoDetalhePage({
                 {items.length ? (
                   items.map((it) => (
                     <div key={it.id} className="flex items-center justify-between">
-                      <span className="text-zinc-300">{it.equipments?.name ?? it.equipment_id}</span>
-                      <span className="font-semibold text-white">x{it.quantity}</span>
+                      <div className="flex flex-col">
+                        <span className="text-zinc-300">{it.equipments?.name ?? it.equipment_id}</span>
+                        <span className="text-xs text-zinc-500">Qtd: {it.quantity}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-semibold text-white">{formatBRLFromCents(it.line_total_cents ?? 0)}</span>
+                        <p className="text-xs text-zinc-500">
+                          {formatBRLFromCents(it.unit_price_cents ?? 0)} / {quote?.is_multi_day ? "dia" : "hora"}
+                        </p>
+                      </div>
                     </div>
                   ))
                 ) : (
