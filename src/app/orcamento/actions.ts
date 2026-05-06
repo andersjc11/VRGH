@@ -479,10 +479,31 @@ export async function createReservation(
 
     // 3. Garantir que o perfil existe e está atualizado
     // Usamos upsert aqui para garantir que o perfil seja criado caso o trigger não tenha funcionado
+    const existingProfileRes = await admin
+      .from("profiles")
+      .select("referral_code")
+      .eq("id", targetUser.id)
+      .maybeSingle()
+
+    let ensuredReferralCode =
+      typeof (existingProfileRes.data as any)?.referral_code === "string"
+        ? String((existingProfileRes.data as any).referral_code).trim().toUpperCase()
+        : ""
+
+    if (!ensuredReferralCode) {
+      const genRes = await admin.rpc("generate_referral_code")
+      ensuredReferralCode = typeof genRes.data === "string" ? genRes.data.trim().toUpperCase() : ""
+    }
+
+    if (!ensuredReferralCode) {
+      ensuredReferralCode = crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()
+    }
+
     const { error: profileError } = await admin
       .from("profiles")
       .upsert({
         id: targetUser.id,
+        referral_code: ensuredReferralCode,
         full_name: guestName,
         phone: guestPhone,
         whatsapp: guestPhone,
