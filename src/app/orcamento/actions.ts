@@ -499,14 +499,15 @@ export async function createReservation(
     if (thirdPartyUserId) effectiveUserId = thirdPartyUserId
   }
 
-  const refCode = formRef || cookieRef || metaRef || (isSalesTeam ? profile?.referral_code : "")
+  const incomingRefCode = formRef || cookieRef || metaRef
+  const sellerReferralCode =
+    typeof profile?.referral_code === "string" ? profile.referral_code.trim().toUpperCase() : ""
+  const refCode = isSalesTeam ? (sellerReferralCode || incomingRefCode) : incomingRefCode
 
-  if (refCode) {
-    if (effectiveUserId === user.id) {
-      const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
-      if (applyRes.error) {
-        return { error: `Falha ao aplicar indicação: ${applyRes.error.message}` }
-      }
+  if (refCode && !isSalesTeam && effectiveUserId === user.id) {
+    const applyRes = await supabase.rpc("apply_referral_code", { ref_code: refCode })
+    if (applyRes.error) {
+      return { error: `Falha ao aplicar indicação: ${applyRes.error.message}` }
     }
   }
 

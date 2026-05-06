@@ -141,7 +141,7 @@ export default async function AdminEquipePage({
 
   const profilesRes = await supabase
     .from("profiles")
-    .select("id,full_name,phone,created_at")
+    .select("id,full_name,phone,referral_code,created_at")
     .eq("role", "sales")
     .order("created_at", { ascending: false })
 
@@ -203,6 +203,7 @@ export default async function AdminEquipePage({
               <thead className="bg-white/5 text-zinc-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Nome</th>
+                  <th className="px-4 py-3 font-medium">Código</th>
                   <th className="px-4 py-3 font-medium">E-mail</th>
                   <th className="px-4 py-3 font-medium">Telefone</th>
                   <th className="px-4 py-3 font-medium text-right">Ações</th>
@@ -211,7 +212,7 @@ export default async function AdminEquipePage({
               <tbody className="divide-y divide-white/10">
                 {equipe.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
+                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
                       Nenhum membro cadastrado.
                     </td>
                   </tr>
@@ -219,6 +220,7 @@ export default async function AdminEquipePage({
                   equipe.map((member) => (
                     <tr key={member.id} className="hover:bg-white/[0.02]">
                       <td className="px-4 py-3 font-medium text-white">{member.full_name}</td>
+                      <td className="px-4 py-3 text-zinc-300">{member.referral_code ?? "—"}</td>
                       <td className="px-4 py-3 text-zinc-300">{member.email}</td>
                       <td className="px-4 py-3 text-zinc-300">{member.phone}</td>
                       <td className="px-4 py-3 text-right">

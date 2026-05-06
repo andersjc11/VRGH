@@ -124,6 +124,7 @@ export default async function OrcamentoPage({
   }
 
   const condoDiscountPct = readCondoDiscountPct(condominiumsRes.data?.value_json, condoCode)
+  const effectiveRefCode = salesProfile?.referral_code || ref || undefined
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -138,7 +139,7 @@ export default async function OrcamentoPage({
         equipments={equipments}
         prices={prices}
         config={config}
-        refCode={ref || salesProfile?.referral_code || undefined}
+        refCode={effectiveRefCode}
         condoCode={condoCode || undefined}
         condoDiscountPct={condoDiscountPct}
         isAuthenticated={isAuthenticated}
