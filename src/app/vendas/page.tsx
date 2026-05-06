@@ -1,13 +1,11 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { headers } from "next/headers"
 import { createClient } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { requireEnv } from "@/lib/env"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { ReferralLink } from "../cliente/ReferralLink"
 
 export const dynamic = "force-dynamic"
 
@@ -95,24 +93,6 @@ function formatBRLFromCents(cents: number) {
     style: "currency",
     currency: "BRL"
   })
-}
-
-function getBaseUrl() {
-  const h = headers()
-  const origin = h.get("origin")
-  if (origin) return origin
-
-  const proto = h.get("x-forwarded-proto") ?? "https"
-  const host = h.get("x-forwarded-host") ?? h.get("host")
-  if (host) return `${proto}://${host}`
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  if (siteUrl) return siteUrl
-
-  const vercelUrl = process.env.VERCEL_URL
-  if (vercelUrl) return `https://${vercelUrl}`
-
-  return ""
 }
 
 function safeDecodeURIComponent(value: string) {
@@ -347,11 +327,7 @@ export default async function VendasDashboardPage({
     .reduce((acc, w) => acc + (typeof w.amount_cents === "number" ? w.amount_cents : 0), 0)
   const cashbackAvailableToWithdrawCents = Math.max(0, cashbackApprovedCents - withdrawalRequestedCents - withdrawalPaidCents)
 
-  const baseUrl = getBaseUrl()
   const referralCode = profile?.referral_code ?? ""
-  const referralLink = referralCode
-    ? `${baseUrl || ""}/?ref=${encodeURIComponent(referralCode)}`
-    : ""
 
   const admin = createSupabaseAdminClient()
   const referralsRes = await admin
@@ -505,7 +481,7 @@ export default async function VendasDashboardPage({
       ) : null}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1 border-white/5 bg-white/[0.02]">
+        <Card className="lg:col-span-3 border-white/5 bg-white/[0.02]">
           <div className="flex flex-col gap-4">
             <h2 className="text-lg font-semibold text-white">Meu Perfil</h2>
             <div className="flex flex-col gap-1">
@@ -523,25 +499,6 @@ export default async function VendasDashboardPage({
               <Button asChild intent="secondary" size="md">
                 <Link href="/cliente/dados">Editar Dados</Link>
               </Button>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="lg:col-span-2 border-brand-500/20 bg-brand-500/5 overflow-hidden">
-          <div className="relative p-1">
-            <div className="relative z-10 space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-brand-500/20 px-3 py-1 text-xs font-medium text-brand-300">
-                  Meu Link de Indicação
-                </span>
-                <span className="text-xs text-zinc-400">Gere 5% de bônus por venda</span>
-              </div>
-              <p className="text-sm text-zinc-200">
-                Use este link para que o sistema atribua automaticamente a venda a você.
-              </p>
-              <div className="rounded-xl border border-white/10 bg-black/40 p-3">
-                <ReferralLink url={referralLink} />
-              </div>
             </div>
           </div>
         </Card>
